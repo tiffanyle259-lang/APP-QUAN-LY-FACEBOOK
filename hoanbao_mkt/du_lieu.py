@@ -60,6 +60,15 @@ class NhomKhach:
 
 
 @dataclass
+class CauHoi:
+    chu_de: str
+    hoi: str
+    tra_loi: str
+    lien_quan: str
+    chuyen_nguoi: bool
+
+
+@dataclass
 class KhungLich:
     thu: int  # 0 = Thứ 2 ... 6 = Chủ nhật
     ten_thu: str
@@ -76,6 +85,7 @@ class DuLieuNen:
     san_pham: list[SanPham]
     nhom_khach: list[NhomKhach]
     lich: list[KhungLich]
+    cau_hoi: list[CauHoi] = field(default_factory=list)
 
     def tim_san_pham(self, ma: str) -> SanPham | None:
         return next((sp for sp in self.san_pham if sp.ma.upper() == ma.strip().upper()), None)
@@ -168,5 +178,14 @@ def doc_du_lieu(duong_dan: str | Path, cot_bo_qua: list[str] | None = None) -> D
             nguon_media=str(d.get("Ảnh/video lấy từ") or "").strip(),
             gio_dang=gio.zfill(5),
         ))
+    cau_hoi = []
+    if "Câu hỏi thường gặp" in wb.sheetnames:
+        for d in _doc_bang(wb["Câu hỏi thường gặp"], set()):
+            hoi, tra_loi = lam_sach(d.get("Câu khách hay hỏi (giả lập)")), lam_sach(d.get("Câu trả lời chuẩn (gợi ý)"))
+            if hoi and tra_loi:
+                cau_hoi.append(CauHoi(
+                    chu_de=str(d.get("Chủ đề") or "").strip(), hoi=hoi, tra_loi=tra_loi,
+                    lien_quan=str(d.get("Liên quan SP") or "").strip(),
+                    chuyen_nguoi=str(d.get("Chuyển người thật?") or "").strip().lower() == "có"))
     wb.close()
-    return DuLieuNen(cong_ty=cong_ty, san_pham=san_pham, nhom_khach=nhom_khach, lich=lich)
+    return DuLieuNen(cong_ty=cong_ty, san_pham=san_pham, nhom_khach=nhom_khach, lich=lich, cau_hoi=cau_hoi)

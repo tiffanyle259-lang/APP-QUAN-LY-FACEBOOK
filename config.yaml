@@ -30,3 +30,8 @@ ai:
 
 facebook:
   graph_version: v24.0
+
+# Giai đoạn 2: chatbot Messenger và bình luận (chạy trên máy chủ riêng, xem render.yaml).
+bot:
+  model: claude-sonnet-5-5
+  effort: low

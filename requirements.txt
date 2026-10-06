@@ -8,3 +8,5 @@ google-auth>=2.20
 tzdata
 pillow>=10
 pytest>=8
+flask>=3
+gunicorn>=22
