@@ -92,6 +92,18 @@ class KhoDrive:
         self._cache[ten_thu_muc] = ds
         return ds
 
+    def tao_thu_muc_con(self, ten_thu_muc: list[str]) -> list[str]:
+        """Tạo các thư mục con còn thiếu trong Kho-Marketing. Trả về tên các thư mục vừa tạo."""
+        da_co = {f["name"] for f in self._liet_ke(
+            f"'{self.goc}' in parents and mimeType = '{FOLDER}' and trashed = false", "name")}
+        moi = [t for t in dict.fromkeys(ten_thu_muc) if t not in da_co]
+        for ten in moi:
+            self.svc.files().create(
+                body={"name": ten, "mimeType": FOLDER, "parents": [self.goc]}, fields="id", **_CHUNG
+            ).execute()
+        self._cache.clear()
+        return moi
+
     def thong_tin(self, file_id: str) -> FileMedia:
         f = self.svc.files().get(fileId=file_id, fields="id, name, mimeType", **_CHUNG).execute()
         return FileMedia(f["id"], f["name"], f["mimeType"])

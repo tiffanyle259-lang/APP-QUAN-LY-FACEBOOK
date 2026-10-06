@@ -3,6 +3,7 @@
   xem-ke-hoach [--tuan 2026-10-12] [--ai]   Xem kế hoạch tuần (không đụng Drive/Sheet/Facebook)
   tao-tuan     [--tuan 2026-10-12]          AI viết bài + chọn ảnh, ghi vào Sheet duyệt
   len-lich                                  Lên lịch Facebook cho các bài trạng thái "Duyệt"
+  tao-thu-muc                               Tạo sẵn các thư mục con trong Kho-Marketing
   kiem-tra                                  Kiểm tra kết nối Facebook, Drive, Sheet, Claude
 """
 
@@ -10,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import sys
 import tempfile
 from datetime import date, datetime
@@ -174,6 +176,21 @@ def len_lich(cfg: CauHinh, args, drive=None, sheets=None) -> None:
                 os.unlink(duong_dan)
 
 
+def tao_thu_muc(cfg: CauHinh, args) -> None:
+    """Tạo sẵn các thư mục con trong Kho-Marketing (chạy lại an toàn, không tạo trùng)."""
+    from .kho_anh import KhoDrive
+
+    drive, _ = _google(cfg)
+    du_lieu = _doc_du_lieu(cfg, drive)
+    ten = [sp.thu_muc for sp in du_lieu.san_pham if sp.thu_muc]
+    thu_muc = cfg["thu_muc"]
+    ten += [thu_muc["anh_chung"], *thu_muc["theo_nganh"].values()]
+    ten += [m for k in du_lieu.lich for m in re.findall(r"thư mục ([a-z0-9]+(?:-[a-z0-9]+)+)", k.nguon_media.lower())]
+    ten += ["video-demo", "khach-hang", "nha-may"]
+    moi = KhoDrive(drive, CauHinh.bien("DRIVE_KHO_ID")).tao_thu_muc_con(ten)
+    print(f"Đã tạo {len(moi)} thư mục mới: {', '.join(moi) or '(không, đã đủ)'}")
+
+
 def kiem_tra(cfg: CauHinh, args) -> None:
     ok = True
 
@@ -223,11 +240,13 @@ def main(argv=None) -> None:
     t = sub.add_parser("tao-tuan")
     t.add_argument("--tuan")
     sub.add_parser("len-lich")
+    sub.add_parser("tao-thu-muc")
     sub.add_parser("kiem-tra")
     args = p.parse_args(argv)
 
     cfg = CauHinh.doc()
-    lenh = {"xem-ke-hoach": xem_ke_hoach, "tao-tuan": tao_tuan, "len-lich": len_lich, "kiem-tra": kiem_tra}
+    lenh = {"xem-ke-hoach": xem_ke_hoach, "tao-tuan": tao_tuan, "len-lich": len_lich,
+            "tao-thu-muc": tao_thu_muc, "kiem-tra": kiem_tra}
     try:
         lenh[args.lenh](cfg, args)
     except ThieuCauHinh as e:

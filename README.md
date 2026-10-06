@@ -51,7 +51,7 @@ Tab **Cài đặt**, ô B1: `BẬT` / `TẮT` chế độ duyệt.
 
 ## Kho ảnh/video trên Google Drive
 
-Thư mục `Kho-Marketing` chứa các thư mục con sau:
+Chỉ cần tự tạo thư mục `Kho-Marketing`. Các thư mục con dưới đây sẽ được app tự tạo khi chạy workflow **Kiểm tra kết nối**. Danh sách:
 
 - **Theo sản phẩm** (cột "Thư mục ảnh/video trong kho"): `keo-phun-228`, `keo-phun-339`, `keo-phun-spro`, `keo-405a`, `keo-pu-hp333`, `keo-x66`, `keo-go-superpro`, `chat-xu-ly`, `chat-dong-ran-s383`, `chat-dong-ran-w838`, `chat-dong-ran-h638`
 - **Theo lịch:** `video-demo`, `khach-hang`, `nha-may`, `anh-minh-hoa-chung`
