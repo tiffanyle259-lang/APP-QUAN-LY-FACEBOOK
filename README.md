@@ -10,7 +10,7 @@ Thứ 6, 9h sáng      AI viết 6 bài cho tuần sau (T2–T7) theo sheet "L�
                     → ghi vào Google Sheet "Duyệt bài"
 Chế độ duyệt BẬT    Bạn đọc/sửa nội dung trong Sheet, đổi trạng thái thành "Duyệt"
 Chế độ duyệt TẮT    App tự chuyển "Duyệt" (trừ bài có cảnh báo)
-Mỗi giờ             App hẹn giờ đăng các bài "Duyệt" lên Fanpage → "Đã lên lịch"
+Mỗi giờ (6h–22h)    App hẹn giờ đăng các bài "Duyệt" lên Fanpage → "Đã lên lịch"
 ```
 
 **Nguyên tắc nội dung**
@@ -25,6 +25,16 @@ Mỗi giờ             App hẹn giờ đăng các bài "Duyệt" lên Fanpage 
 - Thứ 5: mỗi tuần một ngành.
 - Thứ 4 và Thứ 6: đi theo sản phẩm của tuần và ngành dùng sản phẩm đó.
 - Chủ nhật: không đăng.
+
+## Chi phí GitHub Actions (repo Private, gói Free: 2.000 phút/tháng)
+
+| Việc | Số lần/tháng | Phút/lần (làm tròn lên) | Phút/tháng |
+|---|---|---|---|
+| Lên lịch bài đã duyệt (17 lần/ngày) | ~510 | 1–2 | 510–1.020 |
+| Tạo bài cả tuần | ~4 | 1–3 | 4–12 |
+| Kiểm tra kết nối (chạy tay) | vài lần | 1–2 | ~10 |
+
+Tổng khoảng **530–1.050 phút**, bằng 27–53% mức miễn phí. Xem số phút đã dùng ở *Settings → Billing and plans*. Nếu gần hết, sửa dòng `cron` trong `.github/workflows/len-lich.yml` (ví dụ chỉ chạy 3 giờ một lần).
 
 ## Google Sheet "Duyệt bài"
 

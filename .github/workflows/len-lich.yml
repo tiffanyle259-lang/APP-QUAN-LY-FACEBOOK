@@ -1,9 +1,10 @@
 name: Lên lịch bài đã duyệt
 
 on:
-  # Mỗi giờ: bài nào trong Sheet chuyển sang "Duyệt" sẽ được hẹn giờ đăng trên Fanpage.
+  # Mỗi giờ từ 6h23 đến 22h23 giờ VN (17 lần/ngày, tiết kiệm phút Actions):
+  # bài nào trong Sheet chuyển sang "Duyệt" sẽ được hẹn giờ đăng trên Fanpage.
   schedule:
-    - cron: "23 * * * *"
+    - cron: "23 23,0-15 * * *"
   workflow_dispatch:
 
 # Không cho hai lần chạy cùng lúc, tránh đăng trùng bài.

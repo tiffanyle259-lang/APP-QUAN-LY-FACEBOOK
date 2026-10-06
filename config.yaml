@@ -25,7 +25,7 @@ thu_muc:
 khong_lap_lai_trong_ngay: 28
 
 ai:
-  model: claude-opus-5-5
+  model: claude-sonnet-5-5
   effort: medium
 
 facebook:
