@@ -1,0 +1,112 @@
+from datetime import date, datetime, timedelta, timezone
+
+import pytest
+
+from hoanbao_mkt.cau_hinh import CauHinh
+from hoanbao_mkt.du_lieu import doc_du_lieu, lam_sach
+from hoanbao_mkt.duyet_bai import doc_gio, doc_ngay, drive_id_tu_link
+from hoanbao_mkt.facebook import Fanpage, LoiFacebook
+from hoanbao_mkt.ke_hoach import lap_ke_hoach
+from hoanbao_mkt.kho_anh import FileMedia, chon_file
+from hoanbao_mkt.viet_bai import du_lieu_cua_bai, so_lieu_la, tao_yeu_cau
+
+CFG = CauHinh.doc()
+
+
+@pytest.fixture(scope="module")
+def du_lieu():
+    return doc_du_lieu(CFG.file_du_lieu, CFG["cot_bo_qua"])
+
+
+def ke_hoach(du_lieu, thu_hai=date(2026, 10, 12)):
+    return lap_ke_hoach(du_lieu, thu_hai, CFG["thu_muc"], CFG.mui_gio)
+
+
+@pytest.mark.parametrize("vao, ra", [
+    ("[cần bổ sung]", None),
+    ("—", None),
+    (None, None),
+    ("Pha vào keo theo tỉ lệ: [cần bổ sung]", None),
+    ("Pha vào keo theo tỉ lệ trước khi dùng; tỉ lệ pha: [cần bổ sung]", "Pha vào keo theo tỉ lệ trước khi dùng"),
+    ("3kg, 15kg (theo nhãn); web ghi 10kg, 180kg – xác nhận", "3kg, 15kg"),
+    ("Chống vàng hóa (theo nhãn)", "Chống vàng hóa"),
+    ("Chịu nhiệt tốt", "Chịu nhiệt tốt"),
+])
+def test_lam_sach(vao, ra):
+    assert lam_sach(vao) == ra
+
+
+def test_doc_file_khong_con_thong_tin_chua_chac(du_lieu):
+    assert len(du_lieu.lich) == 6  # Chủ nhật không đăng
+    toan_bo = str([sp.thong_tin for sp in du_lieu.san_pham]) + str(du_lieu.cong_ty)
+    assert "cần bổ sung" not in toan_bo
+    assert "xác nhận" not in toan_bo
+    assert "Giá tham khảo trên web (VNĐ)" not in toan_bo  # cột bị bỏ qua theo config
+    assert not any("LƯU Ý" in d for d in du_lieu.cong_ty)
+    assert du_lieu.tim_san_pham("228").thong_tin["Quy cách đóng gói"] == "3kg, 15kg"
+
+
+def test_ke_hoach_tuan(du_lieu):
+    ds = ke_hoach(du_lieu)
+    assert [b.ngay.weekday() for b in ds] == [0, 1, 2, 3, 4, 5]
+    thu2, thu3, thu4, thu5, thu6, thu7 = ds
+    assert thu2.thu_muc[0] == thu2.san_pham[0].thu_muc
+    assert thu2.thoi_diem.hour == 8 and thu2.thoi_diem.utcoffset() == timedelta(hours=7)
+    assert thu3.thu_muc[0] == "anh-minh-hoa-chung"
+    assert thu4.thu_muc[0] == "video-demo" and thu4.uu_tien_video
+    assert thu5.thu_muc[0].startswith("nganh-")
+    assert thu6.thu_muc[0] == "khach-hang"
+    assert thu7.thu_muc == ["nha-may"] and thu7.nhom_khach.mua_qua == "Đại lý"
+    # Sản phẩm của tuần đi cùng nhóm khách dùng sản phẩm đó
+    assert thu2.san_pham[0].ma in thu4.nhom_khach.ma_san_pham
+
+
+def test_xoay_vong_san_pham_moi_tuan(du_lieu):
+    ma = [ke_hoach(du_lieu, date(2026, 10, 12) + timedelta(weeks=i))[0].san_pham[0].ma for i in range(7)]
+    assert len(set(ma)) == 7
+    assert all(not du_lieu.tim_san_pham(m).la_phu_gia for m in ma)
+
+
+def test_yeu_cau_ai_chi_chua_du_lieu_cua_bai(du_lieu):
+    ds = ke_hoach(du_lieu)
+    yeu_cau = tao_yeu_cau(ds, du_lieu)
+    assert all(b.ma_bai in yeu_cau for b in ds)
+    assert "Kênh tiếp cận" not in yeu_cau
+
+
+def test_phat_hien_so_lieu_bia(du_lieu):
+    bai = ke_hoach(du_lieu)[0]
+    nguon = du_lieu_cua_bai(bai, du_lieu)
+    assert so_lieu_la("Tiết kiệm khoảng 50% keo, gọi 0976.884.341", nguon) == []
+    assert so_lieu_la("Bền tới 10 năm, chịu nhiệt 120 độ", nguon) == ["10", "120"]
+
+
+def test_chon_file():
+    hom_nay = date(2026, 10, 12)
+    ds = [
+        FileMedia("a", "IMG_001.jpg", "image/jpeg"),
+        FileMedia("b", "phun-mut-sofa.jpg", "image/jpeg"),
+        FileMedia("c", "phun mut sofa.mp4", "video/mp4"),
+        FileMedia("d", "sofa-moi-dung.jpg", "image/jpeg", lan_dung_cuoi=hom_nay - timedelta(days=3)),
+    ]
+    tk = ["sofa", "phun"]
+    assert chon_file(ds, tk, False, set(), hom_nay, 28).id == "b"
+    assert chon_file(ds, tk, True, set(), hom_nay, 28).id == "c"
+    assert chon_file(ds, tk, False, {"b", "c"}, hom_nay, 28).id == "a"  # "d" vừa dùng 3 ngày trước
+    assert chon_file(ds, [], False, {"a", "b", "c", "d"}, hom_nay, 28) is None
+
+
+def test_doc_o_trong_sheet():
+    assert drive_id_tu_link("https://drive.google.com/file/d/1AbC_dEf-123456789/view?usp=sharing") == "1AbC_dEf-123456789"
+    assert drive_id_tu_link("https://drive.google.com/open?id=1AbC_dEf-123456789") == "1AbC_dEf-123456789"
+    assert drive_id_tu_link("") is None
+    assert doc_ngay("2026-10-12") == doc_ngay("12/10/2026") == date(2026, 10, 12)
+    assert doc_gio("8:00:00").hour == 8 and doc_gio("19h30").minute == 30
+
+
+def test_khong_hen_gio_trong_qua_khu():
+    page = Fanpage("1", "token", "v24.0")
+    with pytest.raises(LoiFacebook):
+        page.len_lich("x", datetime.now(timezone.utc) + timedelta(minutes=5))
+    with pytest.raises(LoiFacebook):
+        page.len_lich("x", datetime.now(timezone.utc) + timedelta(days=40))

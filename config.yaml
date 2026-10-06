@@ -1,0 +1,32 @@
+# Cấu hình Giai đoạn 1 – Tự động nội dung fanpage Golden Lion.
+# Thông tin bí mật (token, khóa API) KHÔNG ghi ở đây, mà đặt trong GitHub Secrets.
+
+file_du_lieu: data/DuLieuNen_Marketing_HoanBao.xlsx
+mui_gio: Asia/Ho_Chi_Minh
+
+# Mặc định khi Google Sheet chưa có tab "Cài đặt". Chỉnh nhanh trong Sheet, không cần sửa ở đây.
+che_do_duyet: true
+
+# Các cột trong file Excel KHÔNG đưa cho AI (giá trên web chưa xác nhận lại).
+cot_bo_qua:
+  - Giá tham khảo trên web (VNĐ)
+
+# Thư mục con trong "Kho-Marketing" cho những ô không ghi tên thư mục cụ thể.
+thu_muc:
+  anh_chung: anh-minh-hoa-chung
+  theo_nganh:
+    "Xưởng giày dép, túi da": nganh-giay-dep
+    "Xưởng sofa, nệm, nội thất bọc": nganh-sofa-nem
+    "Xưởng đồ gỗ, tủ bếp, laminate": nganh-do-go
+    "Nội thất ô tô": nganh-o-to
+    "Đại lý, cửa hàng vật tư": nganh-dai-ly
+
+# Không dùng lại cùng một ảnh/video trong số ngày này (nếu kho còn file khác).
+khong_lap_lai_trong_ngay: 28
+
+ai:
+  model: claude-opus-5-5
+  effort: medium
+
+facebook:
+  graph_version: v24.0

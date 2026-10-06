@@ -1,0 +1,9 @@
+anthropic>=1.11
+openpyxl>=3.1
+pydantic>=2
+PyYAML>=6
+requests>=2.31
+google-api-python-client>=2.100
+google-auth>=2.20
+tzdata
+pytest>=8
