@@ -117,10 +117,17 @@ class KhoDrive:
             body={"name": ten, "mimeType": FOLDER, "parents": [self.goc]}, fields="id", **_CHUNG
         ).execute()["id"]
 
-    def liet_ke_file_tho(self, thu_muc_id: str) -> list[dict]:
-        return self._liet_ke(
-            f"'{thu_muc_id}' in parents and trashed = false and mimeType != '{FOLDER}'",
-            "id, name, mimeType, size")
+    def liet_ke_de_quy(self, thu_muc_id: str) -> list[dict]:
+        """Mọi file (không tính thư mục) trong thư mục và các thư mục con lồng nhau, kèm 'parents'."""
+        ket_qua, hang_doi = [], [thu_muc_id]
+        while hang_doi:
+            tm = hang_doi.pop()
+            ket_qua += self._liet_ke(
+                f"'{tm}' in parents and trashed = false and mimeType != '{FOLDER}'",
+                "id, name, mimeType, parents")
+            hang_doi += [d["id"] for d in self._liet_ke(
+                f"'{tm}' in parents and trashed = false and mimeType = '{FOLDER}'", "id")]
+        return ket_qua
 
     def tai_bytes(self, file_id: str) -> bytes:
         return self.svc.files().get_media(fileId=file_id, **_CHUNG).execute()

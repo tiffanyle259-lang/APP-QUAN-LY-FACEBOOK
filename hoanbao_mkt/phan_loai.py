@@ -105,14 +105,15 @@ def thu_muc_cho_video(ten_file: str, du_lieu: DuLieuNen) -> str:
 
 
 def chay(kho: KhoDrive, du_lieu: DuLieuNen, thu_muc_cfg: dict,
-         hoi: Callable[[str, dict[str, str]], KetQuaAnh], toi_da: int = 40) -> list[str]:
+         hoi: Callable[[str, dict[str, str]], KetQuaAnh], toi_da: int = 100) -> list[str]:
     cho_id = kho.id_thu_muc(THU_MUC_CHO, tao=True)
     xem_lai_id = kho.id_thu_muc(THU_MUC_XEM_LAI, tao=True)
     mo_ta = mo_ta_thu_muc(du_lieu, thu_muc_cfg)
     bao_cao = []
-    files = kho.liet_ke_file_tho(cho_id)
+    files = kho.liet_ke_de_quy(cho_id)  # gồm cả thư mục con người dùng thả vào
     for f in files[:toi_da]:
         mime, ten = f["mimeType"], f["name"]
+        tu_id = (f.get("parents") or [cho_id])[0]
         try:
             if mime.startswith("video/"):
                 dich = thu_muc_cho_video(ten, du_lieu)
@@ -120,14 +121,14 @@ def chay(kho: KhoDrive, du_lieu: DuLieuNen, thu_muc_cfg: dict,
             elif mime in ANH_HOP_LE:
                 kq = hoi(thu_nho(kho.tai_bytes(f["id"])), mo_ta)
                 if kq.thu_muc not in mo_ta or not kq.chac_chan:
-                    kho.chuyen(f["id"], cho_id, xem_lai_id, ten_moi(kq.tu_khoa, ten))
+                    kho.chuyen(f["id"], tu_id, xem_lai_id, ten_moi(kq.tu_khoa, ten))
                     bao_cao.append(f"{ten} → {THU_MUC_XEM_LAI} (AI không chắc)")
                     continue
                 dich, moi = kq.thu_muc, ten_moi(kq.tu_khoa, ten)
             else:
                 bao_cao.append(f"{ten}: bỏ qua (loại file {mime})")
                 continue
-            kho.chuyen(f["id"], cho_id, kho.id_thu_muc(dich, tao=True), moi)
+            kho.chuyen(f["id"], tu_id, kho.id_thu_muc(dich, tao=True), moi)
             bao_cao.append(f"{ten} → {dich}")
         except Exception as e:  # một file lỗi không làm dừng cả mẻ
             bao_cao.append(f"{ten}: lỗi – {e}")

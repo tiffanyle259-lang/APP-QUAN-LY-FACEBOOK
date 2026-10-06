@@ -118,12 +118,12 @@ from hoanbao_mkt import phan_loai
 
 class KhoGia:
     def __init__(self, files):
-        self.files, self.da_chuyen, self.thu_muc = files, [], {}
+        self.files, self.da_chuyen, self.thu_muc, self.nguon = files, [], {}, {}
 
     def id_thu_muc(self, ten, tao=False):
         return self.thu_muc.setdefault(ten, f"id:{ten}")
 
-    def liet_ke_file_tho(self, _):
+    def liet_ke_de_quy(self, _):
         return self.files
 
     def tai_bytes(self, _):
@@ -134,12 +134,13 @@ class KhoGia:
         return buf.getvalue()
 
     def chuyen(self, file_id, tu, den, ten_moi=None):
+        self.nguon[file_id] = tu
         self.da_chuyen.append((file_id, den, ten_moi))
 
 
 def test_phan_loai_kho(du_lieu):
     kho = KhoGia([
-        {"id": "a", "name": "IMG_1.jpg", "mimeType": "image/jpeg"},
+        {"id": "a", "name": "IMG_1.jpg", "mimeType": "image/jpeg", "parents": ["thu-muc-con"]},
         {"id": "b", "name": "IMG_2.png", "mimeType": "image/png"},
         {"id": "c", "name": "phun mut sofa 339.mp4", "mimeType": "video/mp4"},
         {"id": "d", "name": "ghi-chu.pdf", "mimeType": "application/pdf"},
@@ -154,6 +155,7 @@ def test_phan_loai_kho(du_lieu):
     assert dich["b"] == "id:_can-xem-lai"  # thư mục AI trả không có trong danh sách
     assert dich["c"] == "id:keo-phun-339"  # video khớp mã sản phẩm trong tên file
     assert "d" not in dich and any("bỏ qua" in d for d in bao_cao)
+    assert kho.nguon["a"] == "thu-muc-con"  # lấy từ thư mục con thật sự chứa file
     ten = next(t for f, _, t in kho.da_chuyen if f == "a")
     assert ten.startswith("phun-mut-sofa-") and ten.endswith(".jpg")
 
