@@ -1,0 +1,49 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Bảng điều khiển Fanpage</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--text:#1c2430;--muted:#667085;--line:#e4e7ec;--accent:#b7791f;
+--cho:#b54708;--cho-bg:#fef0c7;--duyet:#175cd3;--duyet-bg:#d1e9ff;--ok:#067647;--ok-bg:#d1fadf;
+--loi:#b42318;--loi-bg:#fee4e2;--bo:#475467;--bo-bg:#eaecf0}
+@media(prefers-color-scheme:dark){:root{--bg:#0f1319;--card:#171d26;--text:#e8ecf2;--muted:#9aa6b6;--line:#2a3340;
+--accent:#e5b25d;--cho:#fdb022;--cho-bg:#4a3507;--duyet:#84caff;--duyet-bg:#10325c;--ok:#6ce9a6;--ok-bg:#0b3a24;
+--loi:#fda29b;--loi-bg:#512018;--bo:#cbd5e1;--bo-bg:#2a3340}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);
+font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:980px;margin:0 auto;padding:20px 16px 48px}
+header{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:baseline;margin-bottom:16px}
+h1{font-size:22px;margin:0}h2{font-size:17px;margin:28px 0 10px}.muted{color:var(--muted);font-size:13px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.num{font-size:28px;font-weight:700;line-height:1.1}.lbl{font-size:13px;color:var(--muted)}
+.todo{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:12px;
+padding:12px 16px;margin-top:14px}.todo ul{margin:6px 0 0;padding-left:20px}
+.post{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px}
+.top{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+.when{font-weight:650}.badge{font-size:12px;font-weight:650;padding:2px 9px;border-radius:99px}
+.s-cho{color:var(--cho);background:var(--cho-bg)}.s-duyet{color:var(--duyet);background:var(--duyet-bg)}
+.s-ok{color:var(--ok);background:var(--ok-bg)}.s-loi{color:var(--loi);background:var(--loi-bg)}
+.s-bo,.s-moi{color:var(--bo);background:var(--bo-bg)}
+.meta{font-size:13px;color:var(--muted);margin-top:2px}.note{font-size:13px;color:var(--cho);margin-top:6px}
+details{margin-top:8px}summary{cursor:pointer;color:var(--accent);font-size:14px}
+.body{white-space:pre-wrap;margin-top:8px;padding:10px 12px;background:var(--bg);border-radius:8px}
+a{color:var(--duyet)}table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);
+border-radius:12px;overflow:hidden}th,td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);font-size:14px}
+th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}tr:last-child td{border-bottom:0}
+.zero{color:var(--loi);font-weight:650}
+</style></head><body><main>
+<header><h1>Bảng điều khiển Fanpage Keo dán giày (bản mẫu)</h1>
+<span class="muted">Cập nhật: 21:00 06/10/2026 · Chế độ duyệt: <b>BẬT (bài phải được duyệt)</b></span></header>
+<div class="cards"><div class='card'><div class='num'>6</div><div class='lbl'>Tổng số bài</div></div><div class='card'><div class='num'>3</div><div class='lbl'>Chờ duyệt</div></div><div class='card'><div class='num'>1</div><div class='lbl'>Đã duyệt, chờ lên lịch</div></div><div class='card'><div class='num'>2</div><div class='lbl'>Đã lên lịch đăng</div></div><div class='card'><div class='num'>0</div><div class='lbl'>Lỗi</div></div></div><div class='todo'><b>Việc cần chị/anh làm</b><ul><li>Có <b>3</b> bài đang chờ duyệt: <a href="https://docs.google.com/spreadsheets/d/1eoXwvL5_tVE_gPBDNm29sckNSgNE1FqzMV_bwVoan-c" target="_blank" rel="noopener">mở Google Sheet</a>, sửa nội dung nếu cần rồi đổi trạng thái thành <b>Duyệt</b>.</li><li>Có <b>2</b> file trong <code>_can-xem-lai</code> cần kéo về đúng thư mục.</li><li>2 thư mục kho chưa có ảnh/video: <code>keo-405a</code>, <code>khach-hang</code>. Bài vẫn đăng được, nhưng chỉ có chữ.</li></ul></div>
+<h2>Lịch bài đăng</h2><div class='post'><div class='top'><div><span class='when'>Thứ 2 12/10 · 08:00</span><div class='meta'>Giới thiệu sản phẩm · <a href='https://drive.google.com/' target='_blank' rel='noopener'>ảnh/video</a></div></div><span class='badge s-ok'>Đã lên lịch</span></div><details><summary>Xem nội dung bài</summary><div class='body'>Dạ anh/chị làm sofa, nệm chắc hiểu cảnh keo hôi, tốn keo khi quét tay.
+
+Keo phun 228 của Golden Lion không mùi, không chứa Toluene, tiết kiệm khoảng 50% keo so với quét tay.
+
+Hotline/Zalo: 0976.884.341
+#GoldenLion #KeoPhun</div></details></div><div class='post'><div class='top'><div><span class='when'>Thứ 3 13/10 · 19:30</span><div class='meta'>Mẹo dùng keo · <a href='https://drive.google.com/' target='_blank' rel='noopener'>ảnh/video</a></div></div><span class='badge s-ok'>Đã lên lịch</span></div><details><summary>Xem nội dung bài</summary><div class='body'>Mẹo dán PU, PVC trơn: lau Chất xử lý PU &amp; PVC trước, chờ khô 5–10 phút rồi mới quét keo.
+
+Hotline/Zalo: 0976.884.341
+#GoldenLion</div></details></div><div class='post'><div class='top'><div><span class='when'>Thứ 4 14/10 · 11:30</span><div class='meta'>Video demo thật · chưa có ảnh/video</div></div><span class='badge s-duyet'>Duyệt</span></div><details><summary>Xem nội dung bài</summary><div class='body'>(bản nháp AI sẽ hiện ở đây)</div></details></div><div class='post'><div class='top'><div><span class='when'>Thứ 5 15/10 · 19:30</span><div class='meta'>Theo ngành · chưa có ảnh/video</div></div><span class='badge s-cho'>Chờ duyệt</span></div><details><summary>Xem nội dung bài</summary><div class='body'>(bản nháp AI sẽ hiện ở đây)</div></details></div><div class='post'><div class='top'><div><span class='when'>Thứ 6 16/10 · 11:30</span><div class='meta'>Công trình / khách hàng thật · chưa có ảnh/video</div></div><span class='badge s-cho'>Chờ duyệt</span></div><div class='note'>Không có ảnh/video trong thư mục: khach-hang</div><details><summary>Xem nội dung bài</summary><div class='body'>(bản nháp AI sẽ hiện ở đây)</div></details></div><div class='post'><div class='top'><div><span class='when'>Thứ 7 17/10 · 09:00</span><div class='meta'>Hậu trường nhà máy / chính sách · chưa có ảnh/video</div></div><span class='badge s-cho'>Chờ duyệt</span></div><div class='note'>Không có ảnh/video trong thư mục: nha-may</div><details><summary>Xem nội dung bài</summary><div class='body'>(bản nháp AI sẽ hiện ở đây)</div></details></div>
+<h2>Kho ảnh/video (số file mỗi thư mục)</h2>
+<table><thead><tr><th>Thư mục</th><th>Số file</th></tr></thead><tbody><tr><td><code>keo-phun-228</code></td><td class=''>12</td></tr><tr><td><code>keo-phun-339</code></td><td class=''>5</td></tr><tr><td><code>keo-405a</code></td><td class='zero'>0</td></tr><tr><td><code>keo-x66</code></td><td class=''>3</td></tr><tr><td><code>video-demo</code></td><td class=''>2</td></tr><tr><td><code>khach-hang</code></td><td class='zero'>0</td></tr><tr><td><code>nha-may</code></td><td class=''>4</td></tr><tr><td><code>_chua-phan-loai</code></td><td class=''>0</td></tr><tr><td><code>_can-xem-lai</code></td><td class=''>2</td></tr></tbody></table>
+<p class="muted">Trang này chỉ để xem. Muốn sửa bài hoặc duyệt bài, làm trong Google Sheet.</p>
+</main></body></html>

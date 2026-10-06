@@ -4,6 +4,7 @@
   tao-tuan     [--tuan 2026-10-12]          AI viết bài + chọn ảnh, ghi vào Sheet duyệt
   len-lich                                  Lên lịch Facebook cho các bài trạng thái "Duyệt"
   phan-loai                                 Xếp ảnh/video thả vào _chua-phan-loai về thư mục con (AI xem ảnh)
+  bang-dieu-khien [--ra file.html]          Xuất trang HTML xem lịch bài, trạng thái duyệt, kho ảnh
   tao-thu-muc                               Tạo sẵn các thư mục con trong Kho-Marketing
   kiem-tra                                  Kiểm tra kết nối Facebook, Drive, Sheet, Claude
 """
@@ -209,6 +210,25 @@ def phan_loai_kho(cfg: CauHinh, args) -> None:
     print("\n".join(bao_cao) or f"Không có file mới trong '{phan_loai.THU_MUC_CHO}'.")
 
 
+def bang_dieu_khien(cfg: CauHinh, args) -> None:
+    """Xuất bang-dieu-khien.html: trang xem lịch bài, trạng thái duyệt và kho ảnh."""
+    from . import bang_dieu_khien as bdk
+    from .facebook import Fanpage
+
+    drive, sheets = _google(cfg)
+    ten_page = ""
+    try:
+        ten_page = Fanpage(CauHinh.bien("FB_PAGE_ID"), CauHinh.bien("FB_PAGE_TOKEN"),
+                           cfg["facebook"]["graph_version"]).kiem_tra()
+    except Exception as e:  # không có tên page vẫn xuất được trang
+        print(f"(không lấy được tên Fanpage: {e})")
+    du_lieu = bdk.thu_thap(cfg, drive, sheets, CauHinh.bien("SHEET_DUYET_ID"), CauHinh.bien("DRIVE_KHO_ID"), ten_page)
+    duong_dan = args.ra or "bang-dieu-khien.html"
+    with open(duong_dan, "w", encoding="utf-8") as fh:
+        fh.write(bdk.dung_html(du_lieu))
+    print(f"Đã xuất {duong_dan}: {len(du_lieu['bai'])} bài, {len(du_lieu['kho'])} thư mục kho.")
+
+
 def kiem_tra(cfg: CauHinh, args) -> None:
     ok = True
 
@@ -260,12 +280,14 @@ def main(argv=None) -> None:
     sub.add_parser("len-lich")
     sub.add_parser("tao-thu-muc")
     sub.add_parser("phan-loai")
+    bd = sub.add_parser("bang-dieu-khien")
+    bd.add_argument("--ra", help="Đường dẫn file HTML xuất ra (mặc định bang-dieu-khien.html)")
     sub.add_parser("kiem-tra")
     args = p.parse_args(argv)
 
     cfg = CauHinh.doc()
     lenh = {"xem-ke-hoach": xem_ke_hoach, "tao-tuan": tao_tuan, "len-lich": len_lich,
-            "tao-thu-muc": tao_thu_muc, "phan-loai": phan_loai_kho, "kiem-tra": kiem_tra}
+            "tao-thu-muc": tao_thu_muc, "bang-dieu-khien": bang_dieu_khien, "phan-loai": phan_loai_kho, "kiem-tra": kiem_tra}
     try:
         lenh[args.lenh](cfg, args)
     except ThieuCauHinh as e:

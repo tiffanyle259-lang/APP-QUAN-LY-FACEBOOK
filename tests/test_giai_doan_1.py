@@ -163,3 +163,22 @@ def test_phan_loai_kho(du_lieu):
 def test_mo_ta_thu_muc_khong_co_video(du_lieu):
     mo_ta = phan_loai.mo_ta_thu_muc(du_lieu, CFG["thu_muc"])
     assert "video-demo" not in mo_ta and "keo-phun-228" in mo_ta and "khach-hang" in mo_ta
+
+
+# ---- Bảng điều khiển HTML ----
+from hoanbao_mkt.bang_dieu_khien import dung_html
+
+
+def test_bang_dieu_khien_html():
+    d = {"cap_nhat": "21:00 06/10/2026", "page": "Keo dán giày", "che_do_duyet": True,
+         "sheet_url": "https://docs.google.com/spreadsheets/d/abc",
+         "bai": [
+             {"ma_bai": "1", "ngay": "2026-10-12", "gio": "08:00", "loai": "Giới thiệu", "noi_dung": "Xin chào <script>x</script>",
+              "media": "", "trang_thai": "Chờ duyệt", "ghi_chu": "Kiểm tra số liệu: 70", "facebook_id": ""},
+             {"ma_bai": "2", "ngay": "2026-10-13", "gio": "19:30", "loai": "Mẹo", "noi_dung": "b",
+              "media": "https://drive.google.com/file/d/x/view", "trang_thai": "Đã lên lịch", "ghi_chu": "", "facebook_id": "1:2"}],
+         "kho": [{"ten": "keo-x66", "so_file": 0}, {"ten": "_chua-phan-loai", "so_file": 3}]}
+    out = dung_html(d)
+    assert "<script>x" not in out and "&lt;script&gt;" in out  # nội dung bị thoát, không chạy được
+    assert "Thứ 2 12/10" in out and "Đã lên lịch" in out
+    assert "1</b> bài đang chờ duyệt" in out and "3</b> file chưa xếp loại" in out and "keo-x66" in out
