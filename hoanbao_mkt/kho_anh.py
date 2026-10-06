@@ -104,6 +104,34 @@ class KhoDrive:
         self._cache.clear()
         return moi
 
+    def id_thu_muc(self, ten: str, tao: bool = False) -> str | None:
+        """ID thư mục con của Kho-Marketing; tao=True thì tạo nếu chưa có."""
+        ten_q = ten.replace("'", "\\'")
+        tim = self._liet_ke(
+            f"'{self.goc}' in parents and name = '{ten_q}' and mimeType = '{FOLDER}' and trashed = false", "id")
+        if tim:
+            return tim[0]["id"]
+        if not tao:
+            return None
+        return self.svc.files().create(
+            body={"name": ten, "mimeType": FOLDER, "parents": [self.goc]}, fields="id", **_CHUNG
+        ).execute()["id"]
+
+    def liet_ke_file_tho(self, thu_muc_id: str) -> list[dict]:
+        return self._liet_ke(
+            f"'{thu_muc_id}' in parents and trashed = false and mimeType != '{FOLDER}'",
+            "id, name, mimeType, size")
+
+    def tai_bytes(self, file_id: str) -> bytes:
+        return self.svc.files().get_media(fileId=file_id, **_CHUNG).execute()
+
+    def chuyen(self, file_id: str, tu_id: str, den_id: str, ten_moi: str | None = None) -> None:
+        body = {"name": ten_moi} if ten_moi else {}
+        self.svc.files().update(
+            fileId=file_id, body=body, addParents=den_id, removeParents=tu_id, fields="id", **_CHUNG
+        ).execute()
+        self._cache.clear()
+
     def thong_tin(self, file_id: str) -> FileMedia:
         f = self.svc.files().get(fileId=file_id, fields="id, name, mimeType", **_CHUNG).execute()
         return FileMedia(f["id"], f["name"], f["mimeType"])

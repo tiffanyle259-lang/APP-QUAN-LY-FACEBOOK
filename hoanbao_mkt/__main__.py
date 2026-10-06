@@ -3,6 +3,7 @@
   xem-ke-hoach [--tuan 2026-10-12] [--ai]   Xem kế hoạch tuần (không đụng Drive/Sheet/Facebook)
   tao-tuan     [--tuan 2026-10-12]          AI viết bài + chọn ảnh, ghi vào Sheet duyệt
   len-lich                                  Lên lịch Facebook cho các bài trạng thái "Duyệt"
+  phan-loai                                 Xếp ảnh/video thả vào _chua-phan-loai về thư mục con (AI xem ảnh)
   tao-thu-muc                               Tạo sẵn các thư mục con trong Kho-Marketing
   kiem-tra                                  Kiểm tra kết nối Facebook, Drive, Sheet, Claude
 """
@@ -15,6 +16,8 @@ import re
 import sys
 import tempfile
 from datetime import date, datetime
+
+import anthropic
 
 from .cau_hinh import CauHinh, ThieuCauHinh
 from .du_lieu import DuLieuNen, doc_du_lieu
@@ -186,9 +189,24 @@ def tao_thu_muc(cfg: CauHinh, args) -> None:
     thu_muc = cfg["thu_muc"]
     ten += [thu_muc["anh_chung"], *thu_muc["theo_nganh"].values()]
     ten += [m for k in du_lieu.lich for m in re.findall(r"thư mục ([a-z0-9]+(?:-[a-z0-9]+)+)", k.nguon_media.lower())]
-    ten += ["video-demo", "khach-hang", "nha-may"]
+    ten += ["video-demo", "khach-hang", "nha-may", "_chua-phan-loai", "_can-xem-lai"]
     moi = KhoDrive(drive, CauHinh.bien("DRIVE_KHO_ID")).tao_thu_muc_con(ten)
     print(f"Đã tạo {len(moi)} thư mục mới: {', '.join(moi) or '(không, đã đủ)'}")
+
+
+def phan_loai_kho(cfg: CauHinh, args) -> None:
+    """Xếp ảnh/video trong Kho-Marketing/_chua-phan-loai vào thư mục con bằng AI."""
+    from . import phan_loai
+    from .kho_anh import KhoDrive
+
+    drive, _ = _google(cfg)
+    du_lieu = _doc_du_lieu(cfg, drive)
+    client = anthropic.Anthropic()
+    ai = cfg["ai"]
+    bao_cao = phan_loai.chay(
+        KhoDrive(drive, CauHinh.bien("DRIVE_KHO_ID")), du_lieu, cfg["thu_muc"],
+        lambda anh, mo_ta: phan_loai.hoi_ai(client, ai["model"], anh, mo_ta))
+    print("\n".join(bao_cao) or f"Không có file mới trong '{phan_loai.THU_MUC_CHO}'.")
 
 
 def kiem_tra(cfg: CauHinh, args) -> None:
@@ -241,12 +259,13 @@ def main(argv=None) -> None:
     t.add_argument("--tuan")
     sub.add_parser("len-lich")
     sub.add_parser("tao-thu-muc")
+    sub.add_parser("phan-loai")
     sub.add_parser("kiem-tra")
     args = p.parse_args(argv)
 
     cfg = CauHinh.doc()
     lenh = {"xem-ke-hoach": xem_ke_hoach, "tao-tuan": tao_tuan, "len-lich": len_lich,
-            "tao-thu-muc": tao_thu_muc, "kiem-tra": kiem_tra}
+            "tao-thu-muc": tao_thu_muc, "phan-loai": phan_loai_kho, "kiem-tra": kiem_tra}
     try:
         lenh[args.lenh](cfg, args)
     except ThieuCauHinh as e:

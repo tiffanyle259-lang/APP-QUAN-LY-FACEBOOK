@@ -6,4 +6,5 @@ requests>=2.31
 google-api-python-client>=2.100
 google-auth>=2.20
 tzdata
+pillow>=10
 pytest>=8

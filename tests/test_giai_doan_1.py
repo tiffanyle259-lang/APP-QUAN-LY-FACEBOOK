@@ -110,3 +110,54 @@ def test_khong_hen_gio_trong_qua_khu():
         page.len_lich("x", datetime.now(timezone.utc) + timedelta(minutes=5))
     with pytest.raises(LoiFacebook):
         page.len_lich("x", datetime.now(timezone.utc) + timedelta(days=40))
+
+
+# ---- Tự xếp ảnh vào kho ----
+from hoanbao_mkt import phan_loai
+
+
+class KhoGia:
+    def __init__(self, files):
+        self.files, self.da_chuyen, self.thu_muc = files, [], {}
+
+    def id_thu_muc(self, ten, tao=False):
+        return self.thu_muc.setdefault(ten, f"id:{ten}")
+
+    def liet_ke_file_tho(self, _):
+        return self.files
+
+    def tai_bytes(self, _):
+        from io import BytesIO
+        from PIL import Image
+        buf = BytesIO()
+        Image.new("RGB", (40, 30), "white").save(buf, "PNG")
+        return buf.getvalue()
+
+    def chuyen(self, file_id, tu, den, ten_moi=None):
+        self.da_chuyen.append((file_id, den, ten_moi))
+
+
+def test_phan_loai_kho(du_lieu):
+    kho = KhoGia([
+        {"id": "a", "name": "IMG_1.jpg", "mimeType": "image/jpeg"},
+        {"id": "b", "name": "IMG_2.png", "mimeType": "image/png"},
+        {"id": "c", "name": "phun mut sofa 339.mp4", "mimeType": "video/mp4"},
+        {"id": "d", "name": "ghi-chu.pdf", "mimeType": "application/pdf"},
+    ])
+    tra = iter([
+        phan_loai.KetQuaAnh(thu_muc="keo-phun-228", tu_khoa=["Phun Mút", "sofa"], chac_chan=True),
+        phan_loai.KetQuaAnh(thu_muc="thu-muc-la", tu_khoa=["gì đó"], chac_chan=True),
+    ])
+    bao_cao = phan_loai.chay(kho, du_lieu, CFG["thu_muc"], lambda anh, mo_ta: next(tra))
+    dich = {f: den for f, den, _ in kho.da_chuyen}
+    assert dich["a"] == "id:keo-phun-228"
+    assert dich["b"] == "id:_can-xem-lai"  # thư mục AI trả không có trong danh sách
+    assert dich["c"] == "id:keo-phun-339"  # video khớp mã sản phẩm trong tên file
+    assert "d" not in dich and any("bỏ qua" in d for d in bao_cao)
+    ten = next(t for f, _, t in kho.da_chuyen if f == "a")
+    assert ten.startswith("phun-mut-sofa-") and ten.endswith(".jpg")
+
+
+def test_mo_ta_thu_muc_khong_co_video(du_lieu):
+    mo_ta = phan_loai.mo_ta_thu_muc(du_lieu, CFG["thu_muc"])
+    assert "video-demo" not in mo_ta and "keo-phun-228" in mo_ta and "khach-hang" in mo_ta
