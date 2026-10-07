@@ -28,6 +28,7 @@ def chan_doan(url: str, app_id: str, app_secret: str, verify_token: str, page_id
         else:
             d = r.json()
             b, m = d.get("bot", {}), d.get("moi_truong", {})
+            ra.append(f"• Máy chủ khởi động lúc: {b.get('khoi_dong', '?')} (giờ VN)")
             ra.append(f"• Facebook đã gọi webhook {b.get('goi_webhook', 0)} lần, lần cuối: {b.get('lan_cuoi') or 'chưa lần nào'}")
             ra.append(f"• Tin khách nhận: {b.get('tin_nhan_khach', 0)} | bình luận: {b.get('binh_luan', 0)} | "
                       f"đã gửi trả lời: {b.get('da_gui_tra_loi', 0)} | bỏ qua vì im lặng: {b.get('bo_qua_im_lang', 0)}")
@@ -49,6 +50,26 @@ def chan_doan(url: str, app_id: str, app_secret: str, verify_token: str, page_id
     except Exception as e:
         ra.append(f"✗ Không đọc được đăng ký Fanpage: {e}")
 
+    # 2b. Ai nhận tin của Fanpage, và ai có vai trò trong ứng dụng
+    try:
+        sr = g("me/secondary_receivers", fields="id,name", access_token=page_token).get("data", [])
+        ra.append("• Ứng dụng nhận tin phụ (secondary): " + (", ".join(f"{a.get('name')}" for a in sr) or "không có"))
+    except Exception as e:
+        ra.append(f"• Không đọc được secondary_receivers: {e}")
+    try:
+        pr = g("me/primary_receivers", fields="id,name", access_token=page_token).get("data", [])
+        ra.append("• Ứng dụng nhận tin chính (primary): " + (", ".join(f"{a.get('name')}" for a in pr) or "không có"))
+    except Exception as e:
+        ra.append(f"• Không đọc được primary_receivers: {e}")
+    try:
+        vt = g(f"{app_id}/roles", access_token=f"{app_id}|{app_secret}").get("data", [])
+        dem: dict[str, int] = {}
+        for v in vt:
+            dem[v.get("role", "?")] = dem.get(v.get("role", "?"), 0) + 1
+        ra.append("• Vai trò trong ứng dụng: " + (", ".join(f"{k}={n}" for k, n in dem.items()) or "không đọc được"))
+    except Exception as e:
+        ra.append(f"• Không đọc được vai trò ứng dụng: {e}")
+
     # 3. Quyền của token
     try:
         d = g("debug_token", input_token=page_token, access_token=f"{app_id}|{app_secret}").get("data", {})
@@ -61,13 +82,14 @@ def chan_doan(url: str, app_id: str, app_secret: str, verify_token: str, page_id
     # 4. Hộp thư thực tế: tin khách có tới Fanpage không, Fanpage có trả lời không
     try:
         cs = g(f"{page_id}/conversations", platform="messenger", limit="3",
-               fields="updated_time,messages.limit(2){from,created_time}", access_token=page_token).get("data", [])
+               fields="updated_time,participants,messages.limit(2){from,created_time}", access_token=page_token).get("data", [])
         if not cs:
             ra.append("• Hộp thư Fanpage chưa có cuộc trò chuyện nào (tin nhắn thử chưa tới Fanpage này?)")
         for c in cs:
             ms = c.get("messages", {}).get("data", [])
             ai_nhan = ["Fanpage" if m.get("from", {}).get("id") == page_id else "khách" for m in ms]
-            ra.append(f"• Cuộc trò chuyện cập nhật {c.get('updated_time')}: tin mới nhất từ {ai_nhan[0] if ai_nhan else '?'}")
+            ten = ", ".join(p.get("name", "?") for p in c.get("participants", {}).get("data", []) if p.get("id") != page_id)
+            ra.append(f"• Cuộc trò chuyện với '{ten}' cập nhật {c.get('updated_time')}: tin mới nhất từ {ai_nhan[0] if ai_nhan else '?'}")
     except Exception as e:
         ra.append(f"• Không đọc được hộp thư: {e}")
     return ra

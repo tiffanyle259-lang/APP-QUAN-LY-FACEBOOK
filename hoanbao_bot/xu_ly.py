@@ -34,7 +34,8 @@ class Bot:
         self.im_lang: dict[str, float] = {}
         # Số liệu để chẩn đoán từ xa (không chứa nội dung khách hay khóa).
         self.thong_ke = {"goi_webhook": 0, "su_kien": 0, "tin_nhan_khach": 0, "binh_luan": 0,
-                         "da_gui_tra_loi": 0, "bo_qua_im_lang": 0, "loi": 0, "lan_cuoi": "", "loi_cuoi": ""}
+                         "da_gui_tra_loi": 0, "bo_qua_im_lang": 0, "loi": 0, "lan_cuoi": "", "loi_cuoi": "",
+                         "khoi_dong": datetime.fromtimestamp(self.gio(), self.mui_gio).strftime("%d/%m %H:%M:%S")}
 
     # ---- điểm vào ----
     def xu_ly_su_kien(self, body: dict) -> None:
