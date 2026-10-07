@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lấy token Fanpage</title>
+<style>
+:root{--bg:#f5f4f0;--card:#fff;--fg:#1d2230;--muted:#626b7b;--line:#e4e2db;--gold:#f4b323;--gold-d:#a96a00;--ok:#0b6b45;--ok-bg:#d6f2e3;--warn:#8f5200;--warn-bg:#fdebc4;--err:#a32a1f;--err-bg:#fde0dc}
+@media(prefers-color-scheme:dark){:root{--bg:#12161f;--card:#1a202c;--fg:#eceef3;--muted:#9aa3b3;--line:#2b3342;--gold-d:#f0b955;--ok:#6fe0a8;--ok-bg:#0d3a27;--warn:#f2c26b;--warn-bg:#43300a;--err:#ff9d93;--err-bg:#4a1d18;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{background:var(--gold);color:#1d2230;padding:22px 16px}
+header div,main{max-width:720px;margin:0 auto}
+h1{margin:0;font-size:26px;line-height:1.2}header p{margin:4px 0 0;opacity:.8}
+main{padding:20px 16px 60px;display:flex;flex-direction:column;gap:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+.card h2{margin:0 0 10px;font-size:17px}
+label{display:block;font-weight:600;margin:12px 0 4px}label small{font-weight:400;color:var(--muted)}
+input{width:100%;font:inherit;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--fg)}
+input:focus-visible,button:focus-visible{outline:2px solid var(--gold-d);outline-offset:2px}
+button{font:inherit;font-weight:700;border:0;border-radius:10px;padding:12px 18px;cursor:pointer;background:var(--gold);color:#1d2230}
+button.phu{background:var(--bg);color:var(--fg);border:1px solid var(--line);font-weight:600;padding:9px 14px}
+button:disabled{opacity:.55;cursor:wait}
+.buoc{display:flex;gap:10px;align-items:flex-start;margin:6px 0}.buoc b{flex:none;width:26px;height:26px;border-radius:8px;background:var(--gold);color:#1d2230;display:grid;place-items:center;font-size:14px}
+.thongbao{padding:10px 14px;border-radius:10px;font-size:15px}
+.loi{background:var(--err-bg);color:var(--err)}.ok{background:var(--ok-bg);color:var(--ok)}.canh{background:var(--warn-bg);color:var(--warn)}
+.page{border:1px solid var(--line);border-radius:12px;padding:14px;margin-top:10px}
+.page.goiy{border:2px solid var(--gold)}
+.page h3{margin:0 0 2px;font-size:17px}.muted{color:var(--muted);font-size:13.5px}
+.nut{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+code{font:13px ui-monospace,Menlo,Consolas,monospace;word-break:break-all}
+</style>
+</head>
+<body>
+<header><div><h1>Lấy token Fanpage</h1><p>Đổi token ngắn thành token Fanpage không hết hạn, chỉ cần dán 2 ô.</p></div></header>
+<main>
+  <section class="card">
+    <h2>Chuẩn bị</h2>
+    <div class="buoc"><b>1</b><span>Mở <a href="https://developers.facebook.com/tools/explorer" target="_blank" rel="noopener">Trình khám phá API Đồ thị</a>, bấm <b>Generate Access Token</b>, rồi bấm nút <b>copy</b> bên phải ô <b>Mã truy cập</b>.</span></div>
+    <div class="buoc"><b>2</b><span>Dán token đó vào ô đầu tiên bên dưới. Dán <b>App Secret</b> vào ô thứ hai. Bấm nút vàng.</span></div>
+    <p class="muted" style="margin:10px 0 0">Công cụ chạy ngay trong trình duyệt của chị/anh. Token và App Secret chỉ được gửi đến Facebook, không gửi đi đâu khác và không được lưu lại.</p>
+  </section>
+
+  <section class="card">
+    <label for="ngan">Token ngắn <small>(từ Explorer, bắt đầu bằng EAA)</small></label>
+    <input id="ngan" autocomplete="off" spellcheck="false" placeholder="Dán token ở đây">
+    <label for="secret">App Secret <small>(Meta → Cài đặt ứng dụng → Cơ bản)</small></label>
+    <input id="secret" type="password" autocomplete="off" spellcheck="false" placeholder="Dán App Secret ở đây">
+    <label for="appid">ID ứng dụng</label>
+    <input id="appid" value="1570474760979317" inputmode="numeric">
+    <p style="margin:16px 0 0"><button id="chay" type="button">Lấy token Fanpage</button></p>
+  </section>
+
+  <div id="tb" role="status" aria-live="polite"></div>
+  <div id="ds"></div>
+</main>
+<script>
+const G = "https://graph.facebook.com/v24.0";
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const boDau = (s) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D").toLowerCase();
+const thongBao = (loai, html) => { $("tb").innerHTML = html ? `<div class="thongbao ${loai}">${html}</div>` : ""; };
+
+async function goi(duongDan, tham = {}) {
+  const url = G + duongDan + "?" + new URLSearchParams(tham);
+  let r;
+  try { r = await fetch(url); }
+  catch (e) { throw Object.assign(new Error("Trình duyệt không gọi được Facebook"), {mang: true, url}); }
+  const j = await r.json().catch(() => ({}));
+  if (j.error) throw new Error(j.error.message || "Facebook báo lỗi");
+  return j;
+}
+
+function dichLoi(e) {
+  const m = e.message || "";
+  if (e.mang) return "Trình duyệt không gọi được Facebook (có thể do mạng hoặc tiện ích chặn). Thử tắt tiện ích chặn quảng cáo, hoặc mở file này bằng Chrome.";
+  if (/client_secret|App secret|secret/i.test(m)) return "App Secret chưa đúng. Chị/anh copy lại từ Meta → Cài đặt ứng dụng → Cơ bản → Khóa bí mật của ứng dụng.";
+  if (/session has expired|expired|Invalid OAuth|Malformed access token/i.test(m)) return "Token ngắn không dùng được hoặc đã hết hạn. Chị/anh quay lại Explorer, bấm Generate Access Token và copy token mới.";
+  return "Facebook báo: " + m;
+}
+
+async function kiemTra(token, appId, secret) {
+  try {
+    const j = await goi("/debug_token", {input_token: token, access_token: appId + "|" + secret});
+    const d = j.data || {};
+    return {hopLe: !!d.is_valid, khongHetHan: d.expires_at === 0, scopes: d.scopes || []};
+  } catch (e) { return null; }
+}
+
+function sao(text, nut) {
+  const lam = async () => {
+    try { await navigator.clipboard.writeText(text); nut.textContent = "Đã copy ✓"; }
+    catch (e) { window.prompt("Chọn hết rồi nhấn Ctrl+C:", text); }
+    setTimeout(() => { nut.textContent = nut.dataset.nhan; }, 2000);
+  };
+  nut.addEventListener("click", lam);
+}
+
+async function chay() {
+  const ngan = $("ngan").value.trim(), secret = $("secret").value.trim(), appId = $("appid").value.trim();
+  $("ds").innerHTML = "";
+  if (!ngan || !secret || !appId) return thongBao("loi", "Chị/anh dán đủ token ngắn và App Secret nhé.");
+  $("chay").disabled = true;
+  try {
+    thongBao("canh", "Đang đổi sang token dài hạn…");
+    const dai = await goi("/oauth/access_token", {grant_type: "fb_exchange_token", client_id: appId, client_secret: secret, fb_exchange_token: ngan});
+    thongBao("canh", "Đang lấy danh sách Fanpage…");
+    const tk = await goi("/me/accounts", {fields: "name,id,access_token,tasks", limit: "100", access_token: dai.access_token});
+    const pages = tk.data || [];
+    if (!pages.length) return thongBao("loi", "Không thấy Fanpage nào. Ở Explorer, chị/anh bấm Generate Access Token lại và nhớ tick chọn Fanpage trong hộp Facebook.");
+    thongBao("ok", `Thấy ${pages.length} Fanpage. Chọn đúng page cần dùng rồi bấm copy.`);
+    pages.sort((a, b) => (boDau(b.name).includes("keo dan giay") ? 1 : 0) - (boDau(a.name).includes("keo dan giay") ? 1 : 0));
+    for (const p of pages) {
+      const kt = await kiemTra(p.access_token, appId, secret);
+      const goiY = boDau(p.name).includes("keo dan giay");
+      const trangThai = !kt ? '<span class="thongbao canh">Chưa kiểm tra được hạn dùng</span>'
+        : !kt.hopLe ? '<span class="thongbao loi">Token không hợp lệ</span>'
+        : kt.khongHetHan ? '<span class="thongbao ok">Không bao giờ hết hạn ✓</span>'
+        : '<span class="thongbao canh">Token có hạn: chị/anh lấy lại token ngắn mới rồi làm lại</span>';
+      const quyen = kt && kt.scopes.length ? `<div class="muted" style="margin-top:6px">Quyền: ${esc(kt.scopes.join(", "))}</div>` : "";
+      const div = document.createElement("div");
+      div.className = "page" + (goiY ? " goiy" : "");
+      div.innerHTML = `<h3>${esc(p.name)}${goiY ? " · nên dùng" : ""}</h3><div class="muted">ID: <code>${esc(p.id)}</code></div>
+        <div style="margin-top:8px">${trangThai}</div>${quyen}
+        <div class="nut"><button class="phu" type="button" data-nhan="Copy ID" id="id-${esc(p.id)}">Copy ID</button>
+        <button type="button" data-nhan="Copy token Fanpage" id="tk-${esc(p.id)}">Copy token Fanpage</button></div>`;
+      $("ds").appendChild(div);
+      for (const [pre, val] of [["id-", p.id], ["tk-", p.access_token]]) {
+        const nut = div.querySelector("#" + CSS.escape(pre + p.id)); nut.textContent = nut.dataset.nhan; sao(val, nut);
+      }
+    }
+  } catch (e) { thongBao("loi", esc(dichLoi(e))); }
+  finally { $("chay").disabled = false; }
+}
+$("chay").addEventListener("click", chay);
+</script>
+</body>
+</html>
