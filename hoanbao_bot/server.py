@@ -21,7 +21,7 @@ def chu_ky_hop_le(raw: bytes, header: str, app_secret: str) -> bool:
     return hmac.compare_digest(mong_doi, header[len("sha256="):])
 
 
-def tao_ung_dung(bot, app_secret: str, verify_token: str, chay=None) -> Flask:
+def tao_ung_dung(bot, app_secret: str, verify_token: str, chay=None, moi_truong=None) -> Flask:
     app = Flask(__name__)
     pool = ThreadPoolExecutor(max_workers=4)
     chay = chay or pool.submit
@@ -30,6 +30,13 @@ def tao_ung_dung(bot, app_secret: str, verify_token: str, chay=None) -> Flask:
     @app.get("/healthz")
     def suc_khoe():
         return "ok", 200
+
+    @app.get("/trang-thai")
+    def trang_thai():
+        """Báo tình trạng bot cho công cụ chẩn đoán. Cần mật khẩu xác minh; không trả về khóa hay nội dung khách."""
+        if not hmac.compare_digest(request.args.get("k", ""), verify_token):
+            return "forbidden", 403
+        return {"bot": getattr(bot, "thong_ke", {}), "moi_truong": moi_truong() if moi_truong else {}}
 
     @app.get("/webhook")
     def xac_minh():

@@ -40,6 +40,21 @@ def tao_bot() -> tuple[Bot, str, str]:
             CauHinh.bien("FB_APP_SECRET"), CauHinh.bien("FB_VERIFY_TOKEN"))
 
 
+def kiem_moi_truong() -> dict:
+    """Tình trạng cấu hình (đúng/sai), tuyệt đối không lộ giá trị."""
+    from hoanbao_mkt.cau_hinh import ThieuCauHinh
+    ket_qua = {}
+    try:
+        CauHinh.khoa_claude()
+        ket_qua["khoa_claude"] = "đúng dạng"
+    except ThieuCauHinh as e:
+        ket_qua["khoa_claude"] = "SAI: " + str(e)[:80]
+    for ten in ("FB_PAGE_ID", "FB_PAGE_TOKEN", "FB_APP_SECRET", "SHEET_DUYET_ID", "GOOGLE_SERVICE_ACCOUNT_JSON"):
+        ket_qua[ten] = "có" if os.environ.get(ten, "").strip() else "THIẾU"
+    ket_qua["ghi_so_khach"] = "có" if _bot.so_khach else "KHÔNG (không nối được Google Sheet)"
+    return ket_qua
+
+
 logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO"))
 _bot, _secret, _verify = tao_bot()
-app = tao_ung_dung(_bot, _secret, _verify)
+app = tao_ung_dung(_bot, _secret, _verify, moi_truong=kiem_moi_truong)

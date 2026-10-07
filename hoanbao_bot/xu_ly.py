@@ -32,9 +32,14 @@ class Bot:
         self.mui_gio, self.gio = ZoneInfo(mui_gio), gio
         self.da_xu_ly: OrderedDict[str, float] = OrderedDict()
         self.im_lang: dict[str, float] = {}
+        # Số liệu để chẩn đoán từ xa (không chứa nội dung khách hay khóa).
+        self.thong_ke = {"goi_webhook": 0, "su_kien": 0, "tin_nhan_khach": 0, "binh_luan": 0,
+                         "da_gui_tra_loi": 0, "bo_qua_im_lang": 0, "loi": 0, "lan_cuoi": "", "loi_cuoi": ""}
 
     # ---- điểm vào ----
     def xu_ly_su_kien(self, body: dict) -> None:
+        self.thong_ke["goi_webhook"] += 1
+        self.thong_ke["lan_cuoi"] = datetime.fromtimestamp(self.gio(), self.mui_gio).strftime("%d/%m %H:%M:%S")
         if body.get("object") != "page":
             return
         for entry in body.get("entry", []):
@@ -44,10 +49,17 @@ class Bot:
                 self._an_toan(self._thay_doi, ch)
 
     def _an_toan(self, ham, doi_tuong) -> None:
+        self.thong_ke["su_kien"] += 1
         try:
             ham(doi_tuong)
-        except Exception:  # một sự kiện lỗi không được làm sập cả bot
+        except Exception as e:  # một sự kiện lỗi không được làm sập cả bot
             log.exception("Lỗi xử lý sự kiện")
+            self.ghi_loi(e)
+
+    def ghi_loi(self, e: Exception) -> None:
+        self.thong_ke["loi"] += 1
+        # Che mọi chuỗi giống token trước khi lưu.
+        self.thong_ke["loi_cuoi"] = re.sub(r"(EAA|sk-ant-)\w+", r"\1***", f"{type(e).__name__}: {e}")[:300]
 
     def _moi(self, khoa: str) -> bool:
         """True nếu chưa xử lý khoá này (Meta có thể gửi trùng)."""
@@ -78,8 +90,10 @@ class Bot:
             text, co_tep = "Xin chào", False
         else:
             return
+        self.thong_ke["tin_nhan_khach"] += 1
         if self.gio() < self.im_lang.get(psid, 0):
             log.info("Bỏ qua %s: nhân viên đang xử lý", psid)
+            self.thong_ke["bo_qua_im_lang"] += 1
             return
         self.mess.hanh_dong(psid, "mark_seen")
         self.mess.hanh_dong(psid, "typing_on")
@@ -100,12 +114,14 @@ class Bot:
             lich_su.append({"tu": "khach", "noi_dung": text})
         try:
             kq = self.ai.tra_loi(lich_su)
-        except Exception:
+        except Exception as e:
             log.exception("AI lỗi")
+            self.ghi_loi(e)
             self.mess.gui_chu(psid, LOI_AI)
             self._chuyen(psid, "", tim_sdt(text), "AI lỗi, cần nhân viên", text[:200])
             return
         self.mess.gui_chu(psid, kq.tra_loi)
+        self.thong_ke["da_gui_tra_loi"] += 1
         sdt = tim_sdt(kq.sdt) or tim_sdt(text)
         if kq.chuyen_nhan_vien or sdt:
             self._chuyen(psid, kq.ten, sdt, kq.ly_do if kq.chuyen_nhan_vien else "Khách để lại SĐT", kq.nhu_cau,
@@ -139,6 +155,7 @@ class Bot:
         text = (v.get("message") or "").strip()
         if not text:
             return
+        self.thong_ke["binh_luan"] += 1
         kq = self.ai.phan_loai_binh_luan(text)
         if kq.tra_loi_cong_khai.strip() and kq.loai not in ("spam_hoac_xau", "khac"):
             self.mess.tra_loi_binh_luan(cid, kq.tra_loi_cong_khai.strip())

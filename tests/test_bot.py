@@ -237,3 +237,26 @@ def test_dang_ky_webhook():
     assert h.goi[1][1] == "PAGE/subscribed_apps" and h.goi[1][2]["access_token"] == "PTOKEN"
     with pytest.raises(LoiDangKy, match="FB_VERIFY_TOKEN"):
         dang_ky("https://x.onrender.com", "APP", "SEC", "VT", "PAGE", "PT", http=Http(may_chu_ok=False))
+
+
+def test_thong_ke_va_trang_thai():
+    ai = AiGia(KetQuaBot(tra_loi="ok", chuyen_nhan_vien=False))
+    bot, mess, *_ = tao_bot(ai, MessGia([]))
+    bot.xu_ly_su_kien(tin("m1"))
+    bot.xu_ly_su_kien({"object": "page", "entry": [{"messaging": [{"sender": {"id": "u"}, "message": {"mid": "x", "text": "a"}}]}]})
+    t = bot.thong_ke
+    assert t["goi_webhook"] == 2 and t["tin_nhan_khach"] == 2 and t["da_gui_tra_loi"] == 2 and t["lan_cuoi"]
+
+    class Hong(MessGia):
+        def gui_chu(self, psid, text):
+            raise RuntimeError("Invalid OAuth access token EAAB12345secret")
+
+    bot2, *_ = tao_bot(AiGia(KetQuaBot(tra_loi="ok", chuyen_nhan_vien=False)), Hong([]))
+    bot2.xu_ly_su_kien(tin("m1"))
+    assert bot2.thong_ke["loi"] == 1 and "secret" not in bot2.thong_ke["loi_cuoi"] and "EAA***" in bot2.thong_ke["loi_cuoi"]
+
+    app = tao_ung_dung(bot, "s", "mat-khau", chay=lambda f, *a: f(*a), moi_truong=lambda: {"khoa_claude": "đúng dạng"})
+    c = app.test_client()
+    assert c.get("/trang-thai?k=sai").status_code == 403
+    d = c.get("/trang-thai?k=mat-khau").get_json()
+    assert d["bot"]["tin_nhan_khach"] == 2 and d["moi_truong"]["khoa_claude"] == "đúng dạng"
