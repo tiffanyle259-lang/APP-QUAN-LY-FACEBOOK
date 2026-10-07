@@ -13,8 +13,8 @@ from .ai_bot import LOI_AI
 
 log = logging.getLogger("hoanbao_bot")
 
-IM_LANG_SAU_CHUYEN = 12 * 3600   # sau khi chuyển nhân viên, bot im lặng với khách này
 IM_LANG_SAU_NV_TRA_LOI = 12 * 3600  # nhân viên tự trả lời trong hộp thư thì bot nhường
+GHI_LAI_KHACH_SAU = 6 * 3600  # không ghi trùng cùng một khách vào Sheet trong khoảng này (trừ khi có SĐT mới)
 _SDT = re.compile(r"(?<!\d)(?:\+?84|0)(?:[\s.\-]?\d){9}(?!\d)")
 TIN_HINH = ("Dạ em đã nhận được hình/tệp của anh/chị ạ. Em chuyển nhân viên kỹ thuật xem và phản hồi sớm nhất. "
             "Anh/chị có thể nhắn thêm vật liệu đang dán và loại keo đang dùng để bên em hỗ trợ nhanh hơn ạ.")
@@ -32,6 +32,7 @@ class Bot:
         self.mui_gio, self.gio = ZoneInfo(mui_gio), gio
         self.da_xu_ly: OrderedDict[str, float] = OrderedDict()
         self.im_lang: dict[str, float] = {}
+        self.da_ghi: dict[str, tuple[float, str]] = {}  # psid -> (lúc ghi, sdt đã ghi)
         # Số liệu để chẩn đoán từ xa (không chứa nội dung khách hay khóa).
         self.thong_ke = {"goi_webhook": 0, "su_kien": 0, "tin_nhan_khach": 0, "binh_luan": 0,
                          "da_gui_tra_loi": 0, "bo_qua_im_lang": 0, "loi": 0, "lan_cuoi": "", "loi_cuoi": "",
@@ -125,13 +126,14 @@ class Bot:
         self.thong_ke["da_gui_tra_loi"] += 1
         sdt = tim_sdt(kq.sdt) or tim_sdt(text)
         if kq.chuyen_nhan_vien or sdt:
-            self._chuyen(psid, kq.ten, sdt, kq.ly_do if kq.chuyen_nhan_vien else "Khách để lại SĐT", kq.nhu_cau,
-                         im_lang=kq.chuyen_nhan_vien)
+            self._chuyen(psid, kq.ten, sdt, kq.ly_do if kq.chuyen_nhan_vien else "Khách để lại SĐT", kq.nhu_cau)
 
-    def _chuyen(self, psid: str, ten: str, sdt: str, ly_do: str, nhu_cau: str, im_lang: bool = True,
-                kenh: str = "Messenger") -> None:
-        if im_lang:
-            self.im_lang[psid] = self.gio() + IM_LANG_SAU_CHUYEN
+    def _chuyen(self, psid: str, ten: str, sdt: str, ly_do: str, nhu_cau: str, kenh: str = "Messenger") -> None:
+        """Ghi khách vào Sheet và báo nhân viên. Bot vẫn tiếp tục trả lời khách; chỉ nhường khi nhân viên trả lời tay."""
+        truoc = self.da_ghi.get(psid)
+        if truoc and self.gio() - truoc[0] < GHI_LAI_KHACH_SAU and (not sdt or sdt == truoc[1]):
+            return  # đã ghi gần đây, không tạo dòng trùng
+        self.da_ghi[psid] = (self.gio(), sdt or (truoc[1] if truoc else ""))
         luc = datetime.fromtimestamp(self.gio(), self.mui_gio)
         if self.so_khach:
             try:
@@ -164,4 +166,4 @@ class Bot:
             self.mess.nhan_rieng_binh_luan(cid, kq.tin_nhan_rieng.strip())
         if kq.chuyen_nhan_vien and nguoi:
             self._chuyen(nguoi, v.get("from", {}).get("name", ""), tim_sdt(text), f"Bình luận: {kq.loai}", text[:200],
-                         im_lang=False, kenh="Bình luận")
+                         kenh="Bình luận")

@@ -98,17 +98,24 @@ def test_tra_loi_khach_va_bo_trung():
     assert ("u1", "mark_seen") in mess.hd and not so.dong and not bao
 
 
-def test_chuyen_nhan_vien_va_im_lang():
+def test_chuyen_nhan_vien_van_tiep_tuc_tra_loi_va_khong_ghi_trung():
     t = [1000.0]
     ai = AiGia(KetQuaBot(tra_loi="Dạ em xin SĐT ạ", chuyen_nhan_vien=True, ly_do="Hỏi giá", nhu_cau="15kg HP-333"))
     bot, mess, so, bao = tao_bot(ai, MessGia([]), gio=lambda: t[0])
     bot.xu_ly_su_kien(tin("m1", text="Giá bao nhiêu? SĐT 0976 884 341"))
     assert so.dong[0][1:5] == ("u1", "", "0976884341", "15kg HP-333") and bao and "Hỏi giá" in bao[0]
-    bot.xu_ly_su_kien(tin("m2", text="alo"))  # bot im lặng sau khi chuyển
-    assert len(mess.gui) == 1
-    t[0] += 13 * 3600
-    bot.xu_ly_su_kien(tin("m3", text="alo?"))
+    # Bot không im lặng sau khi chuyển: khách hỏi tiếp vẫn được trả lời
+    bot.xu_ly_su_kien(tin("m2", text="Keo nào dán đế giày?"))
     assert len(mess.gui) == 2
+    # Nhưng không ghi trùng khách vào Sheet và không báo lại
+    assert len(so.dong) == 1 and len(bao) == 1
+    # Có SĐT mới thì ghi lại
+    bot.xu_ly_su_kien(tin("m3", text="SĐT mới 0912 345 678"))
+    assert len(so.dong) == 2
+    # Sau 6 giờ thì được ghi lại
+    t[0] += 7 * 3600
+    bot.xu_ly_su_kien(tin("m4", text="alo"))
+    assert len(so.dong) == 3
 
 
 def test_nhan_vien_tra_loi_tay_thi_bot_nhuong():
