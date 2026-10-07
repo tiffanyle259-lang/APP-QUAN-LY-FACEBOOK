@@ -96,6 +96,7 @@ def tao_tuan(cfg: CauHinh, args) -> None:
     from .kho_anh import KhoDrive, chon_file
     from .viet_bai import du_lieu_cua_bai, so_lieu_la, viet_ca_tuan
 
+    CauHinh.khoa_claude()  # báo lỗi sớm nếu khóa Claude dán sai
     drive, sheets = _google(cfg)
     sheet = SheetDuyet(sheets, CauHinh.bien("SHEET_DUYET_ID"))
     sheet.dam_bao_cau_truc(cfg["che_do_duyet"])
@@ -265,7 +266,12 @@ def kiem_tra(cfg: CauHinh, args) -> None:
     buoc("Kho Drive", kiem_kho)
     buoc("Sheet duyệt", lambda: SheetDuyet(sheets, CauHinh.bien("SHEET_DUYET_ID")).dam_bao_cau_truc(
         cfg["che_do_duyet"]) or "đọc/ghi được")
-    buoc("Claude API", lambda: "có khóa" if CauHinh.bien("ANTHROPIC_API_KEY") else "")
+    def kiem_claude():
+        CauHinh.khoa_claude()
+        # Hỏi thông tin một mô hình: miễn phí, nhưng chứng minh khóa dùng được.
+        return "khóa dùng được, mô hình " + anthropic.Anthropic().models.retrieve(cfg["ai"]["model"]).id
+
+    buoc("Claude API", kiem_claude)
     sys.exit(0 if ok else 1)
 
 

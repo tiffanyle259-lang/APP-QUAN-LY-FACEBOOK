@@ -193,3 +193,12 @@ def test_kien_thuc_va_goi_ai():
     ai.tra_loi([{"tu": "page", "noi_dung": "Chào"}, {"tu": "khach", "noi_dung": "a"}, {"tu": "khach", "noi_dung": "b"}])
     assert thu["messages"] == [{"role": "user", "content": "a\nb"}]  # bỏ tin page đứng đầu, gộp tin liền nhau
     assert thu["system"][0]["cache_control"] == {"type": "ephemeral"} and thu["fallbacks"] == "default"
+
+
+def test_khoa_claude_dan_nham(monkeypatch):
+    from hoanbao_mkt.cau_hinh import CauHinh, ThieuCauHinh
+    monkeypatch.setenv("ANTHROPIC_API_KEY", 'curl https://api.anthropic.com/v1/messages \\\n -H "x-api-key: $KEY" --data \'{"model": "x"}\'')
+    with pytest.raises(ThieuCauHinh, match="sk-ant-"):
+        CauHinh.khoa_claude()
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-api03-abc123\n")
+    assert CauHinh.khoa_claude() == "sk-ant-api03-abc123"

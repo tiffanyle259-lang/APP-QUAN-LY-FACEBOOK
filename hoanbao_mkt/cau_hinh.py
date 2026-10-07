@@ -48,5 +48,16 @@ class CauHinh:
         return gia_tri or None
 
     @classmethod
+    def khoa_claude(cls) -> str:
+        """Khóa Claude phải là một dòng dạng sk-ant-... Báo lỗi dễ hiểu nếu dán nhầm (ví dụ code mẫu)."""
+        khoa = cls.bien("ANTHROPIC_API_KEY")
+        if not khoa.startswith("sk-ant-") or len(khoa.split()) != 1:
+            raise ThieuCauHinh(
+                "ANTHROPIC_API_KEY không phải là khóa Claude. Khóa đúng là một dòng ngắn bắt đầu bằng 'sk-ant-'. "
+                "Có thể đã dán nhầm đoạn code mẫu. Vào console.anthropic.com/settings/keys tạo khóa mới, "
+                "copy đúng khóa rồi cập nhật lại secret.")
+        return khoa
+
+    @classmethod
     def google_service_account(cls) -> dict:
         return json.loads(cls.bien("GOOGLE_SERVICE_ACCOUNT_JSON"))
