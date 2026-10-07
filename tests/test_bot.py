@@ -202,3 +202,38 @@ def test_khoa_claude_dan_nham(monkeypatch):
         CauHinh.khoa_claude()
     monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-api03-abc123\n")
     assert CauHinh.khoa_claude() == "sk-ant-api03-abc123"
+
+
+def test_dang_ky_webhook():
+    from hoanbao_bot.dang_ky import LoiDangKy, chuan_hoa_url, dang_ky
+
+    assert chuan_hoa_url("https://x.onrender.com/") == "https://x.onrender.com/webhook"
+    with pytest.raises(LoiDangKy):
+        chuan_hoa_url("http://x.com")
+
+    class R:
+        def __init__(self, code=200, body=None, text=""):
+            self.status_code, self._b, self.text, self.content = code, body or {}, text, b"x"
+
+        def json(self):
+            return self._b
+
+    class Http:
+        def __init__(self, may_chu_ok=True):
+            self.goi, self.ok = [], may_chu_ok
+
+        def get(self, url, params=None, timeout=0):
+            return R(200, text="kiem-tra-123" if self.ok else "forbidden") if self.ok else R(403, text="forbidden")
+
+        def request(self, method, url, params=None, timeout=0):
+            self.goi.append((method, url.split("v24.0/")[1], dict(params)))
+            return R(200, {"data": [{"name": "Hoan Bao Marketing"}]} if method == "GET" else {"success": True})
+
+    h = Http()
+    ds = dang_ky("https://x.onrender.com", "APP", "SEC", "VT", "PAGE", "PTOKEN", http=h)
+    assert len(ds) == 3 and "Hoan Bao Marketing" in ds[2]
+    assert h.goi[0][1] == "APP/subscriptions" and h.goi[0][2]["access_token"] == "APP|SEC"
+    assert h.goi[0][2]["callback_url"] == "https://x.onrender.com/webhook" and "feed" in h.goi[0][2]["fields"]
+    assert h.goi[1][1] == "PAGE/subscribed_apps" and h.goi[1][2]["access_token"] == "PTOKEN"
+    with pytest.raises(LoiDangKy, match="FB_VERIFY_TOKEN"):
+        dang_ky("https://x.onrender.com", "APP", "SEC", "VT", "PAGE", "PT", http=Http(may_chu_ok=False))

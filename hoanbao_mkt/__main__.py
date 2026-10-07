@@ -5,6 +5,7 @@
   len-lich                                  Lên lịch Facebook cho các bài trạng thái "Duyệt"
   phan-loai                                 Xếp ảnh/video thả vào _chua-phan-loai về thư mục con (AI xem ảnh)
   bang-dieu-khien [--ra file.html]          Xuất trang HTML xem lịch bài, trạng thái duyệt, kho ảnh
+  dang-ky-webhook --url https://...         Nối Facebook với máy chủ chatbot (webhook)
   tao-thu-muc                               Tạo sẵn các thư mục con trong Kho-Marketing
   kiem-tra                                  Kiểm tra kết nối Facebook, Drive, Sheet, Claude
 """
@@ -230,6 +231,20 @@ def bang_dieu_khien(cfg: CauHinh, args) -> None:
     print(f"Đã xuất {duong_dan}: {len(du_lieu['bai'])} bài, {len(du_lieu['kho'])} thư mục kho.")
 
 
+def dang_ky_webhook(cfg: CauHinh, args) -> None:
+    """Nối Facebook với máy chủ chatbot (Giai đoạn 2)."""
+    from hoanbao_bot.dang_ky import LoiDangKy, dang_ky
+
+    try:
+        for dong in dang_ky(args.url, cfg["facebook"]["app_id"], CauHinh.bien("FB_APP_SECRET"),
+                            CauHinh.bien("FB_VERIFY_TOKEN"), CauHinh.bien("FB_PAGE_ID"),
+                            CauHinh.bien("FB_PAGE_TOKEN"), cfg["facebook"]["graph_version"]):
+            print(dong)
+    except LoiDangKy as e:
+        print(f"✗ {e}")
+        sys.exit(1)
+
+
 def kiem_tra(cfg: CauHinh, args) -> None:
     ok = True
 
@@ -286,6 +301,8 @@ def main(argv=None) -> None:
     sub.add_parser("len-lich")
     sub.add_parser("tao-thu-muc")
     sub.add_parser("phan-loai")
+    dk = sub.add_parser("dang-ky-webhook")
+    dk.add_argument("--url", required=True, help="Địa chỉ máy chủ bot trên Render, ví dụ https://hoanbao-bot.onrender.com")
     bd = sub.add_parser("bang-dieu-khien")
     bd.add_argument("--ra", help="Đường dẫn file HTML xuất ra (mặc định bang-dieu-khien.html)")
     sub.add_parser("kiem-tra")
@@ -293,7 +310,7 @@ def main(argv=None) -> None:
 
     cfg = CauHinh.doc()
     lenh = {"xem-ke-hoach": xem_ke_hoach, "tao-tuan": tao_tuan, "len-lich": len_lich,
-            "tao-thu-muc": tao_thu_muc, "bang-dieu-khien": bang_dieu_khien, "phan-loai": phan_loai_kho, "kiem-tra": kiem_tra}
+            "tao-thu-muc": tao_thu_muc, "dang-ky-webhook": dang_ky_webhook, "bang-dieu-khien": bang_dieu_khien, "phan-loai": phan_loai_kho, "kiem-tra": kiem_tra}
     try:
         lenh[args.lenh](cfg, args)
     except ThieuCauHinh as e:

@@ -30,6 +30,7 @@ ai:
 
 facebook:
   graph_version: v24.0
+  app_id: "1570474760979317"
 
 # Giai đoạn 2: chatbot Messenger và bình luận (chạy trên máy chủ riêng, xem render.yaml).
 bot:

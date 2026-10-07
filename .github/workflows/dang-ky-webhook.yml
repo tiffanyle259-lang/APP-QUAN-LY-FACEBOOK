@@ -1,0 +1,27 @@
+name: Nối Facebook với chatbot
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "Địa chỉ máy chủ trên Render, ví dụ https://hoanbao-bot.onrender.com"
+        required: true
+
+jobs:
+  chay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      FB_APP_SECRET: ${{ secrets.FB_APP_SECRET }}
+      FB_VERIFY_TOKEN: ${{ secrets.FB_VERIFY_TOKEN }}
+      FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
+      FB_PAGE_TOKEN: ${{ secrets.FB_PAGE_TOKEN }}
+      URL: ${{ inputs.url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python -m hoanbao_mkt dang-ky-webhook --url "$URL"
