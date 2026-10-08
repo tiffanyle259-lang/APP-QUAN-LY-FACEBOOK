@@ -18,7 +18,7 @@ import os
 import re
 import sys
 import tempfile
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 import anthropic
 
@@ -143,6 +143,46 @@ def tao_tuan(cfg: CauHinh, args) -> None:
     print(f"Đã ghi {sheet.them(dong_moi)} bài mới vào Sheet.")
     if not can_duyet:
         len_lich(cfg, args, drive=drive, sheets=sheets)
+
+
+def gan_anh(cfg: CauHinh, args) -> None:
+    """Chọn ảnh/video từ kho cho các bài còn trống cột Ảnh/Video (bài tạo lúc kho chưa có ảnh)."""
+    from .kho_anh import KhoDrive, chon_file
+
+    drive, sheets = _google(cfg)
+    sheet = SheetDuyet(sheets, CauHinh.bien("SHEET_DUYET_ID"))
+    kho = KhoDrive(drive, CauHinh.bien("DRIVE_KHO_ID"))
+    du_lieu = _doc_du_lieu(cfg, drive)
+    hom_nay = datetime.now(cfg.mui_gio).date()
+    thieu = [d for d in sheet.doc_tat_ca()
+             if not d.media.strip() and not d.facebook_id.strip() and d.trang_thai.strip() in (CHO_DUYET, DUYET)]
+    print(f"{len(thieu)} bài chưa có ảnh/video.")
+    ke_hoach: dict = {}
+    da_chon: set[str] = set()
+    for d in thieu:
+        try:
+            ngay = doc_ngay(d.ngay)
+            thu_hai = ngay - timedelta(days=ngay.weekday())
+            if thu_hai not in ke_hoach:
+                ke_hoach[thu_hai] = {b.ma_bai: b for b in lap_ke_hoach(du_lieu, thu_hai, cfg["thu_muc"], cfg.mui_gio)}
+            b = ke_hoach[thu_hai].get(d.ma_bai)
+            if not b:
+                print(f"  - {d.ma_bai}: không có trong kế hoạch tuần, bỏ qua.")
+                continue
+            media = None
+            for tm in b.thu_muc:
+                media = chon_file(kho.file_trong(tm), b.tu_khoa_media, b.uu_tien_video, da_chon, hom_nay,
+                                  cfg.get("khong_lap_lai_trong_ngay", 28))
+                if media:
+                    break
+            if not media:
+                print(f"  - {d.ma_bai}: vẫn chưa có ảnh/video trong {', '.join(b.thu_muc)}.")
+                continue
+            da_chon.add(media.id)
+            sheet.gan_media(d.dong, media.link, f"File: {media.ten}")
+            print(f"  ✓ {d.ma_bai} → {media.ten}")
+        except Exception as e:
+            print(f"  ✗ {d.ma_bai}: {e}")
 
 
 def len_lich(cfg: CauHinh, args, drive=None, sheets=None) -> None:
@@ -312,6 +352,7 @@ def main(argv=None) -> None:
     sub.add_parser("len-lich")
     sub.add_parser("tao-thu-muc")
     sub.add_parser("phan-loai")
+    sub.add_parser("gan-anh")
     cd = sub.add_parser("chan-doan")
     cd.add_argument("--url", required=True)
     dk = sub.add_parser("dang-ky-webhook")
@@ -323,7 +364,7 @@ def main(argv=None) -> None:
 
     cfg = CauHinh.doc()
     lenh = {"xem-ke-hoach": xem_ke_hoach, "tao-tuan": tao_tuan, "len-lich": len_lich,
-            "tao-thu-muc": tao_thu_muc, "chan-doan": chan_doan_bot, "dang-ky-webhook": dang_ky_webhook, "bang-dieu-khien": bang_dieu_khien, "phan-loai": phan_loai_kho, "kiem-tra": kiem_tra}
+            "tao-thu-muc": tao_thu_muc, "chan-doan": chan_doan_bot, "dang-ky-webhook": dang_ky_webhook, "bang-dieu-khien": bang_dieu_khien, "phan-loai": phan_loai_kho, "gan-anh": gan_anh, "kiem-tra": kiem_tra}
     try:
         lenh[args.lenh](cfg, args)
     except ThieuCauHinh as e:

@@ -114,6 +114,11 @@ class SheetDuyet:
             ).execute()
         return len(moi)
 
+    def gan_media(self, dong: int, link: str, ghi_chu: str) -> None:
+        """Điền ảnh/video (cột F) và ghi chú (cột H) cho một dòng, không đụng trạng thái."""
+        self._ghi(f"'{TAB_BAI}'!F{dong}", [[link]])
+        self._ghi(f"'{TAB_BAI}'!H{dong}", [[ghi_chu]])
+
     def cap_nhat(self, dong: int, trang_thai: str, ghi_chu: str, facebook_id: str = "") -> None:
         self._ghi(f"'{TAB_BAI}'!G{dong}:I{dong}", [[trang_thai, ghi_chu, facebook_id]])
 
