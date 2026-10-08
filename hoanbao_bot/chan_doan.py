@@ -37,6 +37,14 @@ def chan_doan(url: str, app_id: str, app_secret: str, verify_token: str, page_id
     except requests.RequestException as e:
         ra.append(f"✗ Không gọi được máy chủ: {e}")
 
+    # 1b. Hai trang công khai Meta bắt buộc
+    for duong in ("/healthz", "/chinh-sach-rieng-tu", "/xoa-du-lieu"):
+        try:
+            r = http.get(base + duong, timeout=90)
+            ra.append(f"• Trang {duong}: mã {r.status_code}" + ("" if r.status_code == 200 else " (LỖI)"))
+        except requests.RequestException as e:
+            ra.append(f"✗ Trang {duong}: không mở được ({e})")
+
     # 2. Facebook đã đăng ký đúng chưa
     try:
         ds = g(f"{app_id}/subscriptions", access_token=f"{app_id}|{app_secret}").get("data", [])
