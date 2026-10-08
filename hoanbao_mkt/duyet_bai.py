@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import unicodedata
 from dataclasses import dataclass
 from datetime import date, datetime, time
 
@@ -17,6 +18,21 @@ BO = "Bỏ"
 DA_LEN_LICH = "Đã lên lịch"
 LOI = "Lỗi"
 TRANG_THAI = [CHO_DUYET, DUYET, BO, DA_LEN_LICH, LOI]
+
+def _khong_dau(text: str) -> str:
+    text = unicodedata.normalize("NFD", (text or "").replace("đ", "d").replace("Đ", "D"))
+    return "".join(c for c in text if unicodedata.category(c) != "Mn").lower().strip()
+
+
+# Người dùng gõ gì cũng hiểu: "Đã duyệt", "duyet", "DUYỆT"... đều là DUYET.
+_TRANG_THAI_KHONG_DAU = {_khong_dau(t): t for t in TRANG_THAI} | {"da duyet": DUYET, "duyet bai": DUYET,
+                                                                    "huy": BO, "khong dang": BO}
+
+
+def chuan_trang_thai(text: str) -> str:
+    """Đưa chữ người dùng nhập về đúng một trong TRANG_THAI (giữ nguyên nếu không nhận ra)."""
+    return _TRANG_THAI_KHONG_DAU.get(_khong_dau(text), (text or "").strip())
+
 
 _DRIVE_ID = re.compile(r"(?:/d/|[?&]id=)([A-Za-z0-9_-]{10,})")
 
@@ -80,7 +96,8 @@ class SheetDuyet:
 
         if not self._lay(f"'{TAB_BAI}'!A1:I1"):
             self._ghi(f"'{TAB_BAI}'!A1", [TIEU_DE])
-            self._dropdown(co_san[TAB_BAI], 1, 1000, 6, TRANG_THAI)
+        # Luôn đặt lại danh sách chọn cho cột Trạng thái (chạy lại an toàn), để người duyệt bấm chọn, không phải gõ.
+        self._dropdown(co_san[TAB_BAI], 1, 1000, 6, TRANG_THAI)
         if not self._lay(f"'{TAB_CAI_DAT}'!A1:B1"):
             self._ghi(f"'{TAB_CAI_DAT}'!A1", [
                 ["Chế độ duyệt", "BẬT" if che_do_duyet_mac_dinh else "TẮT"],
@@ -100,7 +117,9 @@ class SheetDuyet:
         for i, dong in enumerate(self._lay(f"'{TAB_BAI}'!A2:I"), start=2):
             dong = list(dong) + [""] * (9 - len(dong))
             if dong[0].strip():
-                ds.append(DongBai(i, *[str(c) for c in dong[:9]]))
+                d = DongBai(i, *[str(c) for c in dong[:9]])
+                d.trang_thai = chuan_trang_thai(d.trang_thai)
+                ds.append(d)
         return ds
 
     def them(self, dong_moi: list[list[str]]) -> int:
@@ -135,5 +154,5 @@ class SheetDuyet:
             "range": {"sheetId": tab_id, "startRowIndex": dong_dau, "endRowIndex": dong_cuoi,
                       "startColumnIndex": cot, "endColumnIndex": cot + 1},
             "rule": {"condition": {"type": "ONE_OF_LIST", "values": [{"userEnteredValue": v} for v in lua_chon]},
-                     "showCustomUi": True, "strict": False},
+                     "showCustomUi": True, "strict": True},
         }}]}).execute()

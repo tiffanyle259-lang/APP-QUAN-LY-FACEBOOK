@@ -151,6 +151,7 @@ def gan_anh(cfg: CauHinh, args) -> None:
 
     drive, sheets = _google(cfg)
     sheet = SheetDuyet(sheets, CauHinh.bien("SHEET_DUYET_ID"))
+    sheet.dam_bao_cau_truc(cfg["che_do_duyet"])
     kho = KhoDrive(drive, CauHinh.bien("DRIVE_KHO_ID"))
     du_lieu = _doc_du_lieu(cfg, drive)
     hom_nay = datetime.now(cfg.mui_gio).date()
@@ -192,6 +193,7 @@ def len_lich(cfg: CauHinh, args, drive=None, sheets=None) -> None:
     if drive is None:
         drive, sheets = _google(cfg)
     sheet = SheetDuyet(sheets, CauHinh.bien("SHEET_DUYET_ID"))
+    sheet.dam_bao_cau_truc(cfg["che_do_duyet"])  # đặt lại danh sách chọn Trạng thái
     kho = KhoDrive(drive, CauHinh.bien("DRIVE_KHO_ID"))
     page = Fanpage(CauHinh.bien("FB_PAGE_ID"), CauHinh.bien("FB_PAGE_TOKEN"), cfg["facebook"]["graph_version"])
 
