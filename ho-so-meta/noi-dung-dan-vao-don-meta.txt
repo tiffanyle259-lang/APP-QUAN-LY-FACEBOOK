@@ -1,0 +1,46 @@
+NỘI DUNG DÁN VÀO ĐƠN XIN QUYỀN (App Review) - ỨNG DỤNG "Hoan Bao Marketing"
+Dán đúng khối tiếng Anh vào từng ô "How will your app use this permission?" tương ứng.
+Sửa chỗ nào không đúng thực tế trước khi nộp.
+
+================================================================
+CHUNG CHO CẢ ĐƠN (nếu có ô "App description" / "Platform use case")
+================================================================
+Our app is a customer-support assistant for the Facebook Page "KEO DÁN GIÀY" of Hoan Bao Trading Production Import Export Co., Ltd (brand: Golden Lion), a Vietnamese manufacturer of industrial adhesives. When people message the Page or comment on its posts, the assistant answers questions about our adhesive products using only our own product catalog. When a person asks about prices, wholesale, dealer partnerships, samples or complaints, the assistant asks for a phone number and notifies our staff, who follow up personally. Staff can take over any conversation at any time. We only reply to people who contacted our Page first, within the standard 24-hour messaging window. We never send promotional or unsolicited messages.
+
+Privacy policy: https://hoanbao-bot.onrender.com/chinh-sach-rieng-tu
+Data deletion instructions: https://hoanbao-bot.onrender.com/xoa-du-lieu
+
+================================================================
+pages_messaging
+================================================================
+The assistant replies to messages that customers send to our Page. Example: a customer writes "Which adhesive bonds sofa foam without a strong smell?" and the assistant answers with the matching product from our catalog. If the customer asks for a price, the assistant asks for a phone number and a staff member contacts them. We reply only inside the standard messaging window, only to people who messaged us first.
+
+================================================================
+pages_manage_metadata
+================================================================
+Used to subscribe our Page to the app's webhook events (messages, messaging_postbacks, feed), so that the assistant receives customer messages and Page comments in real time.
+
+================================================================
+pages_read_engagement
+================================================================
+Used to read the existing message thread between the Page and the customer, so the assistant's reply is consistent with the earlier conversation, and to read the Page posts that customers comment on.
+
+================================================================
+pages_manage_engagement
+================================================================
+Used to reply publicly to customer comments on our Page posts with a short answer or an invitation to continue the conversation in Messenger. We do not delete or hide comments automatically.
+
+================================================================
+pages_read_user_content
+================================================================
+Used to read the comments that people leave on our Page posts, so that the assistant can recognize product questions and reply to them.
+
+================================================================
+HƯỚNG DẪN CHO NGƯỜI DUYỆT (dán vào ô "Instructions for reviewers / Test instructions")
+================================================================
+1. Open Messenger with the test account provided and send a message to the Facebook Page "KEO DÁN GIÀY".
+2. Send: "Which adhesive bonds sofa foam without a strong smell?" The assistant replies with product information within seconds.
+3. Send: "How much does it cost?" The assistant asks for a phone number (it does not quote prices) and our staff is notified.
+4. Post a comment under any post of the Page, for example "How much is the 339 spray adhesive?". The assistant replies publicly under the comment and sends a private message to the commenter.
+5. The privacy policy and data deletion pages are linked above.
+Note: the reviewer account must have a role (Tester) on the app while the app is in development mode.
