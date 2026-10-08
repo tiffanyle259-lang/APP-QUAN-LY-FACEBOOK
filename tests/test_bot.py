@@ -267,3 +267,12 @@ def test_thong_ke_va_trang_thai():
     assert c.get("/trang-thai?k=sai").status_code == 403
     d = c.get("/trang-thai?k=mat-khau").get_json()
     assert d["bot"]["tin_nhan_khach"] == 2 and d["moi_truong"]["khoa_claude"] == "đúng dạng"
+
+
+def test_trang_chinh_sach_va_xoa_du_lieu():
+    app = tao_ung_dung(SimpleNamespace(), "s", "t")
+    c = app.test_client()
+    for duong_dan, chu in [("/chinh-sach-rieng-tu", "Chính sách quyền riêng tư"), ("/xoa-du-lieu", "Hướng dẫn xóa dữ liệu")]:
+        r = c.get(duong_dan)
+        assert r.status_code == 200 and chu in r.get_data(as_text=True) and "keodansutu@gmail.com" in r.get_data(as_text=True)
+        assert "Privacy" in r.get_data(as_text=True) or "Deletion" in r.get_data(as_text=True)

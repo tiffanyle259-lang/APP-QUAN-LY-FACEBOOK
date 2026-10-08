@@ -9,7 +9,9 @@ import logging
 import os
 from concurrent.futures import ThreadPoolExecutor
 
-from flask import Flask, request
+from pathlib import Path
+
+from flask import Flask, request, send_file
 
 log = logging.getLogger("hoanbao_bot")
 
@@ -30,6 +32,16 @@ def tao_ung_dung(bot, app_secret: str, verify_token: str, chay=None, moi_truong=
     @app.get("/healthz")
     def suc_khoe():
         return "ok", 200
+
+    trang_web = Path(__file__).resolve().parent.parent / "trang_web"
+
+    @app.get("/chinh-sach-rieng-tu")
+    def chinh_sach():
+        return send_file(trang_web / "chinh-sach-rieng-tu.html", mimetype="text/html")
+
+    @app.get("/xoa-du-lieu")
+    def xoa_du_lieu():
+        return send_file(trang_web / "xoa-du-lieu.html", mimetype="text/html")
 
     @app.get("/trang-thai")
     def trang_thai():
