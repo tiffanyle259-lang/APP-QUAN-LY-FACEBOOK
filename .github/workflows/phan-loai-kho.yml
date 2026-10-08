@@ -1,7 +1,10 @@
 name: Xếp ảnh vào kho
 
 on:
-  # Chạy tay sau khi thả ảnh/video vào thư mục Kho-Marketing/_chua-phan-loai.
+  # Tự chạy mỗi sáng 8h17 (giờ VN); không có ảnh mới thì kết thúc trong vài giây, không tốn tiền AI.
+  schedule:
+    - cron: "17 1 * * *"
+  # Hoặc chạy tay sau khi thả ảnh/video vào Kho-Marketing/_chua-phan-loai.
   workflow_dispatch:
 
 concurrency:

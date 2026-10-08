@@ -209,7 +209,8 @@ def phan_loai_kho(cfg: CauHinh, args) -> None:
     ai = cfg["ai"]
     bao_cao = phan_loai.chay(
         KhoDrive(drive, CauHinh.bien("DRIVE_KHO_ID")), du_lieu, cfg["thu_muc"],
-        lambda anh, mo_ta: phan_loai.hoi_ai(client, ai["model"], anh, mo_ta))
+        lambda anh, mo_ta: phan_loai.hoi_ai(client, ai["model"], anh, mo_ta),
+        nguon_them=cfg.get("nguon_anh_them") or [])
     print("\n".join(bao_cao) or f"Không có file mới trong '{phan_loai.THU_MUC_CHO}'.")
 
 

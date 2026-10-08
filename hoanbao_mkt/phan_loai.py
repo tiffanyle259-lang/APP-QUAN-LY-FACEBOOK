@@ -105,12 +105,15 @@ def thu_muc_cho_video(ten_file: str, du_lieu: DuLieuNen) -> str:
 
 
 def chay(kho: KhoDrive, du_lieu: DuLieuNen, thu_muc_cfg: dict,
-         hoi: Callable[[str, dict[str, str]], KetQuaAnh], toi_da: int = 100) -> list[str]:
+         hoi: Callable[[str, dict[str, str]], KetQuaAnh], toi_da: int = 100,
+         nguon_them: list[str] | None = None) -> list[str]:
     cho_id = kho.id_thu_muc(THU_MUC_CHO, tao=True)
     xem_lai_id = kho.id_thu_muc(THU_MUC_XEM_LAI, tao=True)
     mo_ta = mo_ta_thu_muc(du_lieu, thu_muc_cfg)
     bao_cao = []
     files = kho.liet_ke_de_quy(cho_id)  # gồm cả thư mục con người dùng thả vào
+    for nguon in nguon_them or []:  # thư mục ngoài kho, đã chia sẻ quyền Biên tập cho tài khoản dịch vụ
+        files += kho.liet_ke_de_quy(nguon)
     for f in files[:toi_da]:
         mime, ten = f["mimeType"], f["name"]
         tu_id = (f.get("parents") or [cho_id])[0]

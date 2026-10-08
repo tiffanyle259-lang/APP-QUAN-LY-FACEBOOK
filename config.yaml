@@ -21,6 +21,10 @@ thu_muc:
     "Nội thất ô tô": nganh-o-to
     "Đại lý, cửa hàng vật tư": nganh-dai-ly
 
+# Thư mục Drive ngoài Kho-Marketing mà app tự lấy ảnh/video mới về xếp vào kho (ghi ID thư mục).
+# Phải chia sẻ thư mục đó cho tài khoản dịch vụ với quyền Biên tập. File được CHUYỂN vào kho, không sao chép.
+nguon_anh_them: []
+
 # Không dùng lại cùng một ảnh/video trong số ngày này (nếu kho còn file khác).
 khong_lap_lai_trong_ngay: 28
 
