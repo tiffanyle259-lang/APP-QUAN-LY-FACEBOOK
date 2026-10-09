@@ -9,6 +9,7 @@ import requests
 
 TAB = "Khách hàng"
 TIEU_DE = ["Thời gian", "Kênh", "ID Messenger", "Tên", "SĐT", "Nhu cầu", "Lý do chuyển", "Trạng thái", "Hộp thư"]
+TRANG_THAI_KHACH = ["Mới", "Đã gọi", "Báo giá", "Chốt đơn", "Không mua"]
 LINK_HOP_THU = "https://business.facebook.com/latest/inbox"
 
 
@@ -21,10 +22,17 @@ class SoKhach:
     def _dam_bao(self) -> None:
         if self._san_sang:
             return
-        info = self.svc.get(spreadsheetId=self.id, fields="sheets.properties.title").execute()
-        if TAB not in {s["properties"]["title"] for s in info["sheets"]}:
-            self.svc.batchUpdate(spreadsheetId=self.id,
-                                 body={"requests": [{"addSheet": {"properties": {"title": TAB}}}]}).execute()
+        info = self.svc.get(spreadsheetId=self.id, fields="sheets.properties").execute()
+        tab_id = next((s["properties"]["sheetId"] for s in info["sheets"] if s["properties"]["title"] == TAB), None)
+        if tab_id is None:
+            r = self.svc.batchUpdate(spreadsheetId=self.id,
+                                     body={"requests": [{"addSheet": {"properties": {"title": TAB}}}]}).execute()
+            tab_id = r["replies"][0]["addSheet"]["properties"]["sheetId"]
+        # Cột Trạng thái (H) là danh sách chọn để nhân viên theo dõi khách đến lúc chốt đơn.
+        self.svc.batchUpdate(spreadsheetId=self.id, body={"requests": [{"setDataValidation": {
+            "range": {"sheetId": tab_id, "startRowIndex": 1, "endRowIndex": 2000, "startColumnIndex": 7, "endColumnIndex": 8},
+            "rule": {"condition": {"type": "ONE_OF_LIST", "values": [{"userEnteredValue": v} for v in TRANG_THAI_KHACH]},
+                     "showCustomUi": True, "strict": False}}}]}).execute()
         co = self.svc.values().get(spreadsheetId=self.id, range=f"'{TAB}'!A1:I1").execute().get("values")
         if not co:
             self.svc.values().update(spreadsheetId=self.id, range=f"'{TAB}'!A1", valueInputOption="RAW",

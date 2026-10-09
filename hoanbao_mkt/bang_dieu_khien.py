@@ -96,6 +96,7 @@ border-bottom:1px solid var(--line);font-size:14px}.k:last-child{border-bottom:0
 """
 
 _LOP = {"Chờ duyệt": "s-cho", "Duyệt": "s-duyet", "Đã lên lịch": "s-ok", "Lỗi": "s-loi", "Bỏ": "s-bo"}
+_LOP_KHACH = {"Mới": "s-cho", "Đã gọi": "s-duyet", "Báo giá": "s-duyet", "Chốt đơn": "s-ok", "Không mua": "s-bo"}
 _THU = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật"]
 _DRIVE_ID = re.compile(r"(?:/d/|[?&]id=)([A-Za-z0-9_-]{10,})")
 
@@ -213,8 +214,12 @@ def dung_html(d: dict) -> str:
         for r in d["khach"]:
             ten = _e(r[3]) or "—"
             dong.append(f"<tr><td>{_e(r[0])}</td><td>{ten}</td><td class='sdt'>{_e(r[4]) or '—'}</td>"
-                        f"<td>{_e(r[5])}</td><td>{_e(r[6])}</td><td><span class='badge s-cho'>{_e(r[7]) or 'Mới'}</span></td></tr>")
-        khach_html = ("<h2>Khách quan tâm <small>để lại số điện thoại hoặc cần nhân viên</small></h2><div class='kh'>"
+                        f"<td>{_e(r[5])}</td><td>{_e(r[6])}</td><td><span class='badge {_LOP_KHACH.get((r[7] or "Mới").strip(), "s-moi")}'>{_e(r[7]) or 'Mới'}</span></td></tr>")
+        dem_kh = Counter((r[7] or "Mới").strip() for r in d["khach"])
+        phieu = "".join(f"<span class='badge {_LOP_KHACH.get(t, 's-moi')}'>{t}: {dem_kh.get(t, 0)}</span> "
+                        for t in ("Mới", "Đã gọi", "Báo giá", "Chốt đơn", "Không mua"))
+        khach_html = ("<h2>Khách quan tâm <small>để lại số điện thoại hoặc cần nhân viên</small></h2>"
+                      f"<div style='margin:-4px 0 10px;display:flex;flex-wrap:wrap;gap:6px'>{phieu}</div><div class='kh'>"
                       + ("<div class='scroll'><table><thead><tr><th>Thời gian</th><th>Tên</th><th>SĐT</th><th>Nhu cầu</th>"
                          "<th>Lý do chuyển</th><th>Trạng thái</th></tr></thead><tbody>" + "".join(dong) + "</tbody></table></div>"
                          if dong else "<div class='canhbao' style='border:0'>Chưa có khách nào để lại thông tin.</div>")
