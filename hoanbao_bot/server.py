@@ -23,7 +23,7 @@ def chu_ky_hop_le(raw: bytes, header: str, app_secret: str) -> bool:
     return hmac.compare_digest(mong_doi, header[len("sha256="):])
 
 
-def tao_ung_dung(bot, app_secret: str, verify_token: str, chay=None, moi_truong=None) -> Flask:
+def tao_ung_dung(bot, app_secret: str, verify_token: str, chay=None, moi_truong=None, bang_dieu_khien=None) -> Flask:
     app = Flask(__name__)
     pool = ThreadPoolExecutor(max_workers=4)
     chay = chay or pool.submit
@@ -49,6 +49,19 @@ def tao_ung_dung(bot, app_secret: str, verify_token: str, chay=None, moi_truong=
         if not hmac.compare_digest(request.args.get("k", ""), verify_token):
             return "forbidden", 403
         return {"bot": getattr(bot, "thong_ke", {}), "moi_truong": moi_truong() if moi_truong else {}}
+
+    @app.get("/bang-dieu-khien")
+    def bang_dieu_khien_trang():
+        """Bảng điều khiển xem trực tiếp (bài đăng, duyệt, kho ảnh). Cần mật khẩu ?k= như /trang-thai."""
+        if not hmac.compare_digest(request.args.get("k", ""), verify_token):
+            return "forbidden", 403
+        if not bang_dieu_khien:
+            return "chưa bật", 404
+        try:
+            return bang_dieu_khien(), 200, {"Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store"}
+        except Exception as e:
+            log.exception("Lỗi dựng bảng điều khiển")
+            return f"Không dựng được bảng điều khiển: {type(e).__name__}", 500
 
     @app.get("/webhook")
     def xac_minh():

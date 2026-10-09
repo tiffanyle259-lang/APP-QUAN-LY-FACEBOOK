@@ -276,3 +276,20 @@ def test_trang_chinh_sach_va_xoa_du_lieu():
         r = c.get(duong_dan)
         assert r.status_code == 200 and chu in r.get_data(as_text=True) and "keodansutu@gmail.com" in r.get_data(as_text=True)
         assert "Privacy" in r.get_data(as_text=True) or "Deletion" in r.get_data(as_text=True)
+
+
+def test_bang_dieu_khien_can_mat_khau():
+    app = tao_ung_dung(SimpleNamespace(), "s", "mat-khau", bang_dieu_khien=lambda: "<html>ok</html>")
+    c = app.test_client()
+    assert c.get("/bang-dieu-khien").status_code == 403
+    assert c.get("/bang-dieu-khien?k=sai").status_code == 403
+    r = c.get("/bang-dieu-khien?k=mat-khau")
+    assert r.status_code == 200 and b"ok" in r.data
+
+
+def test_bang_dieu_khien_khong_co_kho():
+    from hoanbao_mkt.bang_dieu_khien import dung_html
+
+    html = dung_html({"cap_nhat": "08:00 09/10/2026", "page": "KEO DÁN GIÀY", "che_do_duyet": True,
+                      "sheet_url": "https://docs.google.com/x", "bai": [], "kho": []})
+    assert "<html" in html.lower()

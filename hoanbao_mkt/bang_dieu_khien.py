@@ -121,13 +121,13 @@ def thu_thap(cfg, drive, sheets, sheet_id: str, kho_id: str, ten_page: str = "")
     from .kho_anh import KhoDrive
 
     sheet = SheetDuyet(sheets, sheet_id)
-    kho = KhoDrive(drive, kho_id)
+    kho = KhoDrive(drive, kho_id) if kho_id else None
     bai = [{"ma_bai": r.ma_bai, "ngay": r.ngay, "gio": r.gio, "loai": r.loai_bai, "noi_dung": r.noi_dung,
             "media": r.media, "trang_thai": r.trang_thai.strip(), "ghi_chu": r.ghi_chu, "facebook_id": r.facebook_id}
            for r in sheet.doc_tat_ca()]
     ten_thu_muc = sorted({n for n in _ten_thu_muc_kho(cfg)}) + ["_chua-phan-loai", "_can-xem-lai"]
     dem = []
-    for ten in ten_thu_muc:
+    for ten in ten_thu_muc if kho else []:  # chưa có DRIVE_KHO_ID thì bỏ phần kho ảnh
         tm = kho.id_thu_muc(ten)
         dem.append({"ten": ten, "so_file": len(kho.liet_ke_de_quy(tm)) if tm else 0})
     return {"cap_nhat": datetime.now(cfg.mui_gio).strftime("%H:%M %d/%m/%Y"), "page": ten_page,
