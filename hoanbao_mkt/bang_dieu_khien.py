@@ -56,7 +56,7 @@ min-height:132px;position:relative}
 .thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .pb{padding:12px 14px;min-width:0;display:flex;flex-direction:column;gap:6px}
 .row{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;justify-content:space-between}
-.when{font-weight:700;font-variant-numeric:tabular-nums}.loai{font-size:13px;color:var(--muted)}
+.when{font-weight:700;font-variant-numeric:tabular-nums}.loai{font-size:13px;color:var(--muted)}.dich{font-size:12.5px;color:var(--muted)}.dich b{color:var(--ink);font-weight:650}
 .badge{font-size:12px;font-weight:650;padding:2px 10px;border-radius:99px;white-space:nowrap}
 .s-cho{color:var(--cho);background:var(--cho-bg)}.s-duyet{color:var(--duyet);background:var(--duyet-bg)}
 .s-ok{color:var(--ok);background:var(--ok-bg)}.s-loi{color:var(--loi);background:var(--loi-bg)}
@@ -174,6 +174,14 @@ def dung_html(d: dict) -> str:
         chi_so(dem["Lỗi"], "Lỗi", "do" if dem["Lỗi"] else ""),
     ])
 
+    ten_page = _e(d.get("page")) or "Fanpage"
+
+    def link_fb(b):
+        if b.get("facebook_id"):
+            return (f" · <a href='https://www.facebook.com/{_e(b['facebook_id'])}' target='_blank' rel='noopener'>"
+                    "Xem trên Facebook</a>")
+        return ""
+
     the = []
     for b in bai:
         ghi_chu = (f"<div class='note{' loi' if b['trang_thai'] == 'Lỗi' else ''}'>{_e(b['ghi_chu'])}</div>"
@@ -184,7 +192,8 @@ def dung_html(d: dict) -> str:
             f"<article class='post'><div class='thumb'>{_anh_nho(b.get('media'))}</div><div class='pb'>"
             f"<div class='row'><span class='when'>{_e(_ngay(b['ngay']))} · {_e(b['gio'])}</span>"
             f"<span class='badge {lop}'>{_e(b['trang_thai'] or 'Chưa có')}</span></div>"
-            f"<div class='loai'>{_e(b['loai'])}</div><div class='pv'>{_e(b['noi_dung'])}</div>{ghi_chu}"
+            f"<div class='loai'>{_e(b['loai'])}</div>"
+            f"<div class='dich'>Đăng lên Fanpage <b>{ten_page}</b>{link_fb(b)}</div><div class='pv'>{_e(b['noi_dung'])}</div>{ghi_chu}"
             f"<details><summary>Xem cả bài</summary><div class='body'>{_e(b['noi_dung'])}</div>"
             f"<div style='margin-top:6px;font-size:13px'>{xem_anh}</div></details></div></article>")
     ds_html = ("<div class='grid'>" + "".join(the) + "</div>" if the else
@@ -253,7 +262,6 @@ def dung_html(d: dict) -> str:
         chat_html = "<h2>Tin nhắn gần đây</h2><div class='canhbao'>Chưa có cuộc trò chuyện nào.</div>"
 
     che_do = {True: "Duyệt tay: bật", False: "Tự lên lịch", None: ""}[d.get("che_do_duyet")]
-    ten_page = _e(d.get("page")) or "Fanpage"
     return f"""<!doctype html><html lang="vi"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>Golden Lion Fanpage</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -266,7 +274,7 @@ def dung_html(d: dict) -> str:
 <div class="wrap">
 <div class="stats">{stats}</div>{todo}
 {tuong_tac}{khach_html}{chat_html}
-<h2>Lịch bài đăng <small>{len(bai)} bài</small></h2>{ds_html}{kho_html}
+<h2>Lịch bài đăng <small>{len(bai)} bài · đăng lên Fanpage {ten_page}</small></h2>{ds_html}{kho_html}
 <p class="foot">Trang này chỉ để xem, tự cập nhật mỗi lần tải lại. Muốn sửa hoặc duyệt bài, làm trong Google Sheet.</p>
 </div></body></html>"""
 
