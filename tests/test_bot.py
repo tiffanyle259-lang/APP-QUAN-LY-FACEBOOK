@@ -293,3 +293,40 @@ def test_bang_dieu_khien_khong_co_kho():
     html = dung_html({"cap_nhat": "08:00 09/10/2026", "page": "KEO DÁN GIÀY", "che_do_duyet": True,
                       "sheet_url": "https://docs.google.com/x", "bai": [], "kho": []})
     assert "<html" in html.lower()
+
+
+def test_bang_dieu_khien_co_khach_va_tin_nhan():
+    from hoanbao_mkt.bang_dieu_khien import dung_html
+
+    html = dung_html({"cap_nhat": "x", "page": "P", "che_do_duyet": True, "sheet_url": "", "bai": [], "kho": [],
+                      "bot": {"tin_nhan_khach": 5, "da_gui_tra_loi": 4, "binh_luan": 1, "bo_qua_im_lang": 0, "loi": 0,
+                              "khoi_dong": "09/10 08:00"},
+                      "khach": [["09/10/2026 08:01", "Messenger", "1", "An", "0912345678", "keo 228", "hỏi giá", "Mới", ""]],
+                      "hoi_thoai": [{"ten": "An", "luc": "2026-10-09T01:00:00+0000",
+                                     "tin": [{"tu": "khach", "noi_dung": "<b>giá</b>?", "luc": ""},
+                                             {"tu": "page", "noi_dung": "Dạ cho em xin SĐT", "luc": ""}]}]})
+    assert "0912345678" in html and "Dạ cho em xin SĐT" in html
+    assert "&lt;b&gt;giá" in html  # nội dung khách luôn được escape
+
+
+def test_hoi_thoai_gan_day_doc_tu_graph():
+    from hoanbao_bot.messenger import Messenger
+
+    class R:
+        content = b"1"
+        status_code = 200
+        text = ""
+
+        def json(self):
+            return {"data": [{"updated_time": "2026-10-09T01:00:00+0000",
+                              "participants": {"data": [{"id": "P", "name": "Page"}, {"id": "U", "name": "An"}]},
+                              "messages": {"data": [{"message": "Dạ", "from": {"id": "P"}, "created_time": "t2"},
+                                                    {"message": "giá?", "from": {"id": "U"}, "created_time": "t1"}]}}]}
+
+    class S:
+        def request(self, *a, **k):
+            return R()
+
+    cuoc = Messenger("P", "tok", session=S()).hoi_thoai_gan_day()
+    assert cuoc[0]["ten"] == "An"
+    assert [t["tu"] for t in cuoc[0]["tin"]] == ["khach", "page"]

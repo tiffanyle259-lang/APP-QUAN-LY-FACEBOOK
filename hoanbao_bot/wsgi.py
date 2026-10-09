@@ -85,6 +85,19 @@ def dung_bang_dieu_khien() -> str:
         logging.getLogger("hoanbao_bot").warning("Không lấy được tên Fanpage cho bảng điều khiển")
     d = bdk.thu_thap(cfg, drive, sheets, CauHinh.bien("SHEET_DUYET_ID"),
                      os.environ.get("DRIVE_KHO_ID", "").strip(), ten_page)
+    d["bot"] = dict(_bot.thong_ke)
+    try:
+        dong = sheets.spreadsheets().values().get(
+            spreadsheetId=CauHinh.bien("SHEET_DUYET_ID"), range="'Khách hàng'!A2:I500").execute().get("values", [])
+        d["khach"] = [(list(r) + [""] * 9)[:9] for r in dong][::-1][:30]
+    except Exception as e:
+        d["khach"] = None
+        d["khach_loi"] = type(e).__name__
+    try:
+        d["hoi_thoai"] = _bot.mess.hoi_thoai_gan_day()
+    except Exception as e:
+        d["hoi_thoai"] = None
+        d["hoi_thoai_loi"] = str(e)[:200]
     _cache_bdk.update(luc=time.time(), html=bdk.dung_html(d))
     return _cache_bdk["html"]
 

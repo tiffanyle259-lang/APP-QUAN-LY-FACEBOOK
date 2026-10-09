@@ -76,6 +76,20 @@ border-bottom:1px solid var(--line);font-size:14px}.k:last-child{border-bottom:0
 .track{height:8px;background:var(--bar-bg);border-radius:99px;overflow:hidden}
 .fill{height:100%;background:var(--bar);border-radius:99px}
 .k .n{text-align:right;font-variant-numeric:tabular-nums;font-weight:650}.k .n.zero{color:var(--loi)}
+.kh{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}
+.kh .scroll{overflow-x:auto}.kh table{width:100%;border-collapse:collapse;min-width:640px}
+.kh th{font-size:12px;text-align:left;color:var(--muted);font-weight:600;padding:9px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
+.kh td{padding:9px 14px;border-bottom:1px solid var(--line);font-size:14px;vertical-align:top;overflow-wrap:anywhere}
+.kh tr:last-child td{border-bottom:0}.sdt{font-variant-numeric:tabular-nums;font-weight:650;white-space:nowrap}
+.chats{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,330px),1fr));gap:12px}
+.chat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;box-shadow:var(--shadow);min-width:0}
+.chat h3{margin:0 0 8px;font-size:14px;display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.chat h3 small{font-weight:500;color:var(--muted);font-size:12px;white-space:nowrap}
+.msg{max-width:88%;padding:6px 10px;border-radius:12px;font-size:13.5px;margin:4px 0;overflow-wrap:anywhere;white-space:pre-wrap}
+.msg.khach{background:var(--bar-bg);border-bottom-left-radius:4px}
+.msg.page{background:var(--gold-bg);color:var(--ink);margin-left:auto;border-bottom-right-radius:4px}
+.msg.page::before{content:"Page/bot · ";font-size:11px;color:var(--gold-ink);font-weight:650}
+.canhbao{background:var(--card);border:1px dashed var(--line);border-radius:14px;padding:14px 16px;color:var(--muted);font-size:14px}
 .foot{margin-top:28px;font-size:13px;color:var(--muted)}
 .empty{background:var(--card);border:1px dashed var(--line);border-radius:14px;padding:22px;color:var(--muted)}
 @media (max-width:520px){.post{grid-template-columns:88px minmax(0,1fr)}.k{grid-template-columns:1fr 36px}.k .track{grid-column:1/-1;order:3}}
@@ -96,6 +110,16 @@ def _ngay(text: str) -> str:
         return f"{_THU[d.weekday()]} {d:%d/%m}"
     except ValueError:
         return text
+
+
+def _gio_vn(iso: str) -> str:
+    """Đổi giờ ISO của Facebook (UTC) sang giờ Việt Nam dạng 14:05 09/10."""
+    try:
+        from zoneinfo import ZoneInfo
+        t = datetime.strptime(iso[:19], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=ZoneInfo("UTC"))
+        return t.astimezone(ZoneInfo("Asia/Ho_Chi_Minh")).strftime("%H:%M %d/%m")
+    except ValueError:
+        return iso
 
 
 def _anh_nho(link: str) -> str:
@@ -170,6 +194,48 @@ def dung_html(d: dict) -> str:
                         f"</div></div><span class='n{' zero' if zero else ''}'>{k['so_file']}</span></div>")
         kho_html = ("<h2>Kho ảnh/video <small>số file mỗi thư mục</small></h2><div class='kho'>" + "".join(dong) + "</div>")
 
+    tuong_tac = ""
+    b = d.get("bot")
+    if b:
+        tuong_tac = ("<h2>Tương tác với khách <small>từ lúc bot khởi động " + _e(b.get("khoi_dong", "")) + "</small></h2>"
+                     "<div class='stats'>" + "".join([
+                         chi_so(b.get("tin_nhan_khach", 0), "Tin nhắn khách gửi"),
+                         chi_so(b.get("da_gui_tra_loi", 0), "Bot đã trả lời", "xanh" if b.get("da_gui_tra_loi") else ""),
+                         chi_so(b.get("binh_luan", 0), "Bình luận"),
+                         chi_so(b.get("bo_qua_im_lang", 0), "Nhân viên đang xử lý"),
+                         chi_so(b.get("loi", 0), "Lỗi", "do" if b.get("loi") else "")]) + "</div>"
+                     "<p class='muted' style='margin:8px 2px 0;font-size:12.5px;color:var(--muted)'>Số liệu tính từ lần bot "
+                     "khởi động gần nhất, nên sẽ về 0 sau mỗi lần máy chủ cập nhật.</p>")
+
+    khach_html = ""
+    if d.get("khach") is not None:
+        dong = []
+        for r in d["khach"]:
+            ten = _e(r[3]) or "—"
+            dong.append(f"<tr><td>{_e(r[0])}</td><td>{ten}</td><td class='sdt'>{_e(r[4]) or '—'}</td>"
+                        f"<td>{_e(r[5])}</td><td>{_e(r[6])}</td><td><span class='badge s-cho'>{_e(r[7]) or 'Mới'}</span></td></tr>")
+        khach_html = ("<h2>Khách quan tâm <small>để lại số điện thoại hoặc cần nhân viên</small></h2><div class='kh'>"
+                      + ("<div class='scroll'><table><thead><tr><th>Thời gian</th><th>Tên</th><th>SĐT</th><th>Nhu cầu</th>"
+                         "<th>Lý do chuyển</th><th>Trạng thái</th></tr></thead><tbody>" + "".join(dong) + "</tbody></table></div>"
+                         if dong else "<div class='canhbao' style='border:0'>Chưa có khách nào để lại thông tin.</div>")
+                      + "</div>")
+    elif d.get("khach_loi"):
+        khach_html = ("<h2>Khách quan tâm</h2><div class='canhbao'>Chưa đọc được tab <b>Khách hàng</b> trong Google Sheet ("
+                      + _e(d["khach_loi"]) + ").</div>")
+
+    chat_html = ""
+    if d.get("hoi_thoai"):
+        the_chat = []
+        for c in d["hoi_thoai"]:
+            tin = "".join(f"<div class='msg {t['tu']}'>{_e(t['noi_dung'])}</div>" for t in c["tin"])
+            the_chat.append(f"<article class='chat'><h3>{_e(c['ten'])}<small>{_e(_gio_vn(c['luc']))}</small></h3>{tin}</article>")
+        chat_html = "<h2>Tin nhắn gần đây <small>đọc trực tiếp từ Messenger</small></h2><div class='chats'>" + "".join(the_chat) + "</div>"
+    elif d.get("hoi_thoai_loi"):
+        chat_html = ("<h2>Tin nhắn gần đây</h2><div class='canhbao'>Chưa đọc được tin nhắn từ Messenger: "
+                     + _e(d["hoi_thoai_loi"]) + "<br>Nếu báo thiếu quyền thì cần chờ Meta duyệt đơn xét duyệt.</div>")
+    elif d.get("hoi_thoai") == []:
+        chat_html = "<h2>Tin nhắn gần đây</h2><div class='canhbao'>Chưa có cuộc trò chuyện nào.</div>"
+
     che_do = {True: "Duyệt tay: bật", False: "Tự lên lịch", None: ""}[d.get("che_do_duyet")]
     ten_page = _e(d.get("page")) or "Fanpage"
     return f"""<!doctype html><html lang="vi"><head><meta charset="utf-8">
@@ -183,6 +249,7 @@ def dung_html(d: dict) -> str:
 {f'<span class="pill">{che_do}</span>' if che_do else ''}</div></div></div>
 <div class="wrap">
 <div class="stats">{stats}</div>{todo}
+{tuong_tac}{khach_html}{chat_html}
 <h2>Lịch bài đăng <small>{len(bai)} bài</small></h2>{ds_html}{kho_html}
 <p class="foot">Trang này chỉ để xem, tự cập nhật mỗi lần tải lại. Muốn sửa hoặc duyệt bài, làm trong Google Sheet.</p>
 </div></body></html>"""

@@ -62,6 +62,21 @@ class Messenger:
                                 "noi_dung": m["message"]})
         return tin
 
+    def hoi_thoai_gan_day(self, so_cuoc: int = 12, so_tin: int = 6) -> list[dict]:
+        """Các cuộc trò chuyện Messenger mới nhất, đọc trực tiếp từ Meta (không lưu lại ở đâu)."""
+        body = self._goi("GET", f"{self.page_id}/conversations", params={
+            "platform": "messenger", "limit": so_cuoc,
+            "fields": f"participants,updated_time,messages.limit({so_tin}){{message,from,created_time}}"})
+        ket_qua = []
+        for cuoc in body.get("data", []):
+            khach = next((u.get("name", "") for u in cuoc.get("participants", {}).get("data", [])
+                          if u.get("id") != self.page_id), "")
+            tin = [{"tu": "page" if m.get("from", {}).get("id") == self.page_id else "khach",
+                    "noi_dung": m.get("message") or "(hình/tệp)", "luc": m.get("created_time", "")}
+                   for m in reversed(cuoc.get("messages", {}).get("data", []))]
+            ket_qua.append({"ten": khach or "Khách", "luc": cuoc.get("updated_time", ""), "tin": tin})
+        return ket_qua
+
     def nhan_rieng_binh_luan(self, comment_id: str, text: str) -> None:
         """Private reply: nhắn riêng cho người bình luận (một lần, trong 7 ngày)."""
         self._goi("POST", "me/messages", json={
