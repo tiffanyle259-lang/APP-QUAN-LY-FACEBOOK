@@ -14,7 +14,7 @@ from .ai_bot import AiBot
 from .khach import SoKhach, bao_nhan_vien
 from .kien_thuc import dung_he_thong
 from .messenger import Messenger
-from .server import tao_ung_dung
+from .server import LoiThaoTac, tao_ung_dung
 from .xu_ly import Bot
 
 
@@ -86,10 +86,12 @@ def dung_bang_dieu_khien() -> str:
     d = bdk.thu_thap(cfg, drive, sheets, CauHinh.bien("SHEET_DUYET_ID"),
                      os.environ.get("DRIVE_KHO_ID", "").strip(), ten_page)
     d["bot"] = dict(_bot.thong_ke)
+    d["sua_duoc"] = True
     try:
         dong = sheets.spreadsheets().values().get(
             spreadsheetId=CauHinh.bien("SHEET_DUYET_ID"), range="'Khách hàng'!A2:I500").execute().get("values", [])
-        d["khach"] = [(list(r) + [""] * 9)[:9] for r in dong][::-1][:30]
+        # Thêm số dòng trong Sheet (phần tử cuối) để bảng điều khiển đổi được trạng thái đúng khách.
+        d["khach"] = [(list(r) + [""] * 9)[:9] + [i] for i, r in enumerate(dong, start=2)][::-1][:30]
     except Exception as e:
         d["khach"] = None
         d["khach_loi"] = type(e).__name__
@@ -102,6 +104,56 @@ def dung_bang_dieu_khien() -> str:
     return _cache_bdk["html"]
 
 
+def thao_tac(lenh: dict) -> dict:
+    """Ghi thay đổi từ bảng điều khiển vào Google Sheet. Chỉ nhận vài thao tác cố định, kiểm tra kỹ trước khi ghi."""
+    from google.oauth2.service_account import Credentials
+    from googleapiclient.discovery import build
+
+    from hoanbao_mkt.duyet_bai import BO, CHO_DUYET, DA_LEN_LICH, DUYET, SheetDuyet
+    from .khach import TAB, TRANG_THAI_KHACH
+
+    cfg = CauHinh.doc()
+    creds = Credentials.from_service_account_info(
+        cfg.google_service_account(), scopes=["https://www.googleapis.com/auth/spreadsheets"])
+    sheets = build("sheets", "v4", credentials=creds, cache_discovery=False)
+    sheet_id = CauHinh.bien("SHEET_DUYET_ID")
+    sheet = SheetDuyet(sheets, sheet_id)
+    hanh = lenh.get("hanh")
+    if hanh in ("bai_trang_thai", "bai_noi_dung"):
+        bai = next((b for b in sheet.doc_tat_ca() if b.ma_bai == str(lenh.get("ma_bai", ""))), None)
+        if not bai:
+            raise LoiThaoTac("Không tìm thấy bài này trong Sheet.")
+        if bai.trang_thai == DA_LEN_LICH or bai.facebook_id.strip():
+            raise LoiThaoTac("Bài đã lên lịch trên Facebook. Muốn sửa hoặc hủy, làm trong Meta Business Suite.")
+        if hanh == "bai_trang_thai":
+            tt = lenh.get("trang_thai")
+            if tt not in (CHO_DUYET, DUYET, BO):
+                raise LoiThaoTac("Trạng thái không hợp lệ.")
+            sheet.dat_trang_thai(bai.dong, tt)
+        else:
+            nd = str(lenh.get("noi_dung", "")).strip()
+            if not nd or len(nd) > 5000:
+                raise LoiThaoTac("Nội dung bài phải có chữ và không quá 5000 ký tự.")
+            sheet.dat_noi_dung(bai.dong, nd)
+    elif hanh == "khach_trang_thai":
+        try:
+            dong = int(lenh.get("dong"))
+        except (TypeError, ValueError):
+            raise LoiThaoTac("Dòng khách không hợp lệ.")
+        if dong < 2 or dong > 5000 or lenh.get("trang_thai") not in TRANG_THAI_KHACH:
+            raise LoiThaoTac("Trạng thái khách không hợp lệ.")
+        co = sheets.spreadsheets().values().get(spreadsheetId=sheet_id, range=f"'{TAB}'!A{dong}").execute().get("values")
+        if not co:
+            raise LoiThaoTac("Dòng khách này không còn trong Sheet.")
+        sheets.spreadsheets().values().update(
+            spreadsheetId=sheet_id, range=f"'{TAB}'!H{dong}", valueInputOption="RAW",
+            body={"values": [[lenh["trang_thai"]]]}).execute()
+    else:
+        raise LoiThaoTac("Thao tác không hỗ trợ.")
+    _cache_bdk["luc"] = 0.0  # lần mở sau đọc dữ liệu mới
+    return {"ok": True}
+
+
 logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO"))
 _bot, _secret, _verify = tao_bot()
-app = tao_ung_dung(_bot, _secret, _verify, moi_truong=kiem_moi_truong, bang_dieu_khien=dung_bang_dieu_khien)
+app = tao_ung_dung(_bot, _secret, _verify, moi_truong=kiem_moi_truong, bang_dieu_khien=dung_bang_dieu_khien, thao_tac=thao_tac)

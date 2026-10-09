@@ -283,8 +283,48 @@ def test_bang_dieu_khien_can_mat_khau():
     c = app.test_client()
     assert c.get("/bang-dieu-khien").status_code == 403
     assert c.get("/bang-dieu-khien?k=sai").status_code == 403
-    r = c.get("/bang-dieu-khien?k=mat-khau")
+    r = c.get("/bang-dieu-khien?k=mat-khau")  # đúng mật khẩu: đặt cookie rồi chuyển về địa chỉ không có mật khẩu
+    assert r.status_code == 302 and r.headers["Location"].endswith("/bang-dieu-khien")
+    r = c.get("/bang-dieu-khien")
     assert r.status_code == 200 and b"ok" in r.data
+
+
+def test_api_thao_tac_can_dang_nhap_va_kiem_tra():
+    from hoanbao_bot.server import LoiThaoTac
+
+    def thao_tac(lenh):
+        if lenh.get("hanh") == "hong":
+            raise LoiThaoTac("Bài đã lên lịch")
+        return {"ok": True}
+
+    app = tao_ung_dung(SimpleNamespace(), "s", "mat-khau", bang_dieu_khien=lambda: "x", thao_tac=thao_tac)
+    c = app.test_client()
+    h = {"X-GL": "1"}
+    assert c.post("/api/thao-tac", json={"hanh": "a"}, headers=h).status_code == 403  # chưa đăng nhập
+    c.get("/bang-dieu-khien?k=mat-khau")
+    assert c.post("/api/thao-tac", json={"hanh": "a"}).status_code == 403  # thiếu header chống giả mạo
+    assert c.post("/api/thao-tac", json={"hanh": "a"}, headers=h).get_json() == {"ok": True}
+    r = c.post("/api/thao-tac", json={"hanh": "hong"}, headers=h)
+    assert r.status_code == 400 and r.get_json()["loi"] == "Bài đã lên lịch"
+    assert c.post("/api/thao-tac", data="khong phai json", headers=h).status_code == 400
+
+
+def test_bang_dieu_khien_co_nut_khi_duoc_sua():
+    from hoanbao_mkt.bang_dieu_khien import dung_html
+
+    d = {"cap_nhat": "x", "page": "KEO DÁN GIÀY", "che_do_duyet": True, "sheet_url": "", "kho": [],
+         "bai": [{"ma_bai": "m1", "ngay": "2026-10-12", "gio": "08:00", "loai": "L", "noi_dung": "<i>nd</i>", "media": "",
+                  "trang_thai": "Chờ duyệt", "ghi_chu": "", "facebook_id": ""},
+                 {"ma_bai": "m2", "ngay": "2026-10-13", "gio": "08:00", "loai": "L", "noi_dung": "nd", "media": "",
+                  "trang_thai": "Đã lên lịch", "ghi_chu": "", "facebook_id": "123"}],
+         "khach": [["t", "Messenger", "1", "An", "09", "n", "l", "Mới", "", 7]]}
+    xem = dung_html(d)
+    assert "data-hanh" not in xem  # bản chỉ xem (xuất từ GitHub) không có nút
+    d["sua_duoc"] = True
+    sua = dung_html(d)
+    assert "data-tt='Duyệt'" in sua and 'data-dong=\'7\'' in sua
+    assert "&lt;i&gt;nd" in sua  # nội dung vẫn được escape
+    assert sua.count("data-hanh='bai_trang_thai'") == 2  # chỉ bài m1 (Duyệt, Bỏ); bài đã lên lịch không có nút
 
 
 def test_bang_dieu_khien_khong_co_kho():

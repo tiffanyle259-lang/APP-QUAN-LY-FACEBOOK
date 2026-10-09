@@ -11,9 +11,13 @@ from concurrent.futures import ThreadPoolExecutor
 
 from pathlib import Path
 
-from flask import Flask, request, send_file
+from flask import Flask, jsonify, make_response, redirect, request, send_file
 
 log = logging.getLogger("hoanbao_bot")
+
+
+class LoiThaoTac(ValueError):
+    """Thao tác từ bảng điều khiển không hợp lệ; thông báo được hiện cho người dùng."""
 
 
 def chu_ky_hop_le(raw: bytes, header: str, app_secret: str) -> bool:
@@ -23,7 +27,7 @@ def chu_ky_hop_le(raw: bytes, header: str, app_secret: str) -> bool:
     return hmac.compare_digest(mong_doi, header[len("sha256="):])
 
 
-def tao_ung_dung(bot, app_secret: str, verify_token: str, chay=None, moi_truong=None, bang_dieu_khien=None) -> Flask:
+def tao_ung_dung(bot, app_secret: str, verify_token: str, chay=None, moi_truong=None, bang_dieu_khien=None, thao_tac=None) -> Flask:
     app = Flask(__name__)
     pool = ThreadPoolExecutor(max_workers=4)
     chay = chay or pool.submit
@@ -50,10 +54,23 @@ def tao_ung_dung(bot, app_secret: str, verify_token: str, chay=None, moi_truong=
             return "forbidden", 403
         return {"bot": getattr(bot, "thong_ke", {}), "moi_truong": moi_truong() if moi_truong else {}}
 
+    cookie = "gl_dang_nhap"
+
+    def the_dang_nhap() -> str:
+        return hmac.new(verify_token.encode(), b"bang-dieu-khien", hashlib.sha256).hexdigest()
+
+    def da_dang_nhap() -> bool:
+        return hmac.compare_digest(request.cookies.get(cookie, ""), the_dang_nhap())
+
     @app.get("/bang-dieu-khien")
     def bang_dieu_khien_trang():
-        """Bảng điều khiển xem trực tiếp (bài đăng, duyệt, kho ảnh). Cần mật khẩu ?k= như /trang-thai."""
-        if not hmac.compare_digest(request.args.get("k", ""), verify_token):
+        """Bảng điều khiển. Vào lần đầu bằng ?k=mật khẩu; sau đó trình duyệt nhớ 30 ngày, địa chỉ không còn mật khẩu."""
+        if hmac.compare_digest(request.args.get("k", ""), verify_token):
+            r = make_response(redirect("/bang-dieu-khien"))
+            r.set_cookie(cookie, the_dang_nhap(), max_age=30 * 86400, httponly=True, samesite="Strict",
+                         secure=request.is_secure)
+            return r
+        if not da_dang_nhap():
             return "forbidden", 403
         if not bang_dieu_khien:
             return "chưa bật", 404
@@ -62,6 +79,24 @@ def tao_ung_dung(bot, app_secret: str, verify_token: str, chay=None, moi_truong=
         except Exception as e:
             log.exception("Lỗi dựng bảng điều khiển")
             return f"Không dựng được bảng điều khiển: {type(e).__name__}", 500
+
+    @app.post("/api/thao-tac")
+    def api_thao_tac():
+        """Duyệt/bỏ/sửa bài và đổi trạng thái khách ngay trên bảng điều khiển."""
+        if not da_dang_nhap() or request.headers.get("X-GL") != "1":
+            return jsonify(loi="Hết phiên đăng nhập, hãy mở lại bảng điều khiển bằng link có mật khẩu."), 403
+        if not thao_tac:
+            return jsonify(loi="Chưa bật"), 404
+        lenh = request.get_json(silent=True)
+        if not isinstance(lenh, dict):
+            return jsonify(loi="Dữ liệu không hợp lệ"), 400
+        try:
+            return jsonify(thao_tac(lenh))
+        except LoiThaoTac as e:
+            return jsonify(loi=str(e)), 400
+        except Exception as e:
+            log.exception("Lỗi thao tác bảng điều khiển")
+            return jsonify(loi=f"Lỗi máy chủ ({type(e).__name__})"), 500
 
     @app.get("/webhook")
     def xac_minh():

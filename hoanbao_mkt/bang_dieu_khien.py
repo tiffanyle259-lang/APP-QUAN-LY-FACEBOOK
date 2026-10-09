@@ -96,10 +96,49 @@ align-items:baseline;padding:10px 14px;width:auto;color:var(--ink);font-weight:5
 .msg.page{background:var(--gold-bg);color:var(--ink);margin-left:auto;border-bottom-right-radius:4px}
 .msg.page::before{content:"Page/bot · ";font-size:11px;color:var(--gold-ink);font-weight:650}
 .canhbao{background:var(--card);border:1px dashed var(--line);border-radius:14px;padding:14px 16px;color:var(--muted);font-size:14px}
+.acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:2px}
+button.bt{font:inherit;font-size:13px;font-weight:650;border:1px solid var(--line);background:var(--card);color:var(--ink);
+border-radius:9px;padding:5px 12px;cursor:pointer}button.bt:hover{background:var(--bg)}
+button.bt.chinh{background:var(--gold);border-color:var(--gold);color:#1a1200}button.bt.chinh:hover{filter:brightness(.95)}
+button.bt:disabled{opacity:.55;cursor:wait}button.bt:focus-visible,select.chon:focus-visible,textarea.sua:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+textarea.sua{width:100%;min-height:150px;margin-top:6px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;
+background:var(--bg);color:var(--ink);font:14px/1.5 inherit;resize:vertical}
+select.chon{font:inherit;font-size:13px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);padding:3px 6px}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);
+color:var(--bg);padding:9px 16px;border-radius:10px;font-size:14px;box-shadow:0 6px 20px rgba(0,0,0,.25);z-index:9;max-width:90vw}
+#toast.loi{background:var(--loi);color:#fff}
 .foot{margin-top:28px;font-size:13px;color:var(--muted)}
 .empty{background:var(--card);border:1px dashed var(--line);border-radius:14px;padding:22px;color:var(--muted)}
 @media (max-width:520px){.post{grid-template-columns:88px minmax(0,1fr)}.k{grid-template-columns:1fr 36px}.k .track{grid-column:1/-1;order:3}}
 """
+
+JS = r"""
+<div id="toast" hidden></div>
+<script>
+(function(){
+  var toast=document.getElementById('toast'),t0;
+  function bao(m,loi){toast.textContent=m;toast.className=loi?'loi':'';toast.hidden=false;clearTimeout(t0);t0=setTimeout(function(){toast.hidden=true},3500)}
+  function gui(lenh,nut){
+    if(nut)nut.disabled=true;
+    fetch('/api/thao-tac',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-GL':'1'},body:JSON.stringify(lenh)})
+      .then(function(r){return r.json().then(function(j){return{ok:r.ok,j:j}})})
+      .then(function(x){
+        if(!x.ok){bao(x.j.loi||'Không lưu được',true);if(nut)nut.disabled=false;return}
+        bao('Đã lưu');setTimeout(function(){location.reload()},700)})
+      .catch(function(){bao('Mất kết nối, thử lại sau',true);if(nut)nut.disabled=false});
+  }
+  document.addEventListener('click',function(e){
+    var b=e.target.closest('button[data-hanh]');if(!b)return;
+    var h=b.dataset.hanh;
+    if(h==='bai_trang_thai')gui({hanh:h,ma_bai:b.dataset.ma,trang_thai:b.dataset.tt},b);
+    else if(h==='bai_noi_dung'){var ta=document.getElementById('nd-'+b.dataset.ma);gui({hanh:h,ma_bai:b.dataset.ma,noi_dung:ta?ta.value:''},b)}
+  });
+  document.addEventListener('change',function(e){
+    var s=e.target.closest('select[data-hanh="khach_trang_thai"]');if(!s)return;
+    gui({hanh:'khach_trang_thai',dong:s.dataset.dong,trang_thai:s.value},null);
+  });
+})();
+</script>"""
 
 _LOP = {"Chờ duyệt": "s-cho", "Duyệt": "s-duyet", "Đã lên lịch": "s-ok", "Lỗi": "s-loi", "Bỏ": "s-bo"}
 _LOP_KHACH = {"Mới": "s-cho", "Đã gọi": "s-duyet", "Báo giá": "s-duyet", "Chốt đơn": "s-ok", "Không mua": "s-bo"}
@@ -147,12 +186,15 @@ def dung_html(d: dict) -> str:
     xem_lai = next((k["so_file"] for k in d["kho"] if k["ten"] == "_can-xem-lai"), 0)
 
     viec = []
+    sua_ngay = bool(d.get("sua_duoc"))
     sheet = (f'<a href="{_e(d["sheet_url"])}" target="_blank" rel="noopener">mở Google Sheet</a>'
              if d.get("sheet_url") else "Google Sheet")
     if dem["Chờ duyệt"]:
-        viec.append(f"<b>{dem['Chờ duyệt']}</b> bài đang chờ duyệt: {sheet}, sửa nội dung nếu cần rồi chọn trạng thái <b>Duyệt</b>.")
+        viec.append(f"<b>{dem['Chờ duyệt']}</b> bài đang chờ duyệt: bấm <b>Xem và sửa bài</b> để chỉnh chữ nếu cần, rồi bấm <b>Duyệt bài</b> ngay ở mục Lịch bài đăng bên dưới."
+                    if sua_ngay else f"<b>{dem['Chờ duyệt']}</b> bài đang chờ duyệt: {sheet}, sửa nội dung nếu cần rồi chọn trạng thái <b>Duyệt</b>.")
     if dem["Lỗi"]:
-        viec.append(f"<b>{dem['Lỗi']}</b> bài bị lỗi: xem cột Ghi chú trong {sheet}.")
+        viec.append(f"<b>{dem['Lỗi']}</b> bài bị lỗi: xem dòng lỗi màu đỏ trong thẻ bài, sửa rồi bấm <b>Duyệt lại</b>."
+                    if sua_ngay else f"<b>{dem['Lỗi']}</b> bài bị lỗi: xem cột Ghi chú trong {sheet}.")
     if cho_phan_loai:
         viec.append(f"<b>{cho_phan_loai}</b> file chưa xếp loại: app tự xếp lúc 8h17 sáng, hoặc chạy <b>Xếp ảnh vào kho</b>.")
     if xem_lai:
@@ -182,6 +224,33 @@ def dung_html(d: dict) -> str:
                     "Xem trên Facebook</a>")
         return ""
 
+    sua = bool(d.get("sua_duoc"))
+
+    def nut(ma, tt, nhan, chinh=False):
+        return (f"<button type='button' class='bt{' chinh' if chinh else ''}' data-hanh='bai_trang_thai' "
+                f"data-ma='{_e(ma)}' data-tt='{tt}'>{nhan}</button>")
+
+    def hanh_dong_bai(b):
+        if not sua:
+            return ""
+        tt, ma = b["trang_thai"], b["ma_bai"]
+        if tt == "Chờ duyệt":
+            nut_ = nut(ma, "Duyệt", "Duyệt bài", True) + nut(ma, "Bỏ", "Bỏ bài")
+        elif tt == "Duyệt":
+            nut_ = nut(ma, "Chờ duyệt", "Đưa về chờ duyệt") + nut(ma, "Bỏ", "Bỏ bài")
+        elif tt in ("Bỏ", "Lỗi"):
+            nut_ = nut(ma, "Duyệt", "Duyệt lại" if tt == "Lỗi" else "Khôi phục và duyệt", True)
+        else:
+            return ""
+        return f"<div class='acts'>{nut_}</div>"
+
+    def sua_noi_dung(b):
+        if not sua or b["trang_thai"] not in ("Chờ duyệt", "Duyệt", "Bỏ", "Lỗi"):
+            return ""
+        return (f"<textarea class='sua' id='nd-{_e(b['ma_bai'])}'>{_e(b['noi_dung'])}</textarea>"
+                f"<div class='acts'><button type='button' class='bt' data-hanh='bai_noi_dung' data-ma='{_e(b['ma_bai'])}'>"
+                "Lưu nội dung</button></div>")
+
     the = []
     for b in bai:
         ghi_chu = (f"<div class='note{' loi' if b['trang_thai'] == 'Lỗi' else ''}'>{_e(b['ghi_chu'])}</div>"
@@ -193,8 +262,9 @@ def dung_html(d: dict) -> str:
             f"<div class='row'><span class='when'>{_e(_ngay(b['ngay']))} · {_e(b['gio'])}</span>"
             f"<span class='badge {lop}'>{_e(b['trang_thai'] or 'Chưa có')}</span></div>"
             f"<div class='loai'>{_e(b['loai'])}</div>"
-            f"<div class='dich'>Đăng lên Fanpage <b>{ten_page}</b>{link_fb(b)}</div><div class='pv'>{_e(b['noi_dung'])}</div>{ghi_chu}"
-            f"<details><summary>Xem cả bài</summary><div class='body'>{_e(b['noi_dung'])}</div>"
+            f"<div class='dich'>Đăng lên Fanpage <b>{ten_page}</b>{link_fb(b)}</div><div class='pv'>{_e(b['noi_dung'])}</div>{ghi_chu}{hanh_dong_bai(b)}"
+            f"<details><summary>{'Xem và sửa bài' if sua_noi_dung(b) else 'Xem cả bài'}</summary>"
+            f"{sua_noi_dung(b) or ('<div class=body>' + _e(b['noi_dung']) + '</div>')}"
             f"<div style='margin-top:6px;font-size:13px'>{xem_anh}</div></details></div></article>")
     ds_html = ("<div class='grid'>" + "".join(the) + "</div>" if the else
                "<div class='empty'>Chưa có bài nào. Chạy workflow <b>Tạo bài cả tuần</b> để AI viết bài mới.</div>")
@@ -223,13 +293,21 @@ def dung_html(d: dict) -> str:
                      "<p class='muted' style='margin:8px 2px 0;font-size:12.5px;color:var(--muted)'>Số liệu tính từ lần bot "
                      "khởi động gần nhất, nên sẽ về 0 sau mỗi lần máy chủ cập nhật.</p>")
 
+    def trang_thai_khach(r):
+        hien = (r[7] or "Mới").strip()
+        if sua and len(r) > 9:
+            tuy = "".join(f"<option{' selected' if t == hien else ''}>{t}</option>"
+                          for t in ("Mới", "Đã gọi", "Báo giá", "Chốt đơn", "Không mua"))
+            return f"<select class='chon' data-hanh='khach_trang_thai' data-dong='{int(r[9])}' aria-label='Trạng thái khách'>{tuy}</select>"
+        return f"<span class='badge {_LOP_KHACH.get(hien, 's-moi')}'>{_e(hien)}</span>"
+
     khach_html = ""
     if d.get("khach") is not None:
         dong = []
         for r in d["khach"]:
             ten = _e(r[3]) or "—"
             dong.append(f"<tr><td>{_e(r[0])}</td><td>{ten}</td><td class='sdt'>{_e(r[4]) or '—'}</td>"
-                        f"<td>{_e(r[5])}</td><td>{_e(r[6])}</td><td><span class='badge {_LOP_KHACH.get((r[7] or "Mới").strip(), "s-moi")}'>{_e(r[7]) or 'Mới'}</span></td></tr>")
+                        f"<td>{_e(r[5])}</td><td>{_e(r[6])}</td><td>{trang_thai_khach(r)}</td></tr>")
         dem_kh = Counter((r[7] or "Mới").strip() for r in d["khach"])
         phieu = "".join(f"<span class='badge {_LOP_KHACH.get(t, 's-moi')}'>{t}: {dem_kh.get(t, 0)}</span> "
                         for t in ("Mới", "Đã gọi", "Báo giá", "Chốt đơn", "Không mua"))
@@ -262,6 +340,9 @@ def dung_html(d: dict) -> str:
         chat_html = "<h2>Tin nhắn gần đây</h2><div class='canhbao'>Chưa có cuộc trò chuyện nào.</div>"
 
     che_do = {True: "Duyệt tay: bật", False: "Tự lên lịch", None: ""}[d.get("che_do_duyet")]
+    chu_cuoi = ("Duyệt bài xong, app tự lên lịch đăng trong vòng 1 giờ. Bài đã lên lịch thì sửa hoặc hủy trong Meta Business Suite."
+                if sua else "Trang này chỉ để xem, tự cập nhật mỗi lần tải lại. Muốn sửa hoặc duyệt bài, làm trong Google Sheet.")
+    js = JS if sua else ""
     return f"""<!doctype html><html lang="vi"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>Golden Lion Fanpage</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -275,8 +356,8 @@ def dung_html(d: dict) -> str:
 <div class="stats">{stats}</div>{todo}
 {tuong_tac}{khach_html}{chat_html}
 <h2>Lịch bài đăng <small>{len(bai)} bài · đăng lên Fanpage {ten_page}</small></h2>{ds_html}{kho_html}
-<p class="foot">Trang này chỉ để xem, tự cập nhật mỗi lần tải lại. Muốn sửa hoặc duyệt bài, làm trong Google Sheet.</p>
-</div></body></html>"""
+<p class="foot">{chu_cuoi}</p>
+</div>{js}</body></html>"""
 
 
 def thu_thap(cfg, drive, sheets, sheet_id: str, kho_id: str, ten_page: str = "") -> dict:
