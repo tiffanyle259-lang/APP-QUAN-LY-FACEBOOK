@@ -20,7 +20,7 @@ CSS = """
 --gold-ink:#f6cf74;--gold-bg:#3a2d08;--cho:#f6c35b;--cho-bg:#46330a;--duyet:#8bb8ff;--duyet-bg:#14305e;--ok:#5fe0a1;
 --ok-bg:#0b3a24;--loi:#ff9d94;--loi-bg:#511b17;--bo:#c3cddb;--bo-bg:#272f3a;--bar:#f0b429;--bar-bg:#262d38;--shadow:none;
 color-scheme:dark}
-*{box-sizing:border-box}
+*{box-sizing:border-box}[hidden]{display:none!important}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 "Be Vietnam Pro",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
 -webkit-font-smoothing:antialiased}
 .wrap{max-width:1080px;margin:0 auto;padding:0 16px 56px}
@@ -96,6 +96,31 @@ align-items:baseline;padding:10px 14px;width:auto;color:var(--ink);font-weight:5
 .msg.page{background:var(--gold-bg);color:var(--ink);margin-left:auto;border-bottom-right-radius:4px}
 .msg.page::before{content:"Page/bot · ";font-size:11px;color:var(--gold-ink);font-weight:650}
 .canhbao{background:var(--card);border:1px dashed var(--line);border-radius:14px;padding:14px 16px;color:var(--muted);font-size:14px}
+.tabs{max-width:1080px;margin:0 auto;padding:0 12px;display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{font:inherit;font-size:14px;font-weight:600;color:color-mix(in srgb,var(--bg) 72%,transparent);background:none;border:0;
+padding:10px 14px;border-bottom:3px solid transparent;cursor:pointer;white-space:nowrap;display:flex;gap:7px;align-items:center}
+.tab:hover{color:var(--bg)}.tab[aria-selected="true"]{color:var(--bg);border-bottom-color:var(--gold)}
+.tab:focus-visible{outline:2px solid var(--gold);outline-offset:-2px;border-radius:6px}
+.dau{font-style:normal;font-size:11.5px;font-weight:700;background:var(--gold);color:#1a1200;border-radius:99px;padding:0 7px;line-height:18px}
+.brand .in{padding-bottom:6px}.panel h2:first-child{margin-top:22px}.panel>.stats:first-child{margin-top:22px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px}
+.chip{font:inherit;font-size:13px;font-weight:600;border:1px solid var(--line);background:var(--card);color:var(--ink);
+border-radius:99px;padding:5px 12px;cursor:pointer;display:flex;gap:6px;align-items:center}
+.chip i{font-style:normal;color:var(--muted);font-variant-numeric:tabular-nums}
+.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}.chip.on i{color:inherit;opacity:.8}
+.chip:focus-visible,.cl:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.ln{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.ln:last-child{border-bottom:0}.ln .loai{flex:1;min-width:120px}
+.split{display:grid;grid-template-columns:minmax(220px,340px) minmax(0,1fr);gap:12px;align-items:start}
+.cls{background:var(--card);border:1px solid var(--line);border-radius:14px;max-height:520px;overflow-y:auto;box-shadow:var(--shadow)}
+.cl{display:block;width:100%;text-align:left;font:inherit;background:none;border:0;border-bottom:1px solid var(--line);
+padding:10px 14px;cursor:pointer;color:var(--ink)}.cl:last-child{border-bottom:0}.cl:hover{background:var(--bg)}
+.cl.on{background:var(--gold-bg)}.cl .r1{display:flex;justify-content:space-between;gap:8px}.cl small{color:var(--muted);font-size:12px}
+.cl .cuoi{display:block;color:var(--muted);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cdt{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;min-height:200px;box-shadow:var(--shadow)}
+.cdt h3{margin:0 0 8px;font-size:15px;display:flex;justify-content:space-between;gap:8px}.cdt h3 small{font-weight:500;color:var(--muted);font-size:12px}
+@media (max-width:700px){.split{grid-template-columns:1fr}.cls{max-height:240px}}
 .acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:2px}
 button.bt{font:inherit;font-size:13px;font-weight:650;border:1px solid var(--line);background:var(--card);color:var(--ink);
 border-radius:9px;padding:5px 12px;cursor:pointer}button.bt:hover{background:var(--bg)}
@@ -136,6 +161,40 @@ JS = r"""
   document.addEventListener('change',function(e){
     var s=e.target.closest('select[data-hanh="khach_trang_thai"]');if(!s)return;
     gui({hanh:'khach_trang_thai',dong:s.dataset.dong,trang_thai:s.value},null);
+  });
+})();
+</script>"""
+
+
+JS_TAB = r"""
+<script>
+(function(){
+  var tabs=[].slice.call(document.querySelectorAll('.tab')),panels=[].slice.call(document.querySelectorAll('.panel'));
+  function mo(k,doi){
+    if(!document.getElementById('p-'+k))k='tong-quan';
+    tabs.forEach(function(t){t.setAttribute('aria-selected',t.dataset.tab===k?'true':'false');t.tabIndex=t.dataset.tab===k?0:-1});
+    panels.forEach(function(p){p.hidden=p.id!=='p-'+k});
+    if(doi){try{history.replaceState(null,'','#'+k)}catch(e){}}
+  }
+  tabs.forEach(function(t,i){
+    t.addEventListener('click',function(){mo(t.dataset.tab,true)});
+    t.addEventListener('keydown',function(e){
+      var j=e.key==='ArrowRight'?i+1:e.key==='ArrowLeft'?i-1:-1;if(j<0)return;
+      j=(j+tabs.length)%tabs.length;tabs[j].focus();mo(tabs[j].dataset.tab,true);e.preventDefault()});
+  });
+  mo((location.hash||'').slice(1)||'tong-quan',false);
+  window.addEventListener('hashchange',function(){mo((location.hash||'').slice(1)||'tong-quan',false)});
+  document.addEventListener('click',function(e){
+    var c=e.target.closest('.chip[data-loc]');
+    if(c){
+      document.querySelectorAll('.chip').forEach(function(x){x.classList.toggle('on',x===c)});
+      document.querySelectorAll('.post').forEach(function(p){p.hidden=c.dataset.loc!=='Tất cả'&&p.dataset.tt!==c.dataset.loc});
+    }
+    var l=e.target.closest('.cl[data-i]');
+    if(l){
+      document.querySelectorAll('.cl').forEach(function(x){x.classList.toggle('on',x===l)});
+      document.querySelectorAll('.cr').forEach(function(x){x.hidden=x.dataset.i!==l.dataset.i});
+    }
   });
 })();
 </script>"""
@@ -258,7 +317,7 @@ def dung_html(d: dict) -> str:
         lop = _LOP.get(b["trang_thai"], "s-moi")
         xem_anh = f"<a href='{_e(b['media'])}' target='_blank' rel='noopener'>Mở ảnh/video</a>" if b.get("media") else ""
         the.append(
-            f"<article class='post'><div class='thumb'>{_anh_nho(b.get('media'))}</div><div class='pb'>"
+            f"<article class='post' data-tt='{_e(b['trang_thai'] or 'Chưa có')}'><div class='thumb'>{_anh_nho(b.get('media'))}</div><div class='pb'>"
             f"<div class='row'><span class='when'>{_e(_ngay(b['ngay']))} · {_e(b['gio'])}</span>"
             f"<span class='badge {lop}'>{_e(b['trang_thai'] or 'Chưa có')}</span></div>"
             f"<div class='loai'>{_e(b['loai'])}</div>"
@@ -266,7 +325,11 @@ def dung_html(d: dict) -> str:
             f"<details><summary>{'Xem và sửa bài' if sua_noi_dung(b) else 'Xem cả bài'}</summary>"
             f"{sua_noi_dung(b) or ('<div class=body>' + _e(b['noi_dung']) + '</div>')}"
             f"<div style='margin-top:6px;font-size:13px'>{xem_anh}</div></details></div></article>")
-    ds_html = ("<div class='grid'>" + "".join(the) + "</div>" if the else
+    loc = "".join(f"<button type='button' class='chip{' on' if t == 'Tất cả' else ''}' data-loc='{t}'>{t}"
+                  f"<i>{len(bai) if t == 'Tất cả' else dem.get(t, 0)}</i></button>"
+                  for t in ("Tất cả", "Chờ duyệt", "Duyệt", "Đã lên lịch", "Lỗi", "Bỏ"))
+    ds_html = ((f"<div class='chips' role='group' aria-label='Lọc bài theo trạng thái'>{loc}</div>"
+                "<div class='grid'>" + "".join(the) + "</div>") if the else
                "<div class='empty'>Chưa có bài nào. Chạy workflow <b>Tạo bài cả tuần</b> để AI viết bài mới.</div>")
 
     kho_html = ""
@@ -323,26 +386,50 @@ def dung_html(d: dict) -> str:
 
     chat_html = ""
     if d.get("hoi_thoai"):
-        the_chat = []
-        for c in d["hoi_thoai"]:
-            tin = "".join(f"<div class='msg {t['tu']}'>{_e(t['noi_dung'])}</div>" for t in c["tin"])
+        ds_ten, ds_chat = [], []
+        for i, c in enumerate(d["hoi_thoai"]):
             cuoi = c["tin"][-1] if c["tin"] else {"tu": "khach", "noi_dung": ""}
             ai = "Bot/Page: " if cuoi["tu"] == "page" else ""
-            the_chat.append(f"<details class='chat'><summary><b>{_e(c['ten'])}</b>"
-                            f"<span class='cuoi'>{ai}{_e(cuoi['noi_dung'])}</span><small>{_e(_gio_vn(c['luc']))}</small></summary>"
-                            f"<div class='noidung'>{tin}</div></details>")
-        chat_html = (f"<h2>Tin nhắn gần đây <small>{len(d['hoi_thoai'])} cuộc, bấm để xem chi tiết</small></h2>"
-                     "<div class='chats'>" + "".join(the_chat) + "</div>")
+            ds_ten.append(f"<button type='button' class='cl{' on' if i == 0 else ''}' data-i='{i}'><span class='r1'><b>{_e(c['ten'])}</b>"
+                          f"<small>{_e(_gio_vn(c['luc']))}</small></span><span class='cuoi'>{ai}{_e(cuoi['noi_dung'])}</span></button>")
+            tin = "".join(f"<div class='msg {t['tu']}'>{_e(t['noi_dung'])}</div>" for t in c["tin"])
+            ds_chat.append(f"<div class='cr' data-i='{i}'{'' if i == 0 else ' hidden'}><h3>{_e(c['ten'])}"
+                           f"<small>{_e(_gio_vn(c['luc']))}</small></h3>{tin}</div>")
+        chat_html = ("<div class='split'><div class='cls' role='list'>" + "".join(ds_ten) + "</div><div class='cdt'>"
+                     + "".join(ds_chat) + "</div></div>")
     elif d.get("hoi_thoai_loi"):
-        chat_html = ("<h2>Tin nhắn gần đây</h2><div class='canhbao'>Chưa đọc được tin nhắn từ Messenger: "
-                     + _e(d["hoi_thoai_loi"]) + "<br>Nếu báo thiếu quyền thì cần chờ Meta duyệt đơn xét duyệt.</div>")
+        chat_html = ("<div class='canhbao'>Chưa đọc được tin nhắn từ Messenger: " + _e(d["hoi_thoai_loi"])
+                     + "<br>Nếu báo thiếu quyền thì cần chờ Meta duyệt đơn xét duyệt.</div>")
     elif d.get("hoi_thoai") == []:
-        chat_html = "<h2>Tin nhắn gần đây</h2><div class='canhbao'>Chưa có cuộc trò chuyện nào.</div>"
+        chat_html = "<div class='canhbao'>Chưa có cuộc trò chuyện nào.</div>"
+    else:
+        chat_html = "<div class='canhbao'>Chưa có dữ liệu tin nhắn.</div>"
 
     che_do = {True: "Duyệt tay: bật", False: "Tự lên lịch", None: ""}[d.get("che_do_duyet")]
+    sap_toi = [b for b in bai if b["trang_thai"] in ("Chờ duyệt", "Duyệt", "Đã lên lịch")][:4]
+    sap_html = "".join(
+        f"<div class='ln'><span class='when'>{_e(_ngay(b['ngay']))} · {_e(b['gio'])}</span><span class='loai'>{_e(b['loai'])}</span>"
+        f"<span class='badge {_LOP.get(b['trang_thai'], 's-moi')}'>{_e(b['trang_thai'])}</span></div>" for b in sap_toi)
+    sap_html = f"<h2>Bài sắp đăng</h2><div class='kho'>{sap_html}</div>" if sap_html else ""
+    n_khach_moi = sum(1 for r in (d.get("khach") or []) if (r[7] or "Mới").strip() == "Mới")
+    n_kho = cho_phan_loai + xem_lai
+    tabs = [("tong-quan", "Tổng quan", 0), ("bai-dang", "Bài đăng", dem["Chờ duyệt"]),
+            ("khach-hang", "Khách hàng", n_khach_moi), ("tin-nhan", "Tin nhắn", 0), ("kho-anh", "Kho ảnh", n_kho)]
+    thanh_tab = "".join(
+        f"<button type='button' role='tab' class='tab' id='t-{k}' data-tab='{k}' aria-controls='p-{k}'>{ten}"
+        f"{f'<i class=dau>{n}</i>' if n else ''}</button>" for k, ten, n in tabs)
+    noi_dung_tab = {
+        "tong-quan": f"<div class='stats'>{stats}</div>{todo}{tuong_tac}{sap_html}",
+        "bai-dang": f"<h2>Lịch bài đăng <small>{len(bai)} bài · đăng lên Fanpage {ten_page}</small></h2>{ds_html}",
+        "khach-hang": khach_html or "<div class='canhbao'>Chưa có dữ liệu khách hàng.</div>",
+        "tin-nhan": f"<h2>Tin nhắn gần đây <small>đọc trực tiếp từ Messenger, bấm một cuộc để xem</small></h2>{chat_html}",
+        "kho-anh": kho_html or "<div class='canhbao'>Chưa có dữ liệu kho ảnh (cần cấu hình DRIVE_KHO_ID trên máy chủ).</div>",
+    }
+    panels = "".join(f"<section class='panel' role='tabpanel' id='p-{k}' aria-labelledby='t-{k}' hidden>{noi_dung_tab[k]}</section>"
+                     for k, _, _ in tabs)
     chu_cuoi = ("Duyệt bài xong, app tự lên lịch đăng trong vòng 1 giờ. Bài đã lên lịch thì sửa hoặc hủy trong Meta Business Suite."
                 if sua else "Trang này chỉ để xem, tự cập nhật mỗi lần tải lại. Muốn sửa hoặc duyệt bài, làm trong Google Sheet.")
-    js = JS if sua else ""
+    js = JS_TAB + (JS if sua else "")
     return f"""<!doctype html><html lang="vi"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>Golden Lion Fanpage</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -351,13 +438,9 @@ def dung_html(d: dict) -> str:
 <div class="brand"><div class="in"><div class="logo"><div class="mark">GL</div>
 <div><h1>Bảng điều khiển {ten_page}</h1><div class="sub">Golden Lion · Sư Tử Vàng</div></div></div>
 <div class="live"><span><i class="dot"></i>Đang chạy</span><span class="pill">Cập nhật {_e(d['cap_nhat'])}</span>
-{f'<span class="pill">{che_do}</span>' if che_do else ''}</div></div></div>
-<div class="wrap">
-<div class="stats">{stats}</div>{todo}
-{tuong_tac}{khach_html}{chat_html}
-<h2>Lịch bài đăng <small>{len(bai)} bài · đăng lên Fanpage {ten_page}</small></h2>{ds_html}{kho_html}
-<p class="foot">{chu_cuoi}</p>
-</div>{js}</body></html>"""
+{f'<span class="pill">{che_do}</span>' if che_do else ''}</div></div>
+<nav class="tabs" role="tablist" aria-label="Các mục">{thanh_tab}</nav></div>
+<div class="wrap">{panels}<p class="foot">{chu_cuoi}</p></div>{js}</body></html>"""
 
 
 def thu_thap(cfg, drive, sheets, sheet_id: str, kho_id: str, ten_page: str = "") -> dict:
