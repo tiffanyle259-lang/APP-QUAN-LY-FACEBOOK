@@ -9,6 +9,7 @@ from __future__ import annotations
 import io
 import re
 import threading
+from collections import OrderedDict
 
 import requests
 
@@ -29,6 +30,7 @@ class KhoXem:
         self._trong_kho: dict[str, bool] = {}
         # Client Google (httplib2) không an toàn khi nhiều luồng dùng chung, nên các lệnh gọi Drive đi lần lượt.
         self._khoa = threading.Lock()
+        self._nho: OrderedDict[str, bytes] = OrderedDict()  # ảnh xem trước vừa lấy, tối đa 40 ảnh
 
     def hop_le(self, file_id: str) -> bool:
         """True nếu file nằm (ở bất kỳ cấp nào) trong Kho-Marketing."""
@@ -54,10 +56,20 @@ class KhoXem:
         if not self.hop_le(file_id):
             raise NgoaiKho("File không nằm trong Kho-Marketing.")
         with self._khoa:
-            return self.drive.files().get(fileId=file_id, fields="id,name,mimeType,thumbnailLink", **_CHUNG).execute()
+            return self.drive.files().get(fileId=file_id, fields="id,name,mimeType,size,thumbnailLink", **_CHUNG).execute()
 
     def anh_nho(self, file_id: str, canh: int = 640) -> bytes:
         """Ảnh xem trước (JPEG/PNG) của ảnh hoặc video."""
+        if file_id in self._nho:
+            self._nho.move_to_end(file_id)
+            return self._nho[file_id]
+        noi_dung = self._lay_anh_nho(file_id, canh)
+        self._nho[file_id] = noi_dung
+        while len(self._nho) > 40:
+            self._nho.popitem(last=False)
+        return noi_dung
+
+    def _lay_anh_nho(self, file_id: str, canh: int) -> bytes:
         f = self.thong_tin(file_id)
         link = f.get("thumbnailLink")
         if link and self.lay_token:
@@ -66,6 +78,8 @@ class KhoXem:
             if r.status_code == 200 and r.content:
                 return r.content
         if f["mimeType"].startswith("image/"):  # không có ảnh xem trước từ Drive: tải ảnh gốc rồi thu nhỏ
+            if int(f.get("size") or 0) > 6_000_000:  # ảnh quá nặng có thể làm máy chủ hết bộ nhớ
+                raise NgoaiKho("Ảnh quá lớn để xem trước.")
             from PIL import Image
 
             with self._khoa:

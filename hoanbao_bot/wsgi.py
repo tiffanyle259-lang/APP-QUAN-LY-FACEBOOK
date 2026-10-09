@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
+import threading
 
 import anthropic
 
@@ -58,6 +59,46 @@ def kiem_moi_truong() -> dict:
 _cache_bdk: dict = {"luc": 0.0, "html": ""}
 
 
+_ht_cache: dict = {"claude_luc": 0.0, "claude": None}
+_claude_client = None
+_google_doc = None
+
+
+def google_chi_doc(cfg):
+    """Client Google chỉ-đọc, tạo một lần rồi dùng lại (tạo mới mỗi lần mở trang rất tốn bộ nhớ)."""
+    global _google_doc
+    if _google_doc is None:
+        from google.oauth2.service_account import Credentials
+        from googleapiclient.discovery import build
+
+        creds = Credentials.from_service_account_info(
+            cfg.google_service_account(),
+            scopes=["https://www.googleapis.com/auth/drive.readonly",
+                    "https://www.googleapis.com/auth/spreadsheets.readonly"])
+        _google_doc = (build("drive", "v3", credentials=creds, cache_discovery=False),
+                       build("sheets", "v4", credentials=creds, cache_discovery=False))
+    return _google_doc
+
+
+def kiem_claude(cfg) -> tuple[bool, str]:
+    """Kiểm tra khóa Claude, nhớ kết quả 10 phút để khỏi gọi lại mỗi lần mở trang."""
+    import time
+
+    global _claude_client
+    if _ht_cache["claude"] is not None and time.time() - _ht_cache["claude_luc"] < 600:
+        return _ht_cache["claude"]
+    try:
+        CauHinh.khoa_claude()
+        if _claude_client is None:
+            _claude_client = anthropic.Anthropic()
+        _claude_client.models.retrieve(cfg["bot"]["model"])
+        kq = (True, "Khóa dùng được, mô hình " + cfg["bot"]["model"])
+    except Exception as e:
+        kq = (False, f"Không dùng được ({type(e).__name__})")
+    _ht_cache.update(claude=kq, claude_luc=time.time())
+    return kq
+
+
 def kiem_he_thong(cfg, drive, sheets, ten_page: str) -> list[dict]:
     """Tình trạng từng bộ phận để chủ shop nhìn là biết cái nào hỏng. Không bao giờ hiện khóa hay token."""
     kq = []
@@ -86,37 +127,34 @@ def kiem_he_thong(cfg, drive, sheets, ten_page: str) -> list[dict]:
             them("Kho ảnh (Google Drive)", True, "Đọc được Kho-Marketing")
         except Exception as e:
             them("Kho ảnh (Google Drive)", False, f"Không đọc được ({type(e).__name__})", "Kiểm tra thư mục còn chia sẻ cho tài khoản dịch vụ.")
-    try:
-        CauHinh.khoa_claude()
-        anthropic.Anthropic().models.retrieve(cfg["bot"]["model"])
-        them("Claude (AI)", True, "Khóa dùng được, mô hình " + cfg["bot"]["model"])
-    except Exception as e:
-        them("Claude (AI)", False, f"Không dùng được ({type(e).__name__})",
-             "Kiểm tra số dư và khóa tại console.anthropic.com, rồi cập nhật ANTHROPIC_API_KEY.")
+    ok_claude, chi_tiet_claude = kiem_claude(cfg)
+    them("Claude (AI)", ok_claude, chi_tiet_claude, "" if ok_claude else
+         "Kiểm tra số dư và khóa tại console.anthropic.com, rồi cập nhật ANTHROPIC_API_KEY.")
     if _bot.thong_ke.get("loi"):
         them("Lỗi gần đây của bot", False, f"{_bot.thong_ke['loi']} lỗi: {_bot.thong_ke.get('loi_cuoi', '')[:160]}")
     return kq
 
 
+_khoa_dung = threading.Lock()
+
+
 def dung_bang_dieu_khien() -> str:
-    """Dựng bảng điều khiển từ dữ liệu thật (Sheet, Drive, Fanpage). Lưu tạm 60 giây để đỡ gọi API."""
+    """Dựng bảng điều khiển từ dữ liệu thật. Chỉ một luồng dựng cùng lúc (client Google dùng chung, và để tiết kiệm bộ nhớ)."""
+    with _khoa_dung:
+        return _dung_bang_dieu_khien()
+
+
+def _dung_bang_dieu_khien() -> str:
+    """Lưu tạm 60 giây để đỡ gọi API."""
     import time
 
     if time.time() - _cache_bdk["luc"] < 60 and _cache_bdk["html"]:
         return _cache_bdk["html"]
-    from google.oauth2.service_account import Credentials
-    from googleapiclient.discovery import build
-
     from hoanbao_mkt import bang_dieu_khien as bdk
     from hoanbao_mkt.facebook import Fanpage
 
     cfg = CauHinh.doc()
-    creds = Credentials.from_service_account_info(
-        cfg.google_service_account(),
-        scopes=["https://www.googleapis.com/auth/drive.readonly",
-                "https://www.googleapis.com/auth/spreadsheets.readonly"])
-    drive = build("drive", "v3", credentials=creds, cache_discovery=False)
-    sheets = build("sheets", "v4", credentials=creds, cache_discovery=False)
+    drive, sheets = google_chi_doc(cfg)
     ten_page = ""
     try:
         ten_page = Fanpage(CauHinh.bien("FB_PAGE_ID"), CauHinh.bien("FB_PAGE_TOKEN"),
