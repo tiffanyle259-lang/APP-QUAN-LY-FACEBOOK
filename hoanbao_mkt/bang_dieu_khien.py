@@ -81,10 +81,16 @@ border-bottom:1px solid var(--line);font-size:14px}.k:last-child{border-bottom:0
 .kh th{font-size:12px;text-align:left;color:var(--muted);font-weight:600;padding:9px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
 .kh td{padding:9px 14px;border-bottom:1px solid var(--line);font-size:14px;vertical-align:top;overflow-wrap:anywhere}
 .kh tr:last-child td{border-bottom:0}.sdt{font-variant-numeric:tabular-nums;font-weight:650;white-space:nowrap}
-.chats{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,330px),1fr));gap:12px}
-.chat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;box-shadow:var(--shadow);min-width:0}
-.chat h3{margin:0 0 8px;font-size:14px;display:flex;justify-content:space-between;gap:8px;align-items:baseline}
-.chat h3 small{font-weight:500;color:var(--muted);font-size:12px;white-space:nowrap}
+.chats{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);max-height:360px;overflow-y:auto}
+.chat{border-bottom:1px solid var(--line)}.chat:last-child{border-bottom:0}
+.chat summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:minmax(0,170px) minmax(0,1fr) auto;gap:6px 12px;
+align-items:baseline;padding:10px 14px;width:auto;color:var(--ink);font-weight:500}
+.chat summary::-webkit-details-marker{display:none}.chat summary:hover{background:var(--bg)}
+.chat summary b{font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chat summary .cuoi{color:var(--muted);font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chat summary small{color:var(--muted);font-size:12px;white-space:nowrap}
+.chat[open] summary{background:var(--bg)}.chat .noidung{padding:4px 14px 12px}
+@media (max-width:520px){.chat summary{grid-template-columns:minmax(0,1fr) auto}.chat summary .cuoi{grid-column:1/-1;order:3}}
 .msg{max-width:88%;padding:6px 10px;border-radius:12px;font-size:13.5px;margin:4px 0;overflow-wrap:anywhere;white-space:pre-wrap}
 .msg.khach{background:var(--bar-bg);border-bottom-left-radius:4px}
 .msg.page{background:var(--gold-bg);color:var(--ink);margin-left:auto;border-bottom-right-radius:4px}
@@ -233,8 +239,13 @@ def dung_html(d: dict) -> str:
         the_chat = []
         for c in d["hoi_thoai"]:
             tin = "".join(f"<div class='msg {t['tu']}'>{_e(t['noi_dung'])}</div>" for t in c["tin"])
-            the_chat.append(f"<article class='chat'><h3>{_e(c['ten'])}<small>{_e(_gio_vn(c['luc']))}</small></h3>{tin}</article>")
-        chat_html = "<h2>Tin nhắn gần đây <small>đọc trực tiếp từ Messenger</small></h2><div class='chats'>" + "".join(the_chat) + "</div>"
+            cuoi = c["tin"][-1] if c["tin"] else {"tu": "khach", "noi_dung": ""}
+            ai = "Bot/Page: " if cuoi["tu"] == "page" else ""
+            the_chat.append(f"<details class='chat'><summary><b>{_e(c['ten'])}</b>"
+                            f"<span class='cuoi'>{ai}{_e(cuoi['noi_dung'])}</span><small>{_e(_gio_vn(c['luc']))}</small></summary>"
+                            f"<div class='noidung'>{tin}</div></details>")
+        chat_html = (f"<h2>Tin nhắn gần đây <small>{len(d['hoi_thoai'])} cuộc, bấm để xem chi tiết</small></h2>"
+                     "<div class='chats'>" + "".join(the_chat) + "</div>")
     elif d.get("hoi_thoai_loi"):
         chat_html = ("<h2>Tin nhắn gần đây</h2><div class='canhbao'>Chưa đọc được tin nhắn từ Messenger: "
                      + _e(d["hoi_thoai_loi"]) + "<br>Nếu báo thiếu quyền thì cần chờ Meta duyệt đơn xét duyệt.</div>")
