@@ -138,6 +138,9 @@ padding:0;display:block;width:100%}.o img{width:100%;height:100%;object-fit:cove
 .o .tn{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);color:#fff;font-size:11px;padding:2px 6px;overflow:hidden;
 text-overflow:ellipsis;white-space:nowrap;text-align:left}.hop select{font:inherit;font-size:14px;border:1px solid var(--line);border-radius:8px;
 background:var(--card);color:var(--ink);padding:5px 8px}.hop .ghi{color:var(--muted);font-size:13px}
+.ht{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--line)}.ht:last-child{border-bottom:0}
+.ht .cham{width:10px;height:10px;border-radius:50%;margin-top:6px;flex:none;background:var(--ok)}.ht.hong .cham{background:var(--loi)}
+.ht .ct{font-size:13.5px;color:var(--muted);overflow-wrap:anywhere}.ht.hong .ct{color:var(--loi)}.ht .hd{font-size:13px;margin-top:3px}
 .acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:2px}
 button.bt{font:inherit;font-size:13px;font-weight:650;border:1px solid var(--line);background:var(--card);color:var(--ink);
 border-radius:9px;padding:5px 12px;cursor:pointer}button.bt:hover{background:var(--bg)}
@@ -478,6 +481,18 @@ def dung_html(d: dict) -> str:
                "<span class='acts'><button type='button' class='bt' id='hop-bo'>Bỏ ảnh (chỉ đăng chữ)</button>"
                "<button type='button' class='bt' id='hop-dong'>Đóng</button>"
                "<button type='button' class='bt chinh' id='hop-dung' disabled>Dùng ảnh/video này</button></span></footer></div></dialog>")
+    he_thong = d.get("he_thong") or []
+    ht_hong = sum(1 for x in he_thong if not x["ok"])
+    ht_html = ""
+    if he_thong:
+        dong_ht = "".join(
+            f"<div class='ht {'ok' if x['ok'] else 'hong'}'><span class='cham'></span><div><b>{_e(x['ten'])}</b>"
+            f"<div class='ct'>{_e(x['chi_tiet'])}</div>"
+            f"{('<div class=hd>' + _e(x['huong_dan']) + '</div>') if x.get('huong_dan') else ''}</div></div>" for x in he_thong)
+        ht_html = ("<h2>Tình trạng hệ thống <small>kiểm tra mỗi lần mở trang</small></h2>"
+                   + (f"<div class='todo'><b class='t'>{ht_hong} bộ phận cần chú ý</b>Xem dòng màu đỏ bên dưới.</div>" if ht_hong
+                      else "<div class='todo ok'><b class='t'>Mọi bộ phận đang chạy tốt</b></div>")
+                   + "<div class='kho' style='margin-top:12px'>" + dong_ht + "</div>")
     che_do = {True: "Duyệt tay: bật", False: "Tự lên lịch", None: ""}[d.get("che_do_duyet")]
     sap_toi = [b for b in bai if b["trang_thai"] in ("Chờ duyệt", "Duyệt", "Đã lên lịch")][:4]
     sap_html = "".join(
@@ -487,7 +502,7 @@ def dung_html(d: dict) -> str:
     n_khach_moi = sum(1 for r in (d.get("khach") or []) if (r[7] or "Mới").strip() == "Mới")
     n_kho = cho_phan_loai + xem_lai
     tabs = [("tong-quan", "Tổng quan", 0), ("bai-dang", "Bài đăng", dem["Chờ duyệt"]),
-            ("khach-hang", "Khách hàng", n_khach_moi), ("tin-nhan", "Tin nhắn", 0), ("kho-anh", "Kho ảnh", n_kho)]
+            ("khach-hang", "Khách hàng", n_khach_moi), ("tin-nhan", "Tin nhắn", 0), ("kho-anh", "Kho ảnh", n_kho)] + ([("he-thong", "Hệ thống", ht_hong)] if he_thong else [])
     thanh_tab = "".join(
         f"<button type='button' role='tab' class='tab' id='t-{k}' data-tab='{k}' aria-controls='p-{k}'>{ten}"
         f"{f'<i class=dau>{n}</i>' if n else ''}</button>" for k, ten, n in tabs)
@@ -496,6 +511,7 @@ def dung_html(d: dict) -> str:
         "bai-dang": f"<h2>Lịch bài đăng <small>{len(bai)} bài · đăng lên Fanpage {ten_page}</small></h2>{ds_html}",
         "khach-hang": khach_html or "<div class='canhbao'>Chưa có dữ liệu khách hàng.</div>",
         "tin-nhan": f"<h2>Tin nhắn gần đây <small>đọc trực tiếp từ Messenger, bấm một cuộc để xem</small></h2>{chat_html}",
+        "he-thong": ht_html,
         "kho-anh": kho_html or "<div class='canhbao'>Chưa có dữ liệu kho ảnh (cần cấu hình DRIVE_KHO_ID trên máy chủ).</div>",
     }
     panels = "".join(f"<section class='panel' role='tabpanel' id='p-{k}' aria-labelledby='t-{k}' hidden>{noi_dung_tab[k]}</section>"

@@ -58,6 +58,46 @@ def kiem_moi_truong() -> dict:
 _cache_bdk: dict = {"luc": 0.0, "html": ""}
 
 
+def kiem_he_thong(cfg, drive, sheets, ten_page: str) -> list[dict]:
+    """Tình trạng từng bộ phận để chủ shop nhìn là biết cái nào hỏng. Không bao giờ hiện khóa hay token."""
+    kq = []
+
+    def them(ten, ok, chi_tiet, huong_dan=""):
+        kq.append({"ten": ten, "ok": ok, "chi_tiet": chi_tiet, "huong_dan": huong_dan})
+
+    them("Máy chủ bot (Render)", True, "Đang chạy, khởi động lúc " + _bot.thong_ke.get("khoi_dong", "?"))
+    them("Fanpage (Meta)", bool(ten_page), f"Token dùng được, Page: {ten_page}" if ten_page else "Không đọc được Page bằng token hiện tại",
+         "" if ten_page else "Lấy lại token Fanpage và cập nhật FB_PAGE_TOKEN trên Render và GitHub.")
+    lan_cuoi = _bot.thong_ke.get("lan_cuoi") or "chưa có"
+    them("Nhận tin khách từ Meta", True, f"Lần nhận gần nhất: {lan_cuoi}" if lan_cuoi != "chưa có"
+         else "Chưa nhận tin nào từ lần khởi động này (bình thường nếu chưa có khách nhắn)")
+    try:
+        sheets.spreadsheets().get(spreadsheetId=CauHinh.bien("SHEET_DUYET_ID"), fields="spreadsheetId").execute()
+        them("Google Sheet", True, "Đọc được")
+    except Exception as e:
+        them("Google Sheet", False, f"Không đọc được ({type(e).__name__})", "Kiểm tra Sheet còn chia sẻ cho tài khoản dịch vụ.")
+    kho_id = os.environ.get("DRIVE_KHO_ID", "").strip()
+    if not kho_id:
+        them("Kho ảnh (Google Drive)", False, "Chưa cấu hình DRIVE_KHO_ID trên Render",
+             "Render > hoanbao-bot > Environment > thêm DRIVE_KHO_ID.")
+    else:
+        try:
+            drive.files().get(fileId=kho_id, fields="id", supportsAllDrives=True).execute()
+            them("Kho ảnh (Google Drive)", True, "Đọc được Kho-Marketing")
+        except Exception as e:
+            them("Kho ảnh (Google Drive)", False, f"Không đọc được ({type(e).__name__})", "Kiểm tra thư mục còn chia sẻ cho tài khoản dịch vụ.")
+    try:
+        CauHinh.khoa_claude()
+        anthropic.Anthropic().models.retrieve(cfg["bot"]["model"])
+        them("Claude (AI)", True, "Khóa dùng được, mô hình " + cfg["bot"]["model"])
+    except Exception as e:
+        them("Claude (AI)", False, f"Không dùng được ({type(e).__name__})",
+             "Kiểm tra số dư và khóa tại console.anthropic.com, rồi cập nhật ANTHROPIC_API_KEY.")
+    if _bot.thong_ke.get("loi"):
+        them("Lỗi gần đây của bot", False, f"{_bot.thong_ke['loi']} lỗi: {_bot.thong_ke.get('loi_cuoi', '')[:160]}")
+    return kq
+
+
 def dung_bang_dieu_khien() -> str:
     """Dựng bảng điều khiển từ dữ liệu thật (Sheet, Drive, Fanpage). Lưu tạm 60 giây để đỡ gọi API."""
     import time
@@ -85,6 +125,7 @@ def dung_bang_dieu_khien() -> str:
         logging.getLogger("hoanbao_bot").warning("Không lấy được tên Fanpage cho bảng điều khiển")
     d = bdk.thu_thap(cfg, drive, sheets, CauHinh.bien("SHEET_DUYET_ID"),
                      os.environ.get("DRIVE_KHO_ID", "").strip(), ten_page)
+    d["he_thong"] = kiem_he_thong(cfg, drive, sheets, ten_page)
     d["bot"] = dict(_bot.thong_ke)
     d["sua_duoc"] = True
     try:

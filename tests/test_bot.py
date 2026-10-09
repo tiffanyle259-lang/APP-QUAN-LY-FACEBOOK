@@ -416,3 +416,15 @@ def test_api_anh_can_dang_nhap_va_chan_file_ngoai_kho():
     assert c.get("/api/anh/abc").data.startswith(b"\xff\xd8\xff")
     assert c.get("/api/anh/ngoai").status_code == 404
     assert c.get("/api/kho/keo-228").get_json()[0]["ten"] == "a.jpg"
+
+
+def test_bang_dieu_khien_tab_he_thong():
+    from hoanbao_mkt.bang_dieu_khien import dung_html
+
+    d = {"cap_nhat": "x", "page": "P", "che_do_duyet": True, "sheet_url": "", "bai": [], "kho": [],
+         "he_thong": [{"ten": "Claude (AI)", "ok": True, "chi_tiet": "Khóa dùng được", "huong_dan": ""},
+                      {"ten": "Kho ảnh", "ok": False, "chi_tiet": "Chưa cấu hình DRIVE_KHO_ID", "huong_dan": "Thêm biến"}]}
+    html = dung_html(d)
+    assert "data-tab='he-thong'" in html and "1 bộ phận cần chú ý" in html and "Thêm biến" in html
+    d["he_thong"] = []
+    assert "data-tab='he-thong'" not in dung_html(d)
