@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import io
 import re
+import threading
 
 import requests
 
@@ -26,6 +27,8 @@ class KhoXem:
         self.lay_token = lay_token  # hàm trả về access token Google, dùng cho ảnh xem trước
         self.http = http or requests
         self._trong_kho: dict[str, bool] = {}
+        # Client Google (httplib2) không an toàn khi nhiều luồng dùng chung, nên các lệnh gọi Drive đi lần lượt.
+        self._khoa = threading.Lock()
 
     def hop_le(self, file_id: str) -> bool:
         """True nếu file nằm (ở bất kỳ cấp nào) trong Kho-Marketing."""
@@ -35,7 +38,8 @@ class KhoXem:
             return self._trong_kho[file_id]
         hien, ket_qua = file_id, False
         for _ in range(8):
-            f = self.drive.files().get(fileId=hien, fields="id,parents", **_CHUNG).execute()
+            with self._khoa:
+                f = self.drive.files().get(fileId=hien, fields="id,parents", **_CHUNG).execute()
             cha = (f.get("parents") or [None])[0]
             if cha is None:
                 break
@@ -49,7 +53,8 @@ class KhoXem:
     def thong_tin(self, file_id: str) -> dict:
         if not self.hop_le(file_id):
             raise NgoaiKho("File không nằm trong Kho-Marketing.")
-        return self.drive.files().get(fileId=file_id, fields="id,name,mimeType,thumbnailLink", **_CHUNG).execute()
+        with self._khoa:
+            return self.drive.files().get(fileId=file_id, fields="id,name,mimeType,thumbnailLink", **_CHUNG).execute()
 
     def anh_nho(self, file_id: str, canh: int = 640) -> bytes:
         """Ảnh xem trước (JPEG/PNG) của ảnh hoặc video."""
@@ -63,7 +68,8 @@ class KhoXem:
         if f["mimeType"].startswith("image/"):  # không có ảnh xem trước từ Drive: tải ảnh gốc rồi thu nhỏ
             from PIL import Image
 
-            goc = self.drive.files().get_media(fileId=file_id, **_CHUNG).execute()
+            with self._khoa:
+                goc = self.drive.files().get_media(fileId=file_id, **_CHUNG).execute()
             img = Image.open(io.BytesIO(goc))
             img.thumbnail((canh, canh))
             buf = io.BytesIO()
@@ -74,13 +80,14 @@ class KhoXem:
     def danh_sach(self, ten_thu_muc: str, toi_da: int = 80) -> list[dict]:
         """Ảnh/video trong một thư mục con của Kho-Marketing."""
         ten = (ten_thu_muc or "").replace("\\", "\\\\").replace("'", "\\'")
-        tim = self.drive.files().list(
-            q=f"'{self.kho_id}' in parents and name = '{ten}' and mimeType = '{FOLDER}' and trashed = false",
-            fields="files(id)", includeItemsFromAllDrives=True, **_CHUNG).execute().get("files", [])
-        if not tim:
-            return []
-        r = self.drive.files().list(
-            q=f"'{tim[0]['id']}' in parents and trashed = false and (mimeType contains 'image/' or mimeType contains 'video/')",
-            fields="files(id,name,mimeType)", pageSize=toi_da, orderBy="name", includeItemsFromAllDrives=True,
-            **_CHUNG).execute()
+        with self._khoa:
+            tim = self.drive.files().list(
+                q=f"'{self.kho_id}' in parents and name = '{ten}' and mimeType = '{FOLDER}' and trashed = false",
+                fields="files(id)", includeItemsFromAllDrives=True, **_CHUNG).execute().get("files", [])
+            if not tim:
+                return []
+            r = self.drive.files().list(
+                q=f"'{tim[0]['id']}' in parents and trashed = false and (mimeType contains 'image/' or mimeType contains 'video/')",
+                fields="files(id,name,mimeType)", pageSize=toi_da, orderBy="name", includeItemsFromAllDrives=True,
+                **_CHUNG).execute()
         return [{"id": f["id"], "ten": f["name"], "video": f["mimeType"].startswith("video/")} for f in r.get("files", [])]
