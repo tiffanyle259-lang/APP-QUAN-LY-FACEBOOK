@@ -27,7 +27,7 @@ def chu_ky_hop_le(raw: bytes, header: str, app_secret: str) -> bool:
     return hmac.compare_digest(mong_doi, header[len("sha256="):])
 
 
-def tao_ung_dung(bot, app_secret: str, verify_token: str, chay=None, moi_truong=None, bang_dieu_khien=None, thao_tac=None) -> Flask:
+def tao_ung_dung(bot, app_secret: str, verify_token: str, chay=None, moi_truong=None, bang_dieu_khien=None, thao_tac=None, kho_xem=None) -> Flask:
     app = Flask(__name__)
     pool = ThreadPoolExecutor(max_workers=4)
     chay = chay or pool.submit
@@ -79,6 +79,30 @@ def tao_ung_dung(bot, app_secret: str, verify_token: str, chay=None, moi_truong=
         except Exception as e:
             log.exception("Lỗi dựng bảng điều khiển")
             return f"Không dựng được bảng điều khiển: {type(e).__name__}", 500
+
+    @app.get("/api/anh/<file_id>")
+    def api_anh(file_id):
+        if not da_dang_nhap() or not kho_xem:
+            return "forbidden", 403
+        try:
+            noi_dung = kho_xem.anh_nho(file_id)
+        except ValueError as e:
+            return str(e), 404
+        except Exception:
+            log.exception("Lỗi lấy ảnh xem trước")
+            return "lỗi", 502
+        return noi_dung, 200, {"Content-Type": "image/jpeg" if noi_dung[:3] == b"\xff\xd8\xff" else "image/png",
+                                "Cache-Control": "private, max-age=3600"}
+
+    @app.get("/api/kho/<path:ten>")
+    def api_kho(ten):
+        if not da_dang_nhap() or not kho_xem:
+            return jsonify(loi="forbidden"), 403
+        try:
+            return jsonify(kho_xem.danh_sach(ten))
+        except Exception:
+            log.exception("Lỗi liệt kê thư mục kho")
+            return jsonify(loi="Không đọc được thư mục kho"), 502
 
     @app.post("/api/thao-tac")
     def api_thao_tac():

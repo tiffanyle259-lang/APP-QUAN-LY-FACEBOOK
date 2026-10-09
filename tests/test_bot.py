@@ -370,3 +370,49 @@ def test_hoi_thoai_gan_day_doc_tu_graph():
     cuoc = Messenger("P", "tok", session=S()).hoi_thoai_gan_day()
     assert cuoc[0]["ten"] == "An"
     assert [t["tu"] for t in cuoc[0]["tin"]] == ["khach", "page"]
+
+
+def test_kho_xem_chi_cho_file_trong_kho():
+    from hoanbao_bot.kho_xem import KhoXem
+
+    cha = {"anh": "tm", "tm": "KHO0000000000", "ngoai": "xx", "xx": None}
+
+    class Drive:
+        def files(self):
+            return self
+
+        def get(self, fileId, **k):
+            self.f = fileId
+            return self
+
+        def execute(self):
+            return {"id": self.f, "parents": [cha[self.f]] if cha[self.f] else []}
+
+    # id phải đủ dài và đúng dạng của Drive; dùng tên dài để qua kiểm tra dạng
+    cha = {"a" * 12: "t" * 12, "t" * 12: "KHO0000000000", "n" * 12: "x" * 12, "x" * 12: None}
+    k = KhoXem(Drive(), "KHO0000000000")
+    assert k.hop_le("a" * 12) is True
+    assert k.hop_le("n" * 12) is False
+    assert k.hop_le("../etc/passwd") is False
+
+
+def test_api_anh_can_dang_nhap_va_chan_file_ngoai_kho():
+    from hoanbao_bot.kho_xem import NgoaiKho
+
+    class Kho:
+        def anh_nho(self, fid):
+            if fid == "ngoai":
+                raise NgoaiKho("File không nằm trong Kho-Marketing.")
+            return b"\xff\xd8\xff" + b"jpg"
+
+        def danh_sach(self, ten):
+            return [{"id": "x" * 12, "ten": "a.jpg", "video": False}]
+
+    app = tao_ung_dung(SimpleNamespace(), "s", "mk", kho_xem=Kho())
+    c = app.test_client()
+    assert c.get("/api/anh/abc").status_code == 403
+    assert c.get("/api/kho/keo-228").status_code == 403
+    c.get("/bang-dieu-khien?k=mk")
+    assert c.get("/api/anh/abc").data.startswith(b"\xff\xd8\xff")
+    assert c.get("/api/anh/ngoai").status_code == 404
+    assert c.get("/api/kho/keo-228").get_json()[0]["ten"] == "a.jpg"

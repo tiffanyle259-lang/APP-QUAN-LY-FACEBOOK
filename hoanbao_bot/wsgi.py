@@ -104,6 +104,51 @@ def dung_bang_dieu_khien() -> str:
     return _cache_bdk["html"]
 
 
+_kho_xem = None
+
+
+def lay_kho_xem():
+    """Bộ xem trước ảnh/video trong Kho-Marketing (cần DRIVE_KHO_ID trên máy chủ)."""
+    global _kho_xem
+    if _kho_xem is not None:
+        return _kho_xem
+    kho_id = os.environ.get("DRIVE_KHO_ID", "").strip()
+    if not kho_id:
+        return None
+    from google.auth.transport.requests import Request
+    from google.oauth2.service_account import Credentials
+    from googleapiclient.discovery import build
+
+    from .kho_xem import KhoXem
+
+    creds = Credentials.from_service_account_info(
+        CauHinh.google_service_account(), scopes=["https://www.googleapis.com/auth/drive.readonly"])
+
+    def token() -> str:
+        if not creds.valid:
+            creds.refresh(Request())
+        return creds.token
+
+    _kho_xem = KhoXem(build("drive", "v3", credentials=creds, cache_discovery=False), kho_id, token)
+    return _kho_xem
+
+
+class _KhoXemLazy:
+    """Tạo bộ xem kho khi cần, để máy chủ vẫn chạy nếu chưa có DRIVE_KHO_ID."""
+
+    def anh_nho(self, file_id):
+        k = lay_kho_xem()
+        if not k:
+            raise ValueError("Chưa cấu hình DRIVE_KHO_ID trên máy chủ.")
+        return k.anh_nho(file_id)
+
+    def danh_sach(self, ten):
+        k = lay_kho_xem()
+        if not k:
+            raise ValueError("Chưa cấu hình DRIVE_KHO_ID trên máy chủ.")
+        return k.danh_sach(ten)
+
+
 def thao_tac(lenh: dict) -> dict:
     """Ghi thay đổi từ bảng điều khiển vào Google Sheet. Chỉ nhận vài thao tác cố định, kiểm tra kỹ trước khi ghi."""
     from google.oauth2.service_account import Credentials
@@ -119,13 +164,26 @@ def thao_tac(lenh: dict) -> dict:
     sheet_id = CauHinh.bien("SHEET_DUYET_ID")
     sheet = SheetDuyet(sheets, sheet_id)
     hanh = lenh.get("hanh")
-    if hanh in ("bai_trang_thai", "bai_noi_dung"):
+    if hanh in ("bai_trang_thai", "bai_noi_dung", "bai_media"):
         bai = next((b for b in sheet.doc_tat_ca() if b.ma_bai == str(lenh.get("ma_bai", ""))), None)
         if not bai:
             raise LoiThaoTac("Không tìm thấy bài này trong Sheet.")
         if bai.trang_thai == DA_LEN_LICH or bai.facebook_id.strip():
             raise LoiThaoTac("Bài đã lên lịch trên Facebook. Muốn sửa hoặc hủy, làm trong Meta Business Suite.")
-        if hanh == "bai_trang_thai":
+        if hanh == "bai_media":
+            file_id = str(lenh.get("file_id") or "").strip()
+            if not file_id:  # bỏ ảnh/video: bài chỉ đăng chữ
+                sheet.gan_media(bai.dong, "", "Đăng chỉ chữ (đã bỏ ảnh/video)")
+            else:
+                k = lay_kho_xem()
+                if not k:
+                    raise LoiThaoTac("Chưa cấu hình DRIVE_KHO_ID trên máy chủ.")
+                try:
+                    f = k.thong_tin(file_id)
+                except ValueError as e:
+                    raise LoiThaoTac(str(e))
+                sheet.gan_media(bai.dong, f"https://drive.google.com/file/d/{file_id}/view", f"File: {f['name']}")
+        elif hanh == "bai_trang_thai":
             tt = lenh.get("trang_thai")
             if tt not in (CHO_DUYET, DUYET, BO):
                 raise LoiThaoTac("Trạng thái không hợp lệ.")
@@ -156,4 +214,5 @@ def thao_tac(lenh: dict) -> dict:
 
 logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO"))
 _bot, _secret, _verify = tao_bot()
-app = tao_ung_dung(_bot, _secret, _verify, moi_truong=kiem_moi_truong, bang_dieu_khien=dung_bang_dieu_khien, thao_tac=thao_tac)
+app = tao_ung_dung(_bot, _secret, _verify, moi_truong=kiem_moi_truong, bang_dieu_khien=dung_bang_dieu_khien, thao_tac=thao_tac,
+                   kho_xem=_KhoXemLazy())

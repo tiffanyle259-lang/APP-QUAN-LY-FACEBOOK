@@ -49,10 +49,10 @@ border-radius:14px;padding:14px 18px}
 .todo b.t{display:block;font-size:14px;margin-bottom:6px;color:var(--gold-ink)}.todo.ok b.t{color:var(--ok)}
 .todo ul{margin:0;padding-left:18px}.todo li{margin:3px 0}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,470px),1fr));gap:12px}
-.post{background:var(--card);border:1px solid var(--line);border-radius:14px;display:grid;grid-template-columns:116px minmax(0,1fr);
+.post{background:var(--card);border:1px solid var(--line);border-radius:14px;display:grid;grid-template-columns:168px minmax(0,1fr);
 overflow:hidden;box-shadow:var(--shadow)}
 .thumb{background:var(--bar-bg);display:grid;place-items:center;color:var(--muted);font-size:12px;text-align:center;padding:6px;
-min-height:132px;position:relative}
+min-height:96px;position:relative}
 .thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .pb{padding:12px 14px;min-width:0;display:flex;flex-direction:column;gap:6px}
 .row{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;justify-content:space-between}
@@ -121,6 +121,23 @@ padding:10px 14px;cursor:pointer;color:var(--ink)}.cl:last-child{border-bottom:0
 .cdt{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;min-height:200px;box-shadow:var(--shadow)}
 .cdt h3{margin:0 0 8px;font-size:15px;display:flex;justify-content:space-between;gap:8px}.cdt h3 small{font-weight:500;color:var(--muted);font-size:12px}
 @media (max-width:700px){.split{grid-template-columns:1fr}.cls{max-height:240px}}
+.tcol{display:flex;flex-direction:column;gap:8px;padding:8px;background:var(--bar-bg);min-width:0}
+.thumb{border-radius:10px;overflow:hidden;aspect-ratio:4/3;min-height:0}.vd{position:absolute;right:6px;bottom:6px;background:rgba(0,0,0,.72);
+color:#fff;font-size:11px;font-weight:700;border-radius:6px;padding:1px 7px;letter-spacing:.04em}
+.tcol .bt{width:100%;padding:5px 6px;font-size:12.5px}
+dialog#hop-anh{border:1px solid var(--line);border-radius:16px;padding:0;width:min(920px,calc(100vw - 24px));max-height:calc(100vh - 32px);
+background:var(--card);color:var(--ink);box-shadow:0 20px 60px rgba(0,0,0,.35)}
+dialog#hop-anh::backdrop{background:rgba(10,14,20,.55)}
+.hop{display:flex;flex-direction:column;max-height:calc(100vh - 32px)}.hop header{padding:14px 18px;border-bottom:1px solid var(--line);
+display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;justify-content:space-between}
+.hop h3{margin:0;font-size:16px}.hop .luoi{padding:14px 18px;overflow-y:auto;display:grid;gap:10px;
+grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}
+.hop footer{padding:12px 18px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center}
+.o{position:relative;border:2px solid transparent;border-radius:12px;overflow:hidden;cursor:pointer;aspect-ratio:1;background:var(--bar-bg);
+padding:0;display:block;width:100%}.o img{width:100%;height:100%;object-fit:cover;display:block}.o.on{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold)}
+.o .tn{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);color:#fff;font-size:11px;padding:2px 6px;overflow:hidden;
+text-overflow:ellipsis;white-space:nowrap;text-align:left}.hop select{font:inherit;font-size:14px;border:1px solid var(--line);border-radius:8px;
+background:var(--card);color:var(--ink);padding:5px 8px}.hop .ghi{color:var(--muted);font-size:13px}
 .acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:2px}
 button.bt{font:inherit;font-size:13px;font-weight:650;border:1px solid var(--line);background:var(--card);color:var(--ink);
 border-radius:9px;padding:5px 12px;cursor:pointer}button.bt:hover{background:var(--bg)}
@@ -134,7 +151,7 @@ color:var(--bg);padding:9px 16px;border-radius:10px;font-size:14px;box-shadow:0 
 #toast.loi{background:var(--loi);color:#fff}
 .foot{margin-top:28px;font-size:13px;color:var(--muted)}
 .empty{background:var(--card);border:1px dashed var(--line);border-radius:14px;padding:22px;color:var(--muted)}
-@media (max-width:520px){.post{grid-template-columns:88px minmax(0,1fr)}.k{grid-template-columns:1fr 36px}.k .track{grid-column:1/-1;order:3}}
+@media (max-width:520px){.post{grid-template-columns:112px minmax(0,1fr)}.k{grid-template-columns:1fr 36px}.k .track{grid-column:1/-1;order:3}}
 """
 
 JS = r"""
@@ -151,6 +168,36 @@ JS = r"""
         if(!x.ok){bao(x.j.loi||'Không lưu được',true);if(nut)nut.disabled=false;return}
         bao('Đã lưu');setTimeout(function(){location.reload()},700)})
       .catch(function(){bao('Mất kết nối, thử lại sau',true);if(nut)nut.disabled=false});
+  }
+
+  var hop=document.getElementById('hop-anh');
+  if(hop){
+    var luoi=document.getElementById('hop-luoi'),chon=document.getElementById('hop-thu-muc'),ghi=document.getElementById('hop-ghi'),
+        dung=document.getElementById('hop-dung'),maBai=null,fileId=null;
+    function taiThuMuc(){
+      luoi.textContent='Đang tải…';fileId=null;dung.disabled=true;
+      fetch('/api/kho/'+encodeURIComponent(chon.value),{credentials:'same-origin'}).then(function(r){return r.json()}).then(function(ds){
+        luoi.textContent='';
+        if(!ds.length||ds.loi){ghi.textContent=ds.loi||'Thư mục này chưa có ảnh/video.';return}
+        ghi.textContent=ds.length+' file. Bấm một ảnh để chọn.';
+        ds.forEach(function(f){
+          var o=document.createElement('button');o.type='button';o.className='o';o.title=f.ten;
+          var im=document.createElement('img');im.loading='lazy';im.alt=f.ten;im.src='/api/anh/'+f.id;im.onerror=function(){im.remove()};
+          var tn=document.createElement('span');tn.className='tn';tn.textContent=(f.video?'VIDEO · ':'')+f.ten;
+          o.appendChild(im);o.appendChild(tn);
+          o.addEventListener('click',function(){
+            [].forEach.call(luoi.children,function(x){x.classList.remove('on')});o.classList.add('on');fileId=f.id;dung.disabled=false});
+          luoi.appendChild(o)});
+      }).catch(function(){luoi.textContent='';ghi.textContent='Không tải được danh sách ảnh.'});
+    }
+    document.addEventListener('click',function(e){
+      var b=e.target.closest('.doi-anh');if(!b)return;
+      maBai=b.dataset.ma;hop.showModal();taiThuMuc();
+    });
+    chon.addEventListener('change',taiThuMuc);
+    document.getElementById('hop-dong').addEventListener('click',function(){hop.close()});
+    dung.addEventListener('click',function(){if(fileId)gui({hanh:'bai_media',ma_bai:maBai,file_id:fileId},dung)});
+    document.getElementById('hop-bo').addEventListener('click',function(){gui({hanh:'bai_media',ma_bai:maBai,file_id:''},this)});
   }
   document.addEventListener('click',function(e){
     var b=e.target.closest('button[data-hanh]');if(!b)return;
@@ -227,13 +274,19 @@ def _gio_vn(iso: str) -> str:
         return iso
 
 
-def _anh_nho(link: str) -> str:
-    """Ảnh xem trước từ Drive (hiện khi người xem đang đăng nhập Google có quyền xem ảnh)."""
+def _anh_nho(link: str, qua_may_chu: bool = False) -> str:
+    """Ảnh xem trước. Trên bảng điều khiển trực tiếp lấy qua máy chủ (không cần đăng nhập Google);
+    bản xuất tĩnh dùng ảnh nhỏ của Drive (hiện khi người xem có quyền xem file)."""
     m = _DRIVE_ID.search(link or "")
     if not m:
-        return "<span>Chưa có<br>ảnh/video</span>"
-    return (f"<span>Ảnh/video</span><img loading='lazy' alt='' referrerpolicy='no-referrer' "
-            f"src='https://drive.google.com/thumbnail?id={m.group(1)}&sz=w400' onerror=\"this.remove()\">")
+        return "<span>Chưa có ảnh/video.<br>Đăng chỉ chữ.</span>"
+    nguon = (f"/api/anh/{m.group(1)}" if qua_may_chu
+             else f"https://drive.google.com/thumbnail?id={m.group(1)}&sz=w400")
+    return (f"<span>Đang tải ảnh…</span><img loading='lazy' alt='Ảnh hoặc video sẽ đăng kèm bài' referrerpolicy='no-referrer' "
+            f"src='{nguon}' onerror=\"this.remove()\">")
+
+
+_DUOI_VIDEO = re.compile(r"\.(mp4|mov|m4v|avi|mkv|webm)\b", re.IGNORECASE)
 
 
 def dung_html(d: dict) -> str:
@@ -310,6 +363,14 @@ def dung_html(d: dict) -> str:
                 f"<div class='acts'><button type='button' class='bt' data-hanh='bai_noi_dung' data-ma='{_e(b['ma_bai'])}'>"
                 "Lưu nội dung</button></div>")
 
+    def la_video(b):
+        return "<span class='vd'>VIDEO</span>" if _DUOI_VIDEO.search(b.get("ghi_chu") or "") else ""
+
+    def nut_doi_anh(b):
+        if not (sua and d.get("kho") and b["trang_thai"] in ("Chờ duyệt", "Duyệt", "Lỗi", "Bỏ")):
+            return ""
+        return f"<button type='button' class='bt doi-anh' data-ma='{_e(b['ma_bai'])}'>Đổi ảnh/video</button>"
+
     the = []
     for b in bai:
         ghi_chu = (f"<div class='note{' loi' if b['trang_thai'] == 'Lỗi' else ''}'>{_e(b['ghi_chu'])}</div>"
@@ -317,7 +378,8 @@ def dung_html(d: dict) -> str:
         lop = _LOP.get(b["trang_thai"], "s-moi")
         xem_anh = f"<a href='{_e(b['media'])}' target='_blank' rel='noopener'>Mở ảnh/video</a>" if b.get("media") else ""
         the.append(
-            f"<article class='post' data-tt='{_e(b['trang_thai'] or 'Chưa có')}'><div class='thumb'>{_anh_nho(b.get('media'))}</div><div class='pb'>"
+            f"<article class='post' data-tt='{_e(b['trang_thai'] or 'Chưa có')}'><div class='tcol'><div class='thumb'>{_anh_nho(b.get('media'), sua)}{la_video(b)}</div>{nut_doi_anh(b)}</div>"
+            f"<div class='pb'>"
             f"<div class='row'><span class='when'>{_e(_ngay(b['ngay']))} · {_e(b['gio'])}</span>"
             f"<span class='badge {lop}'>{_e(b['trang_thai'] or 'Chưa có')}</span></div>"
             f"<div class='loai'>{_e(b['loai'])}</div>"
@@ -405,6 +467,17 @@ def dung_html(d: dict) -> str:
     else:
         chat_html = "<div class='canhbao'>Chưa có dữ liệu tin nhắn.</div>"
 
+
+    ten_kho = [k["ten"] for k in d.get("kho", [])]
+    hop = ""
+    if sua and ten_kho:
+        tuy = "".join(f"<option value='{_e(t)}'>{_e(t)}</option>" for t in ten_kho)
+        hop = (f"<dialog id='hop-anh' aria-labelledby='hop-tieu-de'><div class='hop'><header><h3 id='hop-tieu-de'>Chọn ảnh hoặc video cho bài</h3>"
+               f"<label>Thư mục kho: <select id='hop-thu-muc'>{tuy}</select></label></header>"
+               "<div class='luoi' id='hop-luoi'></div><footer><span class='ghi' id='hop-ghi'>Bấm một ảnh để chọn.</span>"
+               "<span class='acts'><button type='button' class='bt' id='hop-bo'>Bỏ ảnh (chỉ đăng chữ)</button>"
+               "<button type='button' class='bt' id='hop-dong'>Đóng</button>"
+               "<button type='button' class='bt chinh' id='hop-dung' disabled>Dùng ảnh/video này</button></span></footer></div></dialog>")
     che_do = {True: "Duyệt tay: bật", False: "Tự lên lịch", None: ""}[d.get("che_do_duyet")]
     sap_toi = [b for b in bai if b["trang_thai"] in ("Chờ duyệt", "Duyệt", "Đã lên lịch")][:4]
     sap_html = "".join(
@@ -440,7 +513,7 @@ def dung_html(d: dict) -> str:
 <div class="live"><span><i class="dot"></i>Đang chạy</span><span class="pill">Cập nhật {_e(d['cap_nhat'])}</span>
 {f'<span class="pill">{che_do}</span>' if che_do else ''}</div></div>
 <nav class="tabs" role="tablist" aria-label="Các mục">{thanh_tab}</nav></div>
-<div class="wrap">{panels}<p class="foot">{chu_cuoi}</p></div>{js}</body></html>"""
+<div class="wrap">{panels}<p class="foot">{chu_cuoi}</p></div>{hop}{js}</body></html>"""
 
 
 def thu_thap(cfg, drive, sheets, sheet_id: str, kho_id: str, ten_page: str = "") -> dict:
