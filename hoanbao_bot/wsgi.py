@@ -60,13 +60,12 @@ def kiem_moi_truong() -> dict:
 
 _ht_cache: dict = {"claude_luc": 0.0, "claude": None}
 _claude_client = None
-_google_doc = None
+_google_doc: dict = {}
 
 
-def google_chi_doc(cfg):
-    """Client Google chỉ-đọc, tạo một lần rồi dùng lại (tạo mới mỗi lần mở trang rất tốn bộ nhớ)."""
-    global _google_doc
-    if _google_doc is None:
+def google_chi_doc(cfg, viec: str = "chinh"):
+    """Client Google chỉ-đọc, tạo một lần cho mỗi "việc" rồi dùng lại (httplib2 không an toàn nếu hai luồng dùng chung)."""
+    if viec not in _google_doc:
         from google.oauth2.service_account import Credentials
         from googleapiclient.discovery import build
 
@@ -74,9 +73,9 @@ def google_chi_doc(cfg):
             cfg.google_service_account(),
             scopes=["https://www.googleapis.com/auth/drive.readonly",
                     "https://www.googleapis.com/auth/spreadsheets.readonly"])
-        _google_doc = (build("drive", "v3", credentials=creds, cache_discovery=False),
-                       build("sheets", "v4", credentials=creds, cache_discovery=False))
-    return _google_doc
+        _google_doc[viec] = (build("drive", "v3", credentials=creds, cache_discovery=False),
+                             build("sheets", "v4", credentials=creds, cache_discovery=False))
+    return _google_doc[viec]
 
 
 def kiem_claude(cfg) -> tuple[bool, str]:
@@ -142,8 +141,8 @@ def kiem_he_thong(cfg, drive, sheets, ten_page: str) -> list[dict]:
 
 
 _khoa_dung = threading.Lock()
-_bdk = {"html": "", "luc": 0.0, "dang_dung": False}
-_cache_cham = {"dem_kho": (0.0, None), "ten_page": "", "hoi_thoai": (0.0, None, "")}
+_bdk = {"html": "", "luc": 0.0, "dang_dung": False, "loi": ""}
+_cache_cham = {"dem_kho": (0.0, None), "ten_page": "", "hoi_thoai": (0.0, None, ""), "dang_dem": False}
 TUOI_BANG_DIEU_KHIEN = 90      # giây: quá hạn này thì làm mới ngầm, người dùng vẫn thấy ngay bản gần nhất
 TUOI_DEM_KHO = 30 * 60         # đếm file kho rất tốn lần gọi Drive nên nhớ 30 phút
 TUOI_HOI_THOAI = 90
@@ -173,14 +172,10 @@ def _dung_bang_dieu_khien() -> str:
     ten_page = _cache_cham["ten_page"]
     kho_id = os.environ.get("DRIVE_KHO_ID", "").strip()
     luc_kho, dem = _cache_cham["dem_kho"]
-    if dem is None or time.time() - luc_kho > TUOI_DEM_KHO:
-        try:
-            dem = bdk.dem_kho(cfg, drive, kho_id)
-            _cache_cham["dem_kho"] = (time.time(), dem)
-        except Exception:
-            logging.getLogger("hoanbao_bot").exception("Không đếm được kho ảnh")
-            dem = dem or []
-    d = bdk.thu_thap(cfg, drive, sheets, CauHinh.bien("SHEET_DUYET_ID"), kho_id, ten_page, dem_kho_san=dem)
+    if kho_id and (dem is None or time.time() - luc_kho > TUOI_DEM_KHO):
+        _dem_kho_ngam(cfg, kho_id)  # đếm chạy riêng, không bắt người dùng chờ
+    d = bdk.thu_thap(cfg, drive, sheets, CauHinh.bien("SHEET_DUYET_ID"), kho_id, ten_page, dem_kho_san=dem or [])
+    d["kho_dang_dem"] = bool(kho_id and dem is None)
     d["he_thong"] = kiem_he_thong(cfg, drive, sheets, ten_page)
     d["bot"] = dict(_bot.thong_ke)
     d["sua_duoc"] = True
@@ -205,6 +200,31 @@ def _dung_bang_dieu_khien() -> str:
     return bdk.dung_html(d)
 
 
+def _dem_kho_ngam(cfg, kho_id: str) -> None:
+    """Đếm file kho ở luồng riêng (dùng client Drive riêng), xong thì dựng lại bảng để hiện số liệu."""
+    import time
+
+    if _cache_cham["dang_dem"]:
+        return
+    _cache_cham["dang_dem"] = True
+
+    def lam():
+        from hoanbao_mkt import bang_dieu_khien as bdk
+
+        try:
+            drive, _ = google_chi_doc(cfg, "dem-kho")
+            _cache_cham["dem_kho"] = (time.time(), bdk.dem_kho(cfg, drive, kho_id))
+        except Exception:
+            logging.getLogger("hoanbao_bot").exception("Không đếm được kho ảnh")
+            if _cache_cham["dem_kho"][1] is None:
+                _cache_cham["dem_kho"] = (time.time(), [])  # đừng thử lại liên tục khi lỗi
+        finally:
+            _cache_cham["dang_dem"] = False
+        _lam_moi_ngam()
+
+    threading.Thread(target=lam, daemon=True).start()
+
+
 def lam_moi_bang_dieu_khien() -> None:
     """Dựng lại và lưu bản mới. Chỉ một luồng làm cùng lúc (client Google dùng chung, tiết kiệm bộ nhớ)."""
     import time
@@ -212,8 +232,11 @@ def lam_moi_bang_dieu_khien() -> None:
     with _khoa_dung:
         _bdk["dang_dung"] = True
         try:
-            _bdk.update(html=_dung_bang_dieu_khien(), luc=time.time())
-        except Exception:
+            bat_dau = time.time()
+            _bdk.update(html=_dung_bang_dieu_khien(), luc=time.time(), loi="")
+            logging.getLogger("hoanbao_bot").info("Dựng bảng điều khiển mất %.1f giây", time.time() - bat_dau)
+        except Exception as e:
+            _bdk["loi"] = f"{type(e).__name__}: {str(e)[:160]}"
             logging.getLogger("hoanbao_bot").exception("Lỗi dựng bảng điều khiển")
         finally:
             _bdk["dang_dung"] = False
@@ -237,6 +260,8 @@ def dung_bang_dieu_khien() -> str:
         time.sleep(0.5)
         if _bdk["html"]:
             return _bdk["html"]
+    if _bdk["loi"]:
+        return TRANG_DANG_TAI.replace("vài giây nữa là xong…", "gặp lỗi, đang thử lại (" + _bdk["loi"].replace("<", "") + ")")
     return TRANG_DANG_TAI
 
 

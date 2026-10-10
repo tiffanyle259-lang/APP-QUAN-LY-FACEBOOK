@@ -561,7 +561,9 @@ def dung_html(d: dict) -> str:
         "khach-hang": khach_html or "<div class='canhbao'>Chưa có dữ liệu khách hàng.</div>",
         "tin-nhan": f"<h2>Tin nhắn gần đây <small>đọc trực tiếp từ Messenger, bấm một cuộc để xem</small></h2>{chat_html}",
         "he-thong": ht_html,
-        "kho-anh": kho_html or "<div class='canhbao'>Chưa có dữ liệu kho ảnh (cần cấu hình DRIVE_KHO_ID trên máy chủ).</div>",
+        "kho-anh": kho_html or ("<div class='canhbao'>Đang đếm ảnh trong kho, vài chục giây nữa sẽ có số liệu. Tải lại trang sau ít phút.</div>"
+                                if d.get("kho_dang_dem") else
+                                "<div class='canhbao'>Chưa có dữ liệu kho ảnh (cần cấu hình DRIVE_KHO_ID trên máy chủ).</div>"),
     }
     panels = "".join(f"<section class='panel' role='tabpanel' id='p-{k}' aria-labelledby='t-{k}' hidden>{noi_dung_tab[k]}</section>"
                      for k, _, _ in tabs)
