@@ -24,6 +24,9 @@ jobs:
       DRIVE_KHO_ID: ${{ secrets.DRIVE_KHO_ID }}
       SHEET_DUYET_ID: ${{ secrets.SHEET_DUYET_ID }}
       DATA_DRIVE_FILE_ID: ${{ secrets.DATA_DRIVE_FILE_ID }}
+      YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+      YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+      YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

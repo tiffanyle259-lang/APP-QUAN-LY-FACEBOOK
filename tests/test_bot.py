@@ -567,3 +567,11 @@ def test_kho_xem_danh_sach_khong_hoi_lai_drive_tung_anh():
     assert ds[0]["ten"] == "a.jpg"
     assert k.anh_nho("A" * 12, 320).startswith(b"\xff\xd8\xff")
     assert http.url.endswith("=s320") and goi["get"] == 0  # không gọi Drive thêm cho từng ảnh
+
+
+def test_tieu_de_youtube_lay_dong_dau_co_chu():
+    from hoanbao_mkt.youtube import tieu_de_tu_noi_dung
+
+    assert tieu_de_tu_noi_dung("\n#tag\nDán đế giày <bền>\nchi tiết") == "Dán đế giày bền"
+    assert len(tieu_de_tu_noi_dung("a" * 300)) == 100
+    assert tieu_de_tu_noi_dung("") == "Keo dán Golden Lion"

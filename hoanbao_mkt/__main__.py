@@ -187,6 +187,7 @@ def gan_anh(cfg: CauHinh, args) -> None:
 
 
 def len_lich(cfg: CauHinh, args, drive=None, sheets=None) -> None:
+    from . import youtube
     from .facebook import Fanpage
     from .kho_anh import KhoDrive
 
@@ -210,7 +211,16 @@ def len_lich(cfg: CauHinh, args, drive=None, sheets=None) -> None:
             duong_dan = kho.tai_ve(media.id) if media else None
             fb_id = page.len_lich(d.noi_dung.strip(), thoi_diem, duong_dan,
                                   la_video=bool(media and media.la_video), ten_file=media.ten if media else "media")
-            sheet.cap_nhat(d.dong, DA_LEN_LICH, f"Hẹn đăng {thoi_diem:%H:%M %d/%m/%Y}", fb_id)
+            ghi_chu = f"Hẹn đăng {thoi_diem:%H:%M %d/%m/%Y}"
+            if media and media.la_video and youtube.da_cau_hinh():
+                try:  # YouTube chỉ là phần thêm: lỗi ở đây không làm hỏng bài đã lên lịch Facebook
+                    yt_id = youtube.KenhYouTube.tu_moi_truong().dang_video(
+                        duong_dan, youtube.tieu_de_tu_noi_dung(d.noi_dung), d.noi_dung.strip(), thoi_diem, media.mime)
+                    ghi_chu += f" | YouTube: https://youtu.be/{yt_id}"
+                except Exception as e:
+                    ghi_chu += f" | YouTube lỗi: {str(e)[:200]}"
+                    print(f"    (YouTube lỗi: {e})")
+            sheet.cap_nhat(d.dong, DA_LEN_LICH, ghi_chu, fb_id)
             print(f"  ✓ {d.ma_bai} → {fb_id}")
             if media:
                 try:
