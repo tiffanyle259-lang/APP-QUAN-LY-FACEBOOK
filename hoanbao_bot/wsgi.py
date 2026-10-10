@@ -56,7 +56,6 @@ def kiem_moi_truong() -> dict:
     return ket_qua
 
 
-_cache_bdk: dict = {"luc": 0.0, "html": ""}
 
 
 _ht_cache: dict = {"claude_luc": 0.0, "claude": None}
@@ -143,33 +142,45 @@ def kiem_he_thong(cfg, drive, sheets, ten_page: str) -> list[dict]:
 
 
 _khoa_dung = threading.Lock()
+_bdk = {"html": "", "luc": 0.0, "dang_dung": False}
+_cache_cham = {"dem_kho": (0.0, None), "ten_page": "", "hoi_thoai": (0.0, None, "")}
+TUOI_BANG_DIEU_KHIEN = 90      # giây: quá hạn này thì làm mới ngầm, người dùng vẫn thấy ngay bản gần nhất
+TUOI_DEM_KHO = 30 * 60         # đếm file kho rất tốn lần gọi Drive nên nhớ 30 phút
+TUOI_HOI_THOAI = 90
 
-
-def dung_bang_dieu_khien() -> str:
-    """Dựng bảng điều khiển từ dữ liệu thật. Chỉ một luồng dựng cùng lúc (client Google dùng chung, và để tiết kiệm bộ nhớ)."""
-    with _khoa_dung:
-        return _dung_bang_dieu_khien()
+TRANG_DANG_TAI = """<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta http-equiv="refresh" content="3">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Đang chuẩn bị</title>
+<style>body{font:16px system-ui,sans-serif;display:grid;place-items:center;min-height:100vh;margin:0;background:#f3f4f6;color:#141a24}
+@media(prefers-color-scheme:dark){body{background:#0d1117;color:#e8edf4}}</style></head>
+<body><p>Đang chuẩn bị dữ liệu bảng điều khiển, vài giây nữa là xong…</p></body></html>"""
 
 
 def _dung_bang_dieu_khien() -> str:
-    """Lưu tạm 60 giây để đỡ gọi API."""
+    """Dựng lại toàn bộ bảng điều khiển từ dữ liệu thật. Các phần nặng (đếm kho, tin nhắn) được nhớ lại."""
     import time
 
-    if time.time() - _cache_bdk["luc"] < 60 and _cache_bdk["html"]:
-        return _cache_bdk["html"]
     from hoanbao_mkt import bang_dieu_khien as bdk
     from hoanbao_mkt.facebook import Fanpage
 
     cfg = CauHinh.doc()
     drive, sheets = google_chi_doc(cfg)
-    ten_page = ""
-    try:
-        ten_page = Fanpage(CauHinh.bien("FB_PAGE_ID"), CauHinh.bien("FB_PAGE_TOKEN"),
-                           cfg["facebook"]["graph_version"]).kiem_tra()
-    except Exception:
-        logging.getLogger("hoanbao_bot").warning("Không lấy được tên Fanpage cho bảng điều khiển")
-    d = bdk.thu_thap(cfg, drive, sheets, CauHinh.bien("SHEET_DUYET_ID"),
-                     os.environ.get("DRIVE_KHO_ID", "").strip(), ten_page)
+    if not _cache_cham["ten_page"]:  # tên Fanpage không đổi, hỏi một lần
+        try:
+            _cache_cham["ten_page"] = Fanpage(CauHinh.bien("FB_PAGE_ID"), CauHinh.bien("FB_PAGE_TOKEN"),
+                                              cfg["facebook"]["graph_version"]).kiem_tra()
+        except Exception:
+            logging.getLogger("hoanbao_bot").warning("Không lấy được tên Fanpage cho bảng điều khiển")
+    ten_page = _cache_cham["ten_page"]
+    kho_id = os.environ.get("DRIVE_KHO_ID", "").strip()
+    luc_kho, dem = _cache_cham["dem_kho"]
+    if dem is None or time.time() - luc_kho > TUOI_DEM_KHO:
+        try:
+            dem = bdk.dem_kho(cfg, drive, kho_id)
+            _cache_cham["dem_kho"] = (time.time(), dem)
+        except Exception:
+            logging.getLogger("hoanbao_bot").exception("Không đếm được kho ảnh")
+            dem = dem or []
+    d = bdk.thu_thap(cfg, drive, sheets, CauHinh.bien("SHEET_DUYET_ID"), kho_id, ten_page, dem_kho_san=dem)
     d["he_thong"] = kiem_he_thong(cfg, drive, sheets, ten_page)
     d["bot"] = dict(_bot.thong_ke)
     d["sua_duoc"] = True
@@ -181,13 +192,52 @@ def _dung_bang_dieu_khien() -> str:
     except Exception as e:
         d["khach"] = None
         d["khach_loi"] = type(e).__name__
-    try:
-        d["hoi_thoai"] = _bot.mess.hoi_thoai_gan_day()
-    except Exception as e:
-        d["hoi_thoai"] = None
-        d["hoi_thoai_loi"] = str(e)[:200]
-    _cache_bdk.update(luc=time.time(), html=bdk.dung_html(d))
-    return _cache_bdk["html"]
+    luc_hoi, hoi, loi_hoi = _cache_cham["hoi_thoai"]
+    if hoi is None or time.time() - luc_hoi > TUOI_HOI_THOAI:
+        try:
+            hoi, loi_hoi = _bot.mess.hoi_thoai_gan_day(), ""
+        except Exception as e:
+            hoi, loi_hoi = None, str(e)[:200]
+        _cache_cham["hoi_thoai"] = (time.time(), hoi, loi_hoi)
+    d["hoi_thoai"] = hoi
+    if hoi is None:
+        d["hoi_thoai_loi"] = loi_hoi
+    return bdk.dung_html(d)
+
+
+def lam_moi_bang_dieu_khien() -> None:
+    """Dựng lại và lưu bản mới. Chỉ một luồng làm cùng lúc (client Google dùng chung, tiết kiệm bộ nhớ)."""
+    import time
+
+    with _khoa_dung:
+        _bdk["dang_dung"] = True
+        try:
+            _bdk.update(html=_dung_bang_dieu_khien(), luc=time.time())
+        except Exception:
+            logging.getLogger("hoanbao_bot").exception("Lỗi dựng bảng điều khiển")
+        finally:
+            _bdk["dang_dung"] = False
+
+
+def _lam_moi_ngam() -> None:
+    if not _bdk["dang_dung"]:
+        threading.Thread(target=lam_moi_bang_dieu_khien, daemon=True).start()
+
+
+def dung_bang_dieu_khien() -> str:
+    """Trả về ngay bản gần nhất. Nếu đã cũ thì làm mới ngầm cho lần mở sau, nên mở trang luôn nhanh."""
+    import time
+
+    if _bdk["html"]:
+        if time.time() - _bdk["luc"] > TUOI_BANG_DIEU_KHIEN:
+            _lam_moi_ngam()
+        return _bdk["html"]
+    _lam_moi_ngam()
+    for _ in range(50):  # lần đầu sau khi máy chủ khởi động: chờ tối đa khoảng 25 giây
+        time.sleep(0.5)
+        if _bdk["html"]:
+            return _bdk["html"]
+    return TRANG_DANG_TAI
 
 
 _kho_xem = None
@@ -304,7 +354,9 @@ def thao_tac(lenh: dict) -> dict:
             body={"values": [[lenh["trang_thai"]]]}).execute()
     else:
         raise LoiThaoTac("Thao tác không hỗ trợ.")
-    _cache_bdk["luc"] = 0.0  # lần mở sau đọc dữ liệu mới
+    if hanh == "khach_trang_thai":
+        _cache_cham["hoi_thoai"] = (0.0, None, "")
+    lam_moi_bang_dieu_khien()  # dựng lại ngay để lần tải lại sau thao tác thấy đúng dữ liệu mới
     return {"ok": True}
 
 
@@ -312,3 +364,4 @@ logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO"))
 _bot, _secret, _verify = tao_bot()
 app = tao_ung_dung(_bot, _secret, _verify, moi_truong=kiem_moi_truong, bang_dieu_khien=dung_bang_dieu_khien, thao_tac=thao_tac,
                    kho_xem=_KhoXemLazy())
+_lam_moi_ngam()  # dựng sẵn bảng điều khiển ngay khi máy chủ khởi động

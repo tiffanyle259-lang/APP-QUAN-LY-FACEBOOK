@@ -581,21 +581,30 @@ def dung_html(d: dict) -> str:
 <div class="wrap">{panels}<p class="foot">{chu_cuoi}</p></div>{hop}{xem_to}{js}</body></html>"""
 
 
-def thu_thap(cfg, drive, sheets, sheet_id: str, kho_id: str, ten_page: str = "") -> dict:
-    """Gom dữ liệu thật từ Google Sheet và Drive."""
-    from .duyet_bai import SheetDuyet
+def dem_kho(cfg, drive, kho_id: str) -> list[dict]:
+    """Số file trong từng thư mục kho. Tốn nhiều lần gọi Drive nên nơi gọi nên nhớ kết quả vài chục phút."""
     from .kho_anh import KhoDrive
 
+    if not kho_id:
+        return []
+    kho = KhoDrive(drive, kho_id)
+    ten_thu_muc = sorted({n for n in _ten_thu_muc_kho(cfg)}) + ["_chua-phan-loai", "_can-xem-lai"]
+    dem = []
+    for ten in ten_thu_muc:
+        tm = kho.id_thu_muc(ten)
+        dem.append({"ten": ten, "so_file": len(kho.liet_ke_de_quy(tm)) if tm else 0})
+    return dem
+
+
+def thu_thap(cfg, drive, sheets, sheet_id: str, kho_id: str, ten_page: str = "", dem_kho_san=None) -> dict:
+    """Gom dữ liệu thật từ Google Sheet và Drive. dem_kho_san: số file kho đã đếm sẵn (đỡ đếm lại)."""
+    from .duyet_bai import SheetDuyet
+
     sheet = SheetDuyet(sheets, sheet_id)
-    kho = KhoDrive(drive, kho_id) if kho_id else None
     bai = [{"ma_bai": r.ma_bai, "ngay": r.ngay, "gio": r.gio, "loai": r.loai_bai, "noi_dung": r.noi_dung,
             "media": r.media, "trang_thai": r.trang_thai.strip(), "ghi_chu": r.ghi_chu, "facebook_id": r.facebook_id}
            for r in sheet.doc_tat_ca()]
-    ten_thu_muc = sorted({n for n in _ten_thu_muc_kho(cfg)}) + ["_chua-phan-loai", "_can-xem-lai"]
-    dem = []
-    for ten in ten_thu_muc if kho else []:  # chưa có DRIVE_KHO_ID thì bỏ phần kho ảnh
-        tm = kho.id_thu_muc(ten)
-        dem.append({"ten": ten, "so_file": len(kho.liet_ke_de_quy(tm)) if tm else 0})
+    dem = dem_kho_san if dem_kho_san is not None else dem_kho(cfg, drive, kho_id)
     return {"cap_nhat": datetime.now(cfg.mui_gio).strftime("%H:%M %d/%m/%Y"), "page": ten_page,
             "che_do_duyet": sheet.che_do_duyet(cfg["che_do_duyet"]),
             "sheet_url": f"https://docs.google.com/spreadsheets/d/{sheet_id}", "bai": bai, "kho": dem}
