@@ -526,3 +526,44 @@ def test_gui_email_hien_chi_tiet_loi_tu_apps_script(monkeypatch):
     monkeypatch.setenv("EMAIL_WEBHOOK_SECRET", "s")
     ok, ly_do = k.gui_email_chi_tiet("x")
     assert not ok and "Invalid argument: recipient" in ly_do
+
+
+def test_kho_xem_danh_sach_khong_hoi_lai_drive_tung_anh():
+    from hoanbao_bot.kho_xem import KhoXem
+
+    goi = {"get": 0}
+
+    class Drive:
+        def files(self):
+            return self
+
+        def list(self, q="", **k):
+            self.q = q
+            return self
+
+        def get(self, **k):
+            goi["get"] += 1
+            return self
+
+        def execute(self):
+            if "mimeType = 'application/vnd.google-apps.folder'" in self.q:
+                return {"files": [{"id": "T" * 12}]}
+            return {"files": [{"id": "A" * 12, "name": "a.jpg", "mimeType": "image/jpeg", "size": "1000",
+                               "thumbnailLink": "https://lh3.example/x=s220"}]}
+
+    class Http:
+        def get(self, url, headers=None, timeout=0):
+            self.url = url
+
+            class R:
+                status_code = 200
+                content = b"\xff\xd8\xff-anh"
+
+            return R()
+
+    http = Http()
+    k = KhoXem(Drive(), "KHO0000000000", lambda: "tok", http)
+    ds = k.danh_sach("keo-228")
+    assert ds[0]["ten"] == "a.jpg"
+    assert k.anh_nho("A" * 12, 320).startswith(b"\xff\xd8\xff")
+    assert http.url.endswith("=s320") and goi["get"] == 0  # không gọi Drive thêm cho từng ảnh

@@ -215,7 +215,7 @@ JS = r"""
         ghi.textContent=ds.length+' file. Bấm một ảnh để chọn.';
         ds.forEach(function(f){
           var o=document.createElement('button');o.type='button';o.className='o';o.title=f.ten;
-          var im=document.createElement('img');im.loading='lazy';im.alt=f.ten;im.src='/api/anh/'+f.id;im.onerror=function(){im.remove()};
+          var im=document.createElement('img');im.loading='lazy';im.alt=f.ten;im.src='/api/anh/'+f.id+'?s=320';im.onerror=function(){im.remove()};
           var tn=document.createElement('span');tn.className='tn';tn.textContent=(f.video?'VIDEO · ':'')+f.ten;
           o.appendChild(im);o.appendChild(tn);
           o.addEventListener('click',function(){
