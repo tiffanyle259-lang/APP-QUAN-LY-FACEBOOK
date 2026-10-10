@@ -475,3 +475,22 @@ def test_he_thong_co_nut_gui_thu_email():
     assert "data-hanh=email_thu" in dung_html(d)
     d["sua_duoc"] = False
     assert "email_thu" not in dung_html(d).split("<script>")[0]
+
+
+def test_gui_email_qua_apps_script(monkeypatch):
+    import hoanbao_bot.khach as k
+
+    goi = []
+
+    class R:
+        status_code = 200
+        text = "ok"
+
+    monkeypatch.setattr(k.requests, "post", lambda url, json=None, timeout=0: goi.append((url, json)) or R())
+    monkeypatch.setenv("EMAIL_WEBHOOK_URL", "https://script.google.com/macros/s/xxx/exec")
+    monkeypatch.setenv("EMAIL_WEBHOOK_SECRET", "bi-mat")
+    assert k.email_da_cau_hinh() is True
+    assert k.gui_email("Khách mới\nSĐT: 0912") is True
+    assert goi[0][1]["secret"] == "bi-mat" and "0912" in goi[0][1]["body"]
+    R.text = "forbidden"  # sai mật khẩu bên Apps Script thì báo thất bại
+    assert k.gui_email("x") is False

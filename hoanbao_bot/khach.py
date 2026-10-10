@@ -50,13 +50,25 @@ class SoKhach:
 
 
 def gui_email(noi_dung: str) -> bool:
-    """Gửi email báo nhân viên nếu có SMTP_USER, SMTP_PASSWORD (mật khẩu ứng dụng Gmail) và NOTIFY_EMAIL (hoặc dùng SMTP_USER)."""
+    """Gửi email báo nhân viên.
+
+    Ưu tiên Google Apps Script (EMAIL_WEBHOOK_URL + EMAIL_WEBHOOK_SECRET): đi qua HTTPS nên chạy được trên Render miễn phí,
+    vì gói miễn phí của Render chặn cổng SMTP. Nếu không có thì thử SMTP (SMTP_USER, SMTP_PASSWORD, NOTIFY_EMAIL).
+    """
+    tieu_de = "Khách mới cần xử lý: " + (noi_dung.splitlines()[0] if noi_dung else "")[:80]
+    url, bi_mat = os.environ.get("EMAIL_WEBHOOK_URL", "").strip(), os.environ.get("EMAIL_WEBHOOK_SECRET", "").strip()
+    if url and bi_mat:
+        try:
+            r = requests.post(url, json={"secret": bi_mat, "subject": tieu_de, "body": noi_dung[:5000]}, timeout=30)
+            return r.status_code == 200 and r.text.strip() == "ok"
+        except requests.RequestException:
+            return False
     user, mat_khau = os.environ.get("SMTP_USER", "").strip(), os.environ.get("SMTP_PASSWORD", "").replace(" ", "")
     nguoi_nhan = [e.strip() for e in (os.environ.get("NOTIFY_EMAIL", "") or user).split(",") if e.strip()]
     if not (user and mat_khau and nguoi_nhan):
         return False
     msg = EmailMessage()
-    msg["Subject"] = "Khách mới cần xử lý: " + (noi_dung.splitlines()[0] if noi_dung else "")[:80]
+    msg["Subject"] = tieu_de
     msg["From"], msg["To"] = user, ", ".join(nguoi_nhan)
     msg.set_content(noi_dung[:5000])
     try:
@@ -69,7 +81,8 @@ def gui_email(noi_dung: str) -> bool:
 
 
 def email_da_cau_hinh() -> bool:
-    return bool(os.environ.get("SMTP_USER", "").strip() and os.environ.get("SMTP_PASSWORD", "").strip())
+    kieu_web = os.environ.get("EMAIL_WEBHOOK_URL", "").strip() and os.environ.get("EMAIL_WEBHOOK_SECRET", "").strip()
+    return bool(kieu_web or (os.environ.get("SMTP_USER", "").strip() and os.environ.get("SMTP_PASSWORD", "").strip()))
 
 
 def bao_nhan_vien(noi_dung: str) -> None:

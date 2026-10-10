@@ -136,7 +136,7 @@ def kiem_he_thong(cfg, drive, sheets, ten_page: str) -> list[dict]:
         them("Báo khách mới qua email", True, "Đã cấu hình, có khách để lại số điện thoại thì gửi email ngay", nut="email_thu")
     else:
         them("Báo khách mới qua email", False, "Chưa cấu hình, nhân viên chưa được báo khi có khách mới",
-             "Render > Environment > thêm SMTP_USER, SMTP_PASSWORD (mật khẩu ứng dụng Gmail), NOTIFY_EMAIL.")
+             "Render > Environment > thêm EMAIL_WEBHOOK_URL và EMAIL_WEBHOOK_SECRET (xem hướng dẫn Google Apps Script).")
     if _bot.thong_ke.get("loi"):
         them("Lỗi gần đây của bot", False, f"{_bot.thong_ke['loi']} lỗi: {_bot.thong_ke.get('loi_cuoi', '')[:160]}")
     return kq
@@ -249,7 +249,7 @@ def thao_tac(lenh: dict) -> dict:
         if not email_da_cau_hinh():
             raise LoiThaoTac("Chưa cấu hình email trên Render (SMTP_USER, SMTP_PASSWORD).")
         if not gui_email("Thư thử từ bảng điều khiển Golden Lion\nNếu chị/anh đọc được thư này, báo khách mới qua email đã hoạt động."):
-            raise LoiThaoTac("Gửi thư không được. Kiểm tra lại SMTP_USER và mật khẩu ứng dụng Gmail trên Render.")
+            raise LoiThaoTac("Gửi thư không được. Kiểm tra EMAIL_WEBHOOK_URL, EMAIL_WEBHOOK_SECRET trên Render (Render miễn phí chặn SMTP nên cần dùng Google Apps Script).")
         return {"ok": True, "thong_bao": "Đã gửi thư thử, chị/anh kiểm tra hộp thư (cả mục Thư rác)."}
 
     cfg = CauHinh.doc()

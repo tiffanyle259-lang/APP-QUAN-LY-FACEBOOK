@@ -24,6 +24,10 @@ services:
         sync: false
       - key: SHEET_DUYET_ID
         sync: false
+      - key: EMAIL_WEBHOOK_URL
+        sync: false
+      - key: EMAIL_WEBHOOK_SECRET
+        sync: false
       - key: SMTP_USER
         sync: false
       - key: SMTP_PASSWORD
