@@ -35,6 +35,19 @@ NHIỆM VỤ HIỆN TẠI: phân loại một bình luận dưới bài đăng c
 - spam_hoac_xau, khac: để trống cả hai, không phản hồi."""
 
 
+class KetQuaNhom(BaseModel):
+    noi_dung: str = Field(description="Bài đăng hoàn chỉnh để dán vào nhóm")
+
+
+LUAT_NHOM = """
+
+NHIỆM VỤ HIỆN TẠI: viết lại một bài Fanpage thành bài đăng để nhân viên dán vào một nhóm Facebook (không phải chat).
+- CHỈ dùng thông tin có trong BÀI GỐC và DỮ LIỆU sản phẩm ở trên. Không thêm thông số, giá, chứng nhận hay lời hứa nào không có.
+- Không nêu giá. Giữ nguyên số điện thoại/Zalo/website có trong bài gốc.
+- Viết như thành viên chia sẻ hữu ích cho ngành của nhóm, giọng gần gũi, bớt quảng cáo; tôn trọng LUẬT NHÓM (vd nhóm cấm link hay cấm quảng cáo thì bỏ link, nói nhẹ nhàng).
+- Khác bài gốc về mở bài và cách diễn đạt (nhiều nhóm xóa bài trùng nội dung), 60-150 chữ, tối đa 3 emoji, 3-4 hashtag cuối bài."""
+
+
 class AiBot:
     def __init__(self, he_thong: str, model: str, effort: str = "low", client: anthropic.Anthropic | None = None):
         self.he_thong, self.model, self.effort = he_thong, model, effort
@@ -69,3 +82,8 @@ class AiBot:
 
     def phan_loai_binh_luan(self, noi_dung: str) -> KetQuaBinhLuan:
         return self._goi(LUAT_BINH_LUAN, [{"role": "user", "content": f"Bình luận: {noi_dung}"}], KetQuaBinhLuan)
+
+    def viet_cho_nhom(self, bai_goc: str, ten_nhom: str, nganh: str, luat: str) -> str:
+        yeu_cau = (f"BÀI GỐC:\n{bai_goc}\n\nNHÓM: {ten_nhom}\nNGÀNH CỦA NHÓM: {nganh}\n"
+                   f"LUẬT NHÓM: {luat or 'không có ghi chú'}")
+        return self._goi(LUAT_NHOM, [{"role": "user", "content": yeu_cau}], KetQuaNhom).noi_dung.strip()

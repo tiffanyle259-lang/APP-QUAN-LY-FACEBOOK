@@ -6,6 +6,7 @@ import html
 import re
 from collections import Counter
 from datetime import date, datetime
+from zoneinfo import ZoneInfo
 
 CSS = """
 /* Bố cục: thanh thương hiệu, hàng chỉ số, việc cần làm, lịch bài dạng thẻ có ảnh, kho ảnh dạng thanh. */
@@ -163,6 +164,21 @@ select.chon{font:inherit;font-size:13px;border:1px solid var(--line);border-radi
 #toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);
 color:var(--bg);padding:9px 16px;border-radius:10px;font-size:14px;box-shadow:0 6px 20px rgba(0,0,0,.25);z-index:9;max-width:90vw}
 #toast.loi{background:var(--loi);color:#fff}
+.ng{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:10px}
+.ng-top{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.ng-top b{font-size:15.5px;overflow-wrap:anywhere}
+.ng-meta,.ng-luat{font-size:13px;color:var(--muted);margin-top:4px;overflow-wrap:anywhere}.ng .acts{margin-top:10px}
+a.bt{display:inline-block;text-decoration:none;font-size:13px;font-weight:650;border:1px solid var(--line);background:var(--card);
+color:var(--ink);border-radius:9px;padding:5px 12px}a.bt:hover{background:var(--bg)}
+.ng-form{display:grid;gap:8px;margin:8px 0 4px}.ng-form input,.ng-form select,.ng-form textarea{font:inherit;font-size:14px;border:1px solid var(--line);
+border-radius:8px;background:var(--bg);color:var(--ink);padding:7px 10px;width:100%;box-sizing:border-box}
+details.them-nhom{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 16px;margin-bottom:12px}
+details.them-nhom summary{cursor:pointer;font-weight:650}
+dialog#hop-nhom{border:1px solid var(--line);border-radius:16px;padding:0;width:min(760px,calc(100vw - 24px));max-height:calc(100vh - 24px);
+background:var(--card);color:var(--ink);box-shadow:0 20px 60px rgba(0,0,0,.35)}dialog#hop-nhom::backdrop{background:rgba(10,14,20,.55)}
+#hop-nhom .hn{display:grid;gap:10px;padding:16px 18px;overflow-y:auto;max-height:calc(100vh - 40px)}#hop-nhom h3{margin:0;font-size:16px}
+#hop-nhom select,#hop-nhom textarea{font:inherit;font-size:14px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);
+padding:7px 10px;width:100%;box-sizing:border-box}#hop-nhom textarea{min-height:200px;line-height:1.5}
+#hn-anh{max-width:100%;max-height:220px;border-radius:10px;object-fit:contain;justify-self:start}
 .foot{margin-top:28px;font-size:13px;color:var(--muted)}
 .empty{background:var(--card);border:1px dashed var(--line);border-radius:14px;padding:22px;color:var(--muted)}
 @media (max-width:520px){.post{grid-template-columns:112px minmax(0,1fr)}.k{grid-template-columns:1fr 36px}.k .track{grid-column:1/-1;order:3}}
@@ -247,6 +263,7 @@ JS = r"""
     var b=e.target.closest('button[data-hanh]');if(!b)return;
     var h=b.dataset.hanh;
     if(h==='email_thu')gui({hanh:h},b);
+    else if(h==='nhom_trang_thai')gui({hanh:h,dong:b.dataset.dong,trang_thai:b.dataset.tt},b);
     else if(h==='bai_huy_lich'){if(confirm(b.dataset.hoi||'Hủy lịch bài này?'))gui({hanh:h,ma_bai:b.dataset.ma},b)}
     else if(h==='bai_trang_thai')gui({hanh:h,ma_bai:b.dataset.ma,trang_thai:b.dataset.tt},b);
     else if(h==='bai_noi_dung'){var ta=document.getElementById('nd-'+b.dataset.ma);gui({hanh:h,ma_bai:b.dataset.ma,noi_dung:ta?ta.value:''},b)}
@@ -257,6 +274,66 @@ JS = r"""
   });
 })();
 </script>"""
+
+
+JS_NHOM = r"""
+<script>
+(function(){
+  var hn=document.getElementById('hop-nhom');if(!hn)return;
+  var toast=document.getElementById('toast'),t0;
+  function bao(m,loi){toast.textContent=m;toast.className=loi?'loi':'';toast.hidden=false;clearTimeout(t0);t0=setTimeout(function(){toast.hidden=true},3500)}
+  function gui(lenh){
+    return fetch('/api/thao-tac',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-GL':'1'},body:JSON.stringify(lenh)})
+      .then(function(r){return r.json().then(function(j){return{ok:r.ok,j:j}})})
+      .catch(function(){return{ok:false,j:{loi:'Mất kết nối, thử lại sau'}}});
+  }
+  var dong=null,ten=document.getElementById('hn-ten'),bai=document.getElementById('hn-bai'),nd=document.getElementById('hn-nd'),
+      anh=document.getElementById('hn-anh'),tai=document.getElementById('hn-tai'),mo=document.getElementById('hn-mo'),
+      soan=document.getElementById('hn-soan');
+  function capNhatAnh(){
+    var o=bai.options[bai.selectedIndex],f=o&&o.dataset.fid;
+    if(f){anh.src='/api/anh/'+f+'?s=900';anh.hidden=false;tai.href='/api/anh/'+f+'?s=1600';tai.hidden=false;tai.download='anh-bai.jpg'}
+    else{anh.hidden=true;tai.hidden=true}
+  }
+  bai.addEventListener('change',capNhatAnh);
+  document.addEventListener('click',function(e){
+    var b=e.target.closest('.nhom-soan');if(!b)return;
+    dong=b.dataset.dong;ten.textContent='Nhóm: '+b.dataset.ten;mo.href=b.dataset.link;nd.value='';capNhatAnh();hn.showModal();
+  });
+  soan.addEventListener('click',function(){
+    if(!bai.value){bao('Chưa có bài Fanpage nào để lấy ý.',true);return}
+    soan.disabled=true;soan.textContent='Đang soạn…';
+    gui({hanh:'nhom_soan_bai',dong:dong,ma_bai:bai.value}).then(function(x){
+      soan.disabled=false;soan.textContent='Soạn bài cho nhóm này';
+      if(!x.ok){bao(x.j.loi||'Không soạn được',true);return}
+      nd.value=x.j.noi_dung||'';
+    });
+  });
+  document.getElementById('hn-chep').addEventListener('click',function(){
+    if(!nd.value.trim()){bao('Chưa có bài để sao chép.',true);return}
+    function xong(){bao('Đã sao chép bài. Vào nhóm, dán và đăng.')}
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(nd.value).then(xong,function(){nd.select();document.execCommand('copy');xong()})}
+    else{nd.select();document.execCommand('copy');xong()}
+  });
+  document.getElementById('hn-dong').addEventListener('click',function(){hn.close()});
+  document.getElementById('hn-xong').addEventListener('click',function(){
+    if(!confirm('Xác nhận đã đăng bài vào nhóm này?'))return;
+    gui({hanh:'nhom_da_dang',dong:dong}).then(function(x){
+      if(!x.ok){bao(x.j.loi||'Không lưu được',true);return}
+      bao('Đã ghi nhận');setTimeout(function(){location.reload()},700)});
+  });
+  var luu=document.getElementById('nf-luu');
+  if(luu)luu.addEventListener('click',function(){
+    function v(i){return document.getElementById(i).value}
+    luu.disabled=true;
+    gui({hanh:'nhom_them',ten:v('nf-ten'),link:v('nf-link'),nganh:v('nf-nganh'),luat:v('nf-luat'),cach:v('nf-cach')}).then(function(x){
+      luu.disabled=false;
+      if(!x.ok){bao(x.j.loi||'Không lưu được',true);return}
+      bao('Đã thêm nhóm');setTimeout(function(){location.reload()},700)});
+  });
+})();
+</script>
+"""
 
 
 JS_TAB = r"""
@@ -505,6 +582,66 @@ def dung_html(d: dict) -> str:
         khach_html = ("<h2>Khách quan tâm</h2><div class='canhbao'>Chưa đọc được tab <b>Khách hàng</b> trong Google Sheet ("
                       + _e(d["khach_loi"]) + ").</div>")
 
+    nhom_html = ""
+    hop_nhom = ""
+    n_nhom_san_sang = 0
+    if d.get("nhom") is not None:
+        from datetime import datetime
+        from hoanbao_bot.nhom import NGANH, TAM_DUNG, tinh_trang
+        hom_nay = datetime.now(ZoneInfo("Asia/Ho_Chi_Minh")).date()
+        the_nhom = []
+        for n in sorted(d["nhom"], key=lambda x: (not tinh_trang(x, hom_nay)[0], x["ten"].lower())):
+            ok, con = tinh_trang(n, hom_nay)
+            n_nhom_san_sang += 1 if ok else 0
+            if n["trang_thai"] == TAM_DUNG:
+                tt, lop, nut_tt = "Tạm dừng", "s-bo", ("Dùng lại", "Đang dùng")
+            elif ok:
+                tt, lop, nut_tt = "Sẵn sàng đăng", "s-ok", ("Tạm dừng", TAM_DUNG)
+            else:
+                tt, lop, nut_tt = f"Chờ {con} ngày nữa", "s-cho", ("Tạm dừng", TAM_DUNG)
+            cuoi = n["lan_cuoi"] or "chưa đăng lần nào"
+            luat = f"<div class='ng-luat'>Luật nhóm: {_e(n['luat'])}</div>" if n["luat"] else ""
+            the_nhom.append(
+                f"<article class='ng'><div class='ng-top'><b>{_e(n['ten'])}</b><span class='badge s-duyet'>{_e(n['nganh'])}</span>"
+                f"<span class='badge {lop}'>{tt}</span></div>"
+                f"<div class='ng-meta'>Đăng gần nhất: {_e(cuoi)} · đã đăng {_e(n['so_lan'])} lần · cách nhau {n['cach']} ngày</div>{luat}"
+                f"<div class='acts'><button type='button' class='bt chinh nhom-soan' data-dong='{n['dong']}' data-ten='{_e(n['ten'])}' "
+                f"data-link='{_e(n['link'])}'>Soạn bài và đăng</button>"
+                f"<a class='bt' href='{_e(n['link'])}' target='_blank' rel='noopener'>Mở nhóm</a>"
+                f"<button type='button' class='bt' data-hanh='nhom_trang_thai' data-dong='{n['dong']}' data-tt='{_e(nut_tt[1])}'>{nut_tt[0]}</button>"
+                "</div></article>")
+        tuy_nganh = "".join(f"<option>{_e(x)}</option>" for x in NGANH)
+        form = ("<details class='them-nhom'><summary>+ Thêm nhóm</summary><div class='ng-form'>"
+                "<input id='nf-ten' placeholder='Tên nhóm' maxlength='120'>"
+                "<input id='nf-link' placeholder='Link nhóm (https://www.facebook.com/groups/...)' inputmode='url'>"
+                f"<select id='nf-nganh'>{tuy_nganh}</select>"
+                "<textarea id='nf-luat' rows='2' placeholder='Luật nhóm cần nhớ (nếu có), ví dụ: không dán link, chỉ đăng cuối tuần' maxlength='500'></textarea>"
+                "<input id='nf-cach' type='number' min='0' max='90' value='7' aria-label='Số ngày giữa hai lần đăng'>"
+                "<div class='ghi-nho'>Ô cuối: số ngày tối thiểu giữa hai lần đăng vào nhóm này.</div>"
+                "<button type='button' class='bt chinh' id='nf-luu'>Lưu nhóm</button></div></details>")
+        nhom_html = ("<h2>Nhóm Facebook <small>nhân viên đăng tay, app soạn bài và nhớ lịch</small></h2>" + form
+                     + ("".join(the_nhom) if the_nhom else
+                        "<div class='canhbao'>Chưa có nhóm nào. Bấm “+ Thêm nhóm” và dán link các nhóm anh/chị đã tham gia.</div>"))
+        goc = [b for b in bai if b["trang_thai"] != "Bỏ" and (b.get("noi_dung") or "").strip()]
+        tuy_bai = "".join(
+            f"<option value='{_e(b['ma_bai'])}' data-fid='{_e((_DRIVE_ID.search(b.get('media') or '') or [None, ''])[1])}'>"
+            f"{_e(_ngay(b['ngay']))} · {_e(b['loai'])} · {_e((b['noi_dung'] or '')[:40])}</option>" for b in goc[-40:][::-1])
+        hop_nhom = ("<dialog id='hop-nhom' aria-labelledby='hn-tieu-de'><div class='hn'><h3 id='hn-tieu-de'>Soạn bài đăng nhóm</h3>"
+                    "<div class='ghi-nho' id='hn-ten'></div><label>Lấy ý từ bài Fanpage: "
+                    f"<select id='hn-bai'>{tuy_bai}</select></label>"
+                    "<button type='button' class='bt chinh' id='hn-soan'>Soạn bài cho nhóm này</button>"
+                    "<textarea id='hn-nd' placeholder='Bài soạn xong sẽ hiện ở đây, có thể sửa tay trước khi sao chép.'></textarea>"
+                    "<img id='hn-anh' alt='Ảnh đi kèm bài' hidden>"
+                    "<div class='acts'><button type='button' class='bt' id='hn-chep'>Sao chép bài</button>"
+                    "<a class='bt' id='hn-tai' download href='#' hidden>Tải ảnh</a>"
+                    "<a class='bt' id='hn-mo' target='_blank' rel='noopener' href='#'>Mở nhóm</a>"
+                    "<button type='button' class='bt chinh' id='hn-xong'>Đã đăng</button>"
+                    "<button type='button' class='bt' id='hn-dong'>Đóng</button></div>"
+                    "<div class='ghi-nho'>Dán bài vào nhóm, gắn ảnh rồi bấm Đăng trong Facebook. Xong quay lại bấm “Đã đăng”.</div></div></dialog>")
+    elif d.get("nhom_loi"):
+        nhom_html = ("<h2>Nhóm Facebook</h2><div class='canhbao'>Chưa đọc được tab <b>Nhóm</b> trong Google Sheet ("
+                     + _e(d["nhom_loi"]) + ").</div>")
+
     chat_html = ""
     if d.get("hoi_thoai"):
         ds_ten, ds_chat = [], []
@@ -566,7 +703,7 @@ def dung_html(d: dict) -> str:
     n_khach_moi = sum(1 for r in (d.get("khach") or []) if (r[7] or "Mới").strip() == "Mới")
     n_kho = cho_phan_loai + xem_lai
     tabs = [("tong-quan", "Tổng quan", 0), ("bai-dang", "Bài đăng", dem["Chờ duyệt"]),
-            ("khach-hang", "Khách hàng", n_khach_moi), ("tin-nhan", "Tin nhắn", 0), ("kho-anh", "Kho ảnh", n_kho)] + ([("he-thong", "Hệ thống", ht_hong)] if he_thong else [])
+            ("khach-hang", "Khách hàng", n_khach_moi)] + ([("nhom", "Nhóm", n_nhom_san_sang)] if nhom_html else []) + [("tin-nhan", "Tin nhắn", 0), ("kho-anh", "Kho ảnh", n_kho)] + ([("he-thong", "Hệ thống", ht_hong)] if he_thong else [])
     thanh_tab = "".join(
         f"<button type='button' role='tab' class='tab' id='t-{k}' data-tab='{k}' aria-controls='p-{k}'>{ten}"
         f"{f'<i class=dau>{n}</i>' if n else ''}</button>" for k, ten, n in tabs)
@@ -574,6 +711,7 @@ def dung_html(d: dict) -> str:
         "tong-quan": f"<div class='stats'>{stats}</div>{todo}{tuong_tac}{sap_html}",
         "bai-dang": f"<h2>Lịch bài đăng <small>{len(bai)} bài · đăng lên Fanpage {ten_page}</small></h2>{ds_html}",
         "khach-hang": khach_html or "<div class='canhbao'>Chưa có dữ liệu khách hàng.</div>",
+        "nhom": nhom_html,
         "tin-nhan": f"<h2>Tin nhắn gần đây <small>đọc trực tiếp từ Messenger, bấm một cuộc để xem</small></h2>{chat_html}",
         "he-thong": ht_html,
         "kho-anh": kho_html or ("<div class='canhbao'>Đang đếm ảnh trong kho, vài chục giây nữa sẽ có số liệu. Tải lại trang sau ít phút.</div>"
@@ -584,7 +722,7 @@ def dung_html(d: dict) -> str:
                      for k, _, _ in tabs)
     chu_cuoi = ("Duyệt bài xong, app tự lên lịch đăng trong vòng 1 giờ. Bài đã lên lịch thì sửa hoặc hủy trong Meta Business Suite."
                 if sua else "Trang này chỉ để xem, tự cập nhật mỗi lần tải lại. Muốn sửa hoặc duyệt bài, làm trong Google Sheet.")
-    js = JS_TAB + (JS if sua else "")
+    js = JS_TAB + ((JS + JS_NHOM) if sua else "")
     return f"""<!doctype html><html lang="vi"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>Golden Lion Fanpage</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -595,7 +733,7 @@ def dung_html(d: dict) -> str:
 <div class="live"><span><i class="dot"></i>Đang chạy</span><span class="pill">Cập nhật {_e(d['cap_nhat'])}</span>
 {f'<span class="pill">{che_do}</span>' if che_do else ''}</div></div>
 <nav class="tabs" role="tablist" aria-label="Các mục">{thanh_tab}</nav></div>
-<div class="wrap">{panels}<p class="foot">{chu_cuoi}</p></div>{hop}{xem_to}{js}</body></html>"""
+<div class="wrap">{panels}<p class="foot">{chu_cuoi}</p></div>{hop}{hop_nhom if sua else ''}{xem_to}{js}</body></html>"""
 
 
 def dem_kho(cfg, drive, kho_id: str) -> list[dict]:

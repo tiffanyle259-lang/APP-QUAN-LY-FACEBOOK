@@ -575,3 +575,37 @@ def test_tieu_de_youtube_lay_dong_dau_co_chu():
     assert tieu_de_tu_noi_dung("\n#tag\nDán đế giày <bền>\nchi tiết") == "Dán đế giày bền"
     assert len(tieu_de_tu_noi_dung("a" * 300)) == 100
     assert tieu_de_tu_noi_dung("") == "Keo dán Golden Lion"
+
+
+def test_nhom_link_va_cho_giua_hai_lan_dang():
+    from datetime import date
+
+    import pytest
+
+    from hoanbao_bot.nhom import LoiNhom, chuan_link, dong_thanh_nhom, tinh_trang
+
+    assert chuan_link("https://www.facebook.com/groups/keo.dan.sofa/") .endswith("keo.dan.sofa/")
+    for xau in ("http://facebook.com/groups/a", "https://evil.com/groups/a", "https://facebook.com/page/a", ""):
+        with pytest.raises(LoiNhom):
+            chuan_link(xau)
+    n = dong_thanh_nhom(2, ["N", "https://facebook.com/groups/a", "Khác", "", "7", "10/10/2026", "2", ""])
+    assert tinh_trang(n, date(2026, 10, 12)) == (False, 5)
+    assert tinh_trang(n, date(2026, 10, 17)) == (True, 0)
+    n["trang_thai"] = "Tạm dừng"
+    assert tinh_trang(n, date(2026, 12, 1)) == (False, 0)
+    moi = dong_thanh_nhom(3, ["M", "https://facebook.com/groups/b"])
+    assert tinh_trang(moi, date(2026, 10, 12)) == (True, 0) and moi["cach"] == 7
+
+
+def test_bang_dieu_khien_co_tab_nhom():
+    from hoanbao_mkt.bang_dieu_khien import JS_NHOM, dung_html
+
+    d = {"cap_nhat": "x", "page": "P", "che_do_duyet": True, "sheet_url": "", "kho": [], "sua_duoc": True,
+         "bai": [{"ma_bai": "m1", "ngay": "2026-10-12", "gio": "08:00", "loai": "L", "noi_dung": "bài", "media": "",
+                  "trang_thai": "Chờ duyệt", "ghi_chu": "", "facebook_id": ""}],
+         "nhom": [{"dong": 2, "ten": "Nhóm <sofa>", "link": "https://www.facebook.com/groups/a", "nganh": "Khác", "luat": "",
+                   "cach": 7, "lan_cuoi": "", "so_lan": "0", "trang_thai": "Đang dùng"}]}
+    h = dung_html(d)
+    assert "id='p-nhom'" in h and "Nhóm &lt;sofa&gt;" in h and "hop-nhom" in h and "nhom_trang_thai" in h
+    assert "id='p-nhom'" not in dung_html({**d, "nhom": None})
+    assert "nhom_soan_bai" in JS_NHOM

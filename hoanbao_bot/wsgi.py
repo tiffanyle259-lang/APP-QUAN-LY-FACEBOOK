@@ -17,6 +17,7 @@ from .ai_bot import AiBot
 from .khach import SoKhach, bao_nhan_vien
 from .kien_thuc import dung_he_thong
 from .messenger import Messenger
+from .nhom import doc_nhom
 from .server import LoiThaoTac, tao_ung_dung
 from .xu_ly import Bot
 
@@ -219,6 +220,12 @@ def _dung_bang_dieu_khien() -> str:
     except Exception as e:
         d["khach"] = None
         d["khach_loi"] = type(e).__name__
+    buoc("đọc danh sách nhóm")
+    try:
+        d["nhom"] = doc_nhom(sheets.spreadsheets(), CauHinh.bien("SHEET_DUYET_ID"))
+    except Exception as e:
+        d["nhom"] = None
+        d["nhom_loi"] = type(e).__name__
     buoc("đọc tin nhắn Messenger")
     luc_hoi, hoi, loi_hoi = _cache_cham["hoi_thoai"]
     if hoi is None or time.time() - luc_hoi > TUOI_HOI_THOAI:
@@ -437,6 +444,34 @@ def thao_tac(lenh: dict) -> dict:
             if not nd or len(nd) > 5000:
                 raise LoiThaoTac("Nội dung bài phải có chữ và không quá 5000 ký tự.")
             sheet.dat_noi_dung(bai.dong, nd)
+    elif hanh and hanh.startswith("nhom_"):
+        from datetime import datetime
+
+        from . import nhom as ng
+
+        so = ng.SoNhom(sheets, sheet_id)
+        try:
+            if hanh == "nhom_them":
+                so.them(lenh.get("ten"), lenh.get("link"), lenh.get("nganh"), lenh.get("luat"), int(lenh.get("cach", 7)))
+            elif hanh == "nhom_da_dang":
+                so.da_dang(int(lenh.get("dong")), datetime.now(cfg.mui_gio).date())
+            elif hanh == "nhom_trang_thai":
+                so.dat_trang_thai(int(lenh.get("dong")), lenh.get("trang_thai"))
+            elif hanh == "nhom_soan_bai":
+                n = so.lay(int(lenh.get("dong")))
+                bai = next((b for b in sheet.doc_tat_ca() if b.ma_bai == str(lenh.get("ma_bai", ""))), None)
+                if not bai or not bai.noi_dung.strip():
+                    raise LoiThaoTac("Không tìm thấy bài gốc này trong Sheet.")
+                try:
+                    noi_dung = _bot.ai.viet_cho_nhom(bai.noi_dung, n["ten"], n["nganh"], n["luat"])
+                except Exception:
+                    logging.getLogger("hoanbao_bot").exception("Lỗi soạn bài cho nhóm")
+                    raise LoiThaoTac("AI chưa soạn được bài, thử lại sau ít giây.")
+                return {"ok": True, "noi_dung": noi_dung}
+            else:
+                raise LoiThaoTac("Thao tác không hỗ trợ.")
+        except ValueError as e:  # gồm LoiNhom và LoiThaoTac
+            raise LoiThaoTac(str(e))
     elif hanh == "khach_trang_thai":
         try:
             dong = int(lenh.get("dong"))
