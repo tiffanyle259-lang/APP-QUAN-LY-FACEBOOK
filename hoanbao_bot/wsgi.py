@@ -261,7 +261,7 @@ def lam_moi_bang_dieu_khien() -> None:
     """Dựng lại và lưu bản mới. Chỉ một luồng làm cùng lúc (client Google dùng chung, tiết kiệm bộ nhớ)."""
     import time
 
-    with _khoa_dung:
+    with _khoa_dung:  # luồng cũ đã mất thì khóa này cũng đã được nhả (with luôn nhả)
         _bdk["dang_dung"] = True
         _bdk["bat_dau"] = time.time()
         try:
@@ -276,9 +276,15 @@ def lam_moi_bang_dieu_khien() -> None:
             _bdk["buoc"] = ""
 
 
+_luong_dung: list = []  # luồng đang dựng; nếu luồng đã mất (vd. máy chủ rẽ tiến trình) thì cờ "đang dựng" là cờ ma
+
+
 def _lam_moi_ngam() -> None:
-    if not _bdk["dang_dung"]:
-        threading.Thread(target=lam_moi_bang_dieu_khien, daemon=True, name="bdk-dung").start()
+    if _bdk["dang_dung"] and any(t.is_alive() for t in _luong_dung):
+        return
+    t = threading.Thread(target=lam_moi_bang_dieu_khien, daemon=True, name="bdk-dung")
+    _luong_dung[:] = [t]
+    t.start()
 
 
 def dung_bang_dieu_khien() -> str:
