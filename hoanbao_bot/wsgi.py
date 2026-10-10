@@ -274,6 +274,8 @@ def lam_moi_bang_dieu_khien() -> None:
         finally:
             _bdk["dang_dung"] = False
             _bdk["buoc"] = ""
+    if _bdk.pop("dung_lai", False):  # ngoài khóa, tránh tự chặn mình
+        lam_moi_bang_dieu_khien()
 
 
 _luong_dung: list = []  # luồng đang dựng; nếu luồng đã mất (vd. máy chủ rẽ tiến trình) thì cờ "đang dựng" là cờ ma
@@ -424,7 +426,12 @@ def thao_tac(lenh: dict) -> dict:
         raise LoiThaoTac("Thao tác không hỗ trợ.")
     if hanh == "khach_trang_thai":
         _cache_cham["hoi_thoai"] = (0.0, None, "")
-    lam_moi_bang_dieu_khien()  # dựng lại ngay để lần tải lại sau thao tác thấy đúng dữ liệu mới
+    if hanh == "bai_media":  # trình duyệt tự đổi khung ảnh ngay; bản lưu dựng lại ngầm cho lần mở sau
+        _bdk["luc"] = 0.0
+        _bdk["dung_lai"] = True  # nếu đang có bản dựng chạy dở (đọc Sheet trước khi ghi), dựng lại sau khi nó xong
+        _lam_moi_ngam()
+    else:
+        lam_moi_bang_dieu_khien()  # dựng lại ngay để lần tải lại sau thao tác thấy đúng dữ liệu mới
     return {"ok": True}
 
 

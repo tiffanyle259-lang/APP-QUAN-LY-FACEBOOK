@@ -174,13 +174,14 @@ JS = r"""
 (function(){
   var toast=document.getElementById('toast'),t0;
   function bao(m,loi){toast.textContent=m;toast.className=loi?'loi':'';toast.hidden=false;clearTimeout(t0);t0=setTimeout(function(){toast.hidden=true},3500)}
-  function gui(lenh,nut){
+  function gui(lenh,nut,sau){
     if(nut)nut.disabled=true;
     fetch('/api/thao-tac',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-GL':'1'},body:JSON.stringify(lenh)})
       .then(function(r){return r.json().then(function(j){return{ok:r.ok,j:j}})})
       .then(function(x){
         if(!x.ok){bao(x.j.loi||'Không lưu được',true);if(nut)nut.disabled=false;return}
         if(x.j.thong_bao){bao(x.j.thong_bao);if(nut)nut.disabled=false;return}
+        if(sau){bao('Đã đổi');sau();if(nut)nut.disabled=false;return}
         bao('Đã lưu');setTimeout(function(){location.reload()},700)})
       .catch(function(){bao('Mất kết nối, thử lại sau',true);if(nut)nut.disabled=false});
   }
@@ -229,8 +230,18 @@ JS = r"""
     });
     chon.addEventListener('change',taiThuMuc);
     document.getElementById('hop-dong').addEventListener('click',function(){hop.close()});
-    dung.addEventListener('click',function(){if(fileId)gui({hanh:'bai_media',ma_bai:maBai,file_id:fileId},dung)});
-    document.getElementById('hop-bo').addEventListener('click',function(){gui({hanh:'bai_media',ma_bai:maBai,file_id:''},this)});
+    function capNhatKhung(fid){
+      var nut=document.querySelector('.doi-anh[data-ma="'+maBai+'"]'),card=nut&&nut.closest('.post'),th=card&&card.querySelector('.thumb');
+      if(th){
+        th.textContent='';
+        if(fid){var im=document.createElement('img');im.alt='Ảnh sẽ đăng kèm bài';im.src='/api/anh/'+fid+'?s=400';th.appendChild(im);
+          th.dataset.fid=fid;th.dataset.video='0';th.classList.add('phong');th.setAttribute('role','button');th.tabIndex=0}
+        else{th.innerHTML='<span>Chưa có ảnh/video.<br>Đăng chỉ chữ.</span>';th.classList.remove('phong');delete th.dataset.fid}
+      }
+      hop.close();
+    }
+    dung.addEventListener('click',function(){if(fileId){var f=fileId;gui({hanh:'bai_media',ma_bai:maBai,file_id:f},dung,function(){capNhatKhung(f)})}});
+    document.getElementById('hop-bo').addEventListener('click',function(){gui({hanh:'bai_media',ma_bai:maBai,file_id:''},this,function(){capNhatKhung('')})});
   }
   document.addEventListener('click',function(e){
     var b=e.target.closest('button[data-hanh]');if(!b)return;
