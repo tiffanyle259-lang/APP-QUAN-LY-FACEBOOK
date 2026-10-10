@@ -511,7 +511,7 @@ def test_gui_email_chi_tiet_noi_ro_ly_do(monkeypatch):
     R.text = "<!DOCTYPE html><html>dang nhap</html>"
     assert "Bất kỳ ai" in k.gui_email_chi_tiet("x")[1]
     R.text = "loi"
-    assert "cấp quyền" in k.gui_email_chi_tiet("x")[1]
+    assert "Cập nhật mã mới" in k.gui_email_chi_tiet("x")[1]
 
 
 def test_gui_email_hien_chi_tiet_loi_tu_apps_script(monkeypatch):
