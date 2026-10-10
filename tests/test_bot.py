@@ -609,3 +609,18 @@ def test_bang_dieu_khien_co_tab_nhom():
     assert "id='p-nhom'" in h and "Nhóm &lt;sofa&gt;" in h and "hop-nhom" in h and "nhom_trang_thai" in h
     assert "id='p-nhom'" not in dung_html({**d, "nhom": None})
     assert "nhom_soan_bai" in JS_NHOM
+
+
+def test_nhap_nhom_tu_van_ban():
+    from hoanbao_bot.nhom import doc_van_ban
+
+    rows, bo = doc_van_ban(
+        "HỘI THỢ SOFA | https://www.facebook.com/groups/1 | Sofa, nệm, mút xốp, nội thất\n"
+        "Xưởng giày | https://www.facebook.com/groups/2 | Giày dép, xưởng giày | không dán link\n"
+        "Trùng | https://www.facebook.com/groups/1/ | Khác\n"
+        "Sai | https://example.com/x | Khác\n"
+        "Thiếu link\n\n"
+        "Gỗ | https://www.facebook.com/groups/3 | Gỗ, mộc, nội thất\n")
+    assert [r[2] for r in rows] == ["Sofa, nệm, nội thất", "Giày dép, túi da", "Đồ gỗ, tủ bếp"]
+    assert rows[1][3] == "không dán link" and rows[0][3].startswith("Chưa kiểm tra nội quy")
+    assert len(bo) == 3

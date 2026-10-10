@@ -69,6 +69,48 @@ def doc_nhom(svc, sheet_id: str) -> list[dict]:
     return [dong_thanh_nhom(i, r) for i, r in enumerate(dong, start=2) if r and str(r[0]).strip()]
 
 
+LUAT_CHUA_KIEM = "Chưa kiểm tra nội quy: xem mục Quy tắc của nhóm trước khi đăng."
+
+
+def doan_nganh(text: str) -> str:
+    t = (text or "").lower()
+    if any(k in t for k in ("sofa", "nệm", "mút")):
+        return "Sofa, nệm, nội thất"
+    if any(k in t for k in ("giày", "dép", "túi")):
+        return "Giày dép, túi da"
+    if any(k in t for k in ("gỗ", "mộc", "tủ bếp")):
+        return "Đồ gỗ, tủ bếp"
+    if "ô tô" in t or "xe" in t.split():
+        return "Nội thất ô tô"
+    return "Khác"
+
+
+def doc_van_ban(van_ban: str) -> tuple[list[list[str]], list[str]]:
+    """Mỗi dòng 'Tên | link | ngành (tùy chọn) | luật (tùy chọn)' thành dòng Sheet. Trả về (dòng hợp lệ, lý do dòng bị bỏ)."""
+    rows, bo, thay = [], [], set()
+    for i, dong in enumerate(van_ban.splitlines(), start=1):
+        if not dong.strip():
+            continue
+        cot = [c.strip() for c in dong.split("|")]
+        if len(cot) < 2 or not cot[0]:
+            bo.append(f"Dòng {i}: thiếu tên hoặc link")
+            continue
+        try:
+            link = chuan_link(cot[1])
+        except LoiNhom:
+            bo.append(f"Dòng {i} ({cot[0][:30]}): link không đúng dạng")
+            continue
+        khoa = link.rstrip("/").lower()
+        if khoa in thay:
+            bo.append(f"Dòng {i} ({cot[0][:30]}): trùng link trong danh sách")
+            continue
+        thay.add(khoa)
+        nganh = cot[2] if len(cot) > 2 and cot[2] in NGANH else doan_nganh((cot[2] if len(cot) > 2 else "") or cot[0])
+        luat = (cot[3] if len(cot) > 3 and cot[3] else LUAT_CHUA_KIEM)[:500]
+        rows.append([cot[0][:120], link, nganh, luat, str(CACH_MAC_DINH), "", "0", DANG_DUNG])
+    return rows, bo
+
+
 class SoNhom:
     def __init__(self, sheets_service, sheet_id: str):
         self.svc = sheets_service.spreadsheets()
@@ -105,6 +147,17 @@ class SoNhom:
         self.svc.values().append(
             spreadsheetId=self.id, range=f"'{TAB}'!A1", valueInputOption="RAW", insertDataOption="INSERT_ROWS",
             body={"values": [[ten, link, nganh, (luat or "").strip()[:500], str(cach), "", "0", DANG_DUNG]]}).execute()
+
+    def them_nhieu(self, rows: list[list[str]]) -> tuple[int, int]:
+        """Thêm nhiều nhóm một lần, bỏ nhóm đã có (theo link). Trả về (số thêm, số đã có)."""
+        self._dam_bao()
+        da_co = {n["link"].rstrip("/").lower() for n in self.doc()}
+        moi = [r for r in rows if r[1].rstrip("/").lower() not in da_co]
+        for i in range(0, len(moi), 100):
+            self.svc.values().append(
+                spreadsheetId=self.id, range=f"'{TAB}'!A1", valueInputOption="RAW", insertDataOption="INSERT_ROWS",
+                body={"values": moi[i:i + 100]}).execute()
+        return len(moi), len(rows) - len(moi)
 
     def da_dang(self, dong: int, hom_nay: date) -> None:
         n = self._nhom(dong)

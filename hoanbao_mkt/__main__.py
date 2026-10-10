@@ -18,6 +18,7 @@ import os
 import re
 import sys
 import tempfile
+from pathlib import Path
 from datetime import date, datetime, timedelta
 
 import anthropic
@@ -235,6 +236,18 @@ def len_lich(cfg: CauHinh, args, drive=None, sheets=None) -> None:
                 os.unlink(duong_dan)
 
 
+def nhap_nhom(cfg: CauHinh, args) -> None:
+    """Nhập danh sách nhóm Facebook từ file văn bản (mỗi dòng: Tên | link | ngành | luật) vào tab 'Nhóm'."""
+    from hoanbao_bot.nhom import SoNhom, doc_van_ban
+
+    rows, bo = doc_van_ban(Path(args.file).read_text(encoding="utf-8"))
+    _, sheets = _google(cfg)
+    them, da_co = SoNhom(sheets, CauHinh.bien("SHEET_DUYET_ID")).them_nhieu(rows)
+    print(f"Đã thêm {them} nhóm, {da_co} nhóm đã có từ trước, {len(bo)} dòng bị bỏ.")
+    for b in bo:
+        print("  -", b)
+
+
 def tao_thu_muc(cfg: CauHinh, args) -> None:
     """Tạo sẵn các thư mục con trong Kho-Marketing (chạy lại an toàn, không tạo trùng)."""
     from .kho_anh import KhoDrive
@@ -363,6 +376,8 @@ def main(argv=None) -> None:
     t.add_argument("--tuan")
     sub.add_parser("len-lich")
     sub.add_parser("tao-thu-muc")
+    nn = sub.add_parser("nhap-nhom")
+    nn.add_argument("--file", required=True)
     sub.add_parser("phan-loai")
     sub.add_parser("gan-anh")
     cd = sub.add_parser("chan-doan")
@@ -376,7 +391,8 @@ def main(argv=None) -> None:
 
     cfg = CauHinh.doc()
     lenh = {"xem-ke-hoach": xem_ke_hoach, "tao-tuan": tao_tuan, "len-lich": len_lich,
-            "tao-thu-muc": tao_thu_muc, "chan-doan": chan_doan_bot, "dang-ky-webhook": dang_ky_webhook, "bang-dieu-khien": bang_dieu_khien, "phan-loai": phan_loai_kho, "gan-anh": gan_anh, "kiem-tra": kiem_tra}
+            "tao-thu-muc": tao_thu_muc, "chan-doan": chan_doan_bot, "dang-ky-webhook": dang_ky_webhook, "bang-dieu-khien": bang_dieu_khien, "phan-loai": phan_loai_kho, "gan-anh": gan_anh, "kiem-tra": kiem_tra,
+            "nhap-nhom": nhap_nhom}
     try:
         lenh[args.lenh](cfg, args)
     except ThieuCauHinh as e:
