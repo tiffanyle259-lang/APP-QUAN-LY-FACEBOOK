@@ -22,6 +22,9 @@ class NgoaiKho(ValueError):
     """File không nằm trong Kho-Marketing."""
 
 
+_MOT_ANH_GOC = threading.Lock()
+
+
 class KhoXem:
     def __init__(self, drive, kho_id: str, lay_token=None, http=None):
         self.drive, self.kho_id = drive, kho_id
@@ -70,7 +73,7 @@ class KhoXem:
             return self._nho[khoa]
         noi_dung = self._lay_anh_nho(file_id, canh)
         self._nho[khoa] = noi_dung
-        while len(self._nho) > 40:
+        while len(self._nho) > 24 or sum(len(v) for v in self._nho.values()) > 12_000_000:  # giới hạn bộ nhớ
             self._nho.popitem(last=False)
         return noi_dung
 
@@ -89,13 +92,16 @@ class KhoXem:
                 raise NgoaiKho("Ảnh quá lớn để xem trước.")
             from PIL import Image
 
-            with self._khoa:
-                goc = self.drive.files().get_media(fileId=file_id, **_CHUNG).execute()
-            img = Image.open(io.BytesIO(goc))
-            img.thumbnail((canh, canh))
-            buf = io.BytesIO()
-            img.convert("RGB").save(buf, "JPEG", quality=82)
-            return buf.getvalue()
+            with _MOT_ANH_GOC:  # giải mã ảnh lớn rất tốn RAM: mỗi lần chỉ một ảnh
+                with self._khoa:
+                    goc = self.drive.files().get_media(fileId=file_id, **_CHUNG).execute()
+                img = Image.open(io.BytesIO(goc))
+                img.draft("RGB", (canh, canh))  # JPEG: giải mã thẳng ở kích thước nhỏ, tiết kiệm RAM
+                img.thumbnail((canh, canh))
+                buf = io.BytesIO()
+                img.convert("RGB").save(buf, "JPEG", quality=82)
+                del goc, img
+                return buf.getvalue()
         raise NgoaiKho("Không có ảnh xem trước cho file này.")
 
     def danh_sach(self, ten_thu_muc: str, toi_da: int = 60) -> list[dict]:

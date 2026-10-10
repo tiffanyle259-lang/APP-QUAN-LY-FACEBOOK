@@ -374,9 +374,11 @@ def thao_tac(lenh: dict) -> dict:
         return {"ok": True, "thong_bao": "Đã gửi thư thử, chị/anh kiểm tra hộp thư (cả mục Thư rác)."}
 
     cfg = CauHinh.doc()
-    creds = Credentials.from_service_account_info(
-        cfg.google_service_account(), scopes=["https://www.googleapis.com/auth/spreadsheets"])
-    sheets = build("sheets", "v4", credentials=creds, cache_discovery=False)
+    if "ghi" not in _google_doc:  # tạo client ghi một lần, dựng mới mỗi thao tác tốn RAM
+        creds = Credentials.from_service_account_info(
+            cfg.google_service_account(), scopes=["https://www.googleapis.com/auth/spreadsheets"])
+        _google_doc["ghi"] = (None, build("sheets", "v4", http=http_co_timeout(creds, 60), cache_discovery=False))
+    sheets = _google_doc["ghi"][1]
     sheet_id = CauHinh.bien("SHEET_DUYET_ID")
     sheet = SheetDuyet(sheets, sheet_id)
     hanh = lenh.get("hanh")
