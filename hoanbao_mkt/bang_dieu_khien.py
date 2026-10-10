@@ -142,9 +142,9 @@ dialog#hop-anh::backdrop{background:rgba(10,14,20,.55)}
 .hop{display:flex;flex-direction:column;max-height:calc(100vh - 32px)}.hop header{padding:14px 18px;border-bottom:1px solid var(--line);
 display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;justify-content:space-between}
 .hop h3{margin:0;font-size:16px}.hop .luoi{padding:14px 18px;overflow-y:auto;display:grid;gap:10px;
-grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}
+grid-template-columns:repeat(auto-fill,minmax(130px,1fr));grid-auto-rows:130px;align-content:start}
 .hop footer{padding:12px 18px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center}
-.o{position:relative;border:2px solid transparent;border-radius:12px;overflow:hidden;cursor:pointer;aspect-ratio:1;background:var(--bar-bg);
+.o{position:relative;border:2px solid transparent;border-radius:12px;overflow:hidden;cursor:pointer;height:130px;background:var(--bar-bg);
 padding:0;display:block;width:100%}.o img{width:100%;height:100%;object-fit:cover;display:block}.o.on{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold)}
 .o .tn{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);color:#fff;font-size:11px;padding:2px 6px;overflow:hidden;
 text-overflow:ellipsis;white-space:nowrap;text-align:left}.hop select{font:inherit;font-size:14px;border:1px solid var(--line);border-radius:8px;
