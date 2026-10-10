@@ -80,6 +80,8 @@ def doan_nganh(text: str) -> str:
         return "Giày dép, túi da"
     if any(k in t for k in ("gỗ", "mộc", "tủ bếp")):
         return "Đồ gỗ, tủ bếp"
+    if "nội thất" in t:
+        return "Sofa, nệm, nội thất"
     if "ô tô" in t or "xe" in t.split():
         return "Nội thất ô tô"
     return "Khác"
@@ -107,7 +109,8 @@ def doc_van_ban(van_ban: str) -> tuple[list[list[str]], list[str]]:
         thay.add(khoa)
         nganh = cot[2] if len(cot) > 2 and cot[2] in NGANH else doan_nganh((cot[2] if len(cot) > 2 else "") or cot[0])
         luat = (cot[3] if len(cot) > 3 and cot[3] else LUAT_CHUA_KIEM)[:500]
-        rows.append([cot[0][:120], link, nganh, luat, str(CACH_MAC_DINH), "", "0", DANG_DUNG])
+        tt = cot[4] if len(cot) > 4 and cot[4] in (DANG_DUNG, TAM_DUNG) else DANG_DUNG
+        rows.append([cot[0][:120], link, nganh, luat, str(CACH_MAC_DINH), "", "0", tt])
     return rows, bo
 
 
@@ -148,16 +151,25 @@ class SoNhom:
             spreadsheetId=self.id, range=f"'{TAB}'!A1", valueInputOption="RAW", insertDataOption="INSERT_ROWS",
             body={"values": [[ten, link, nganh, (luat or "").strip()[:500], str(cach), "", "0", DANG_DUNG]]}).execute()
 
-    def them_nhieu(self, rows: list[list[str]]) -> tuple[int, int]:
-        """Thêm nhiều nhóm một lần, bỏ nhóm đã có (theo link). Trả về (số thêm, số đã có)."""
+    def nhap(self, rows: list[list[str]]) -> tuple[int, int]:
+        """Nhập nhiều nhóm một lần. Nhóm mới thì thêm; nhóm đã có (cùng link) thì cập nhật ngành, luật, trạng thái
+        (giữ nguyên ngày đăng và số lần đăng). Trả về (số thêm, số cập nhật)."""
         self._dam_bao()
-        da_co = {n["link"].rstrip("/").lower() for n in self.doc()}
-        moi = [r for r in rows if r[1].rstrip("/").lower() not in da_co]
+        co = {n["link"].rstrip("/").lower(): n["dong"] for n in self.doc()}
+        moi = [r for r in rows if r[1].rstrip("/").lower() not in co]
+        cu = [(co[r[1].rstrip("/").lower()], r) for r in rows if r[1].rstrip("/").lower() in co]
         for i in range(0, len(moi), 100):
             self.svc.values().append(
                 spreadsheetId=self.id, range=f"'{TAB}'!A1", valueInputOption="RAW", insertDataOption="INSERT_ROWS",
                 body={"values": moi[i:i + 100]}).execute()
-        return len(moi), len(rows) - len(moi)
+        if cu:
+            data = []
+            for dong, r in cu:
+                data.append({"range": f"'{TAB}'!C{dong}:D{dong}", "values": [[r[2], r[3]]]})
+                data.append({"range": f"'{TAB}'!H{dong}", "values": [[r[7]]]})
+            self.svc.values().batchUpdate(spreadsheetId=self.id,
+                                          body={"valueInputOption": "RAW", "data": data}).execute()
+        return len(moi), len(cu)
 
     def da_dang(self, dong: int, hom_nay: date) -> None:
         n = self._nhom(dong)

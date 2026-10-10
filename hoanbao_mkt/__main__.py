@@ -237,13 +237,14 @@ def len_lich(cfg: CauHinh, args, drive=None, sheets=None) -> None:
 
 
 def nhap_nhom(cfg: CauHinh, args) -> None:
-    """Nhập danh sách nhóm Facebook từ file văn bản (mỗi dòng: Tên | link | ngành | luật) vào tab 'Nhóm'."""
+    """Nhập danh sách nhóm Facebook từ file văn bản (mỗi dòng: Tên | link | ngành | luật | trạng thái) vào tab 'Nhóm'."""
     from hoanbao_bot.nhom import SoNhom, doc_van_ban
 
     rows, bo = doc_van_ban(Path(args.file).read_text(encoding="utf-8"))
     _, sheets = _google(cfg)
-    them, da_co = SoNhom(sheets, CauHinh.bien("SHEET_DUYET_ID")).them_nhieu(rows)
-    print(f"Đã thêm {them} nhóm, {da_co} nhóm đã có từ trước, {len(bo)} dòng bị bỏ.")
+    them, cap_nhat = SoNhom(sheets, CauHinh.bien("SHEET_DUYET_ID")).nhap(rows)
+    tam_dung = sum(1 for r in rows if r[7] == "Tạm dừng")
+    print(f"Đã thêm {them} nhóm mới, cập nhật {cap_nhat} nhóm đã có, {tam_dung} nhóm để Tạm dừng, {len(bo)} dòng bị bỏ.")
     for b in bo:
         print("  -", b)
 
