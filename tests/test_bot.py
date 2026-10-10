@@ -403,7 +403,7 @@ def test_api_anh_can_dang_nhap_va_chan_file_ngoai_kho():
     from hoanbao_bot.kho_xem import NgoaiKho
 
     class Kho:
-        def anh_nho(self, fid):
+        def anh_nho(self, fid, canh=640):
             if fid == "ngoai":
                 raise NgoaiKho("File không nằm trong Kho-Marketing.")
             return b"\xff\xd8\xff" + b"jpg"
@@ -431,3 +431,37 @@ def test_bang_dieu_khien_tab_he_thong():
     assert "data-tab='he-thong'" in html and "1 bộ phận cần chú ý" in html and "Thêm biến" in html
     d["he_thong"] = []
     assert "data-tab='he-thong'" not in dung_html(d)
+
+
+def test_gui_email_bao_khach_moi(monkeypatch):
+    import hoanbao_bot.khach as k
+
+    daGui = []
+
+    class FakeSMTP:
+        def __init__(self, host, port, timeout=0):
+            daGui.append(("ket_noi", host, port))
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def login(self, u, p):
+            daGui.append(("dang_nhap", u, p))
+
+        def send_message(self, msg):
+            daGui.append(("gui", msg["To"], msg["Subject"], msg.get_content()))
+
+    monkeypatch.setattr(k.smtplib, "SMTP_SSL", FakeSMTP)
+    for ten in ("SMTP_USER", "SMTP_PASSWORD", "NOTIFY_EMAIL"):
+        monkeypatch.delenv(ten, raising=False)
+    assert k.gui_email("Khách mới\nSĐT: 0912") is False and daGui == []  # chưa cấu hình thì không gửi
+    monkeypatch.setenv("SMTP_USER", "a@gmail.com")
+    monkeypatch.setenv("SMTP_PASSWORD", "abcd efgh ijkl mnop")  # mật khẩu ứng dụng Gmail thường có dấu cách
+    monkeypatch.setenv("NOTIFY_EMAIL", "x@y.vn, z@y.vn")
+    assert k.gui_email("Khách mới cần xử lý qua Messenger\nSĐT: 0912") is True
+    gui = next(x for x in daGui if x[0] == "gui")
+    assert gui[1] == "x@y.vn, z@y.vn" and "0912" in gui[3]
+    assert ("dang_nhap", "a@gmail.com", "abcdefghijklmnop") in daGui

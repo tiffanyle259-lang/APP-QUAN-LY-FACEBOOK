@@ -30,7 +30,7 @@ class KhoXem:
         self._trong_kho: dict[str, bool] = {}
         # Client Google (httplib2) không an toàn khi nhiều luồng dùng chung, nên các lệnh gọi Drive đi lần lượt.
         self._khoa = threading.Lock()
-        self._nho: OrderedDict[str, bytes] = OrderedDict()  # ảnh xem trước vừa lấy, tối đa 40 ảnh
+        self._nho: OrderedDict[tuple, bytes] = OrderedDict()  # ảnh xem trước vừa lấy, tối đa 40 ảnh
 
     def hop_le(self, file_id: str) -> bool:
         """True nếu file nằm (ở bất kỳ cấp nào) trong Kho-Marketing."""
@@ -60,11 +60,12 @@ class KhoXem:
 
     def anh_nho(self, file_id: str, canh: int = 640) -> bytes:
         """Ảnh xem trước (JPEG/PNG) của ảnh hoặc video."""
-        if file_id in self._nho:
-            self._nho.move_to_end(file_id)
-            return self._nho[file_id]
+        khoa = (file_id, canh)
+        if khoa in self._nho:
+            self._nho.move_to_end(khoa)
+            return self._nho[khoa]
         noi_dung = self._lay_anh_nho(file_id, canh)
-        self._nho[file_id] = noi_dung
+        self._nho[khoa] = noi_dung
         while len(self._nho) > 40:
             self._nho.popitem(last=False)
         return noi_dung

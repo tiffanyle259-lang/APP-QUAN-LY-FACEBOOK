@@ -130,6 +130,13 @@ def kiem_he_thong(cfg, drive, sheets, ten_page: str) -> list[dict]:
     ok_claude, chi_tiet_claude = kiem_claude(cfg)
     them("Claude (AI)", ok_claude, chi_tiet_claude, "" if ok_claude else
          "Kiểm tra số dư và khóa tại console.anthropic.com, rồi cập nhật ANTHROPIC_API_KEY.")
+    from .khach import email_da_cau_hinh
+
+    if email_da_cau_hinh():
+        them("Báo khách mới qua email", True, "Đã cấu hình, có khách để lại số điện thoại thì gửi email ngay")
+    else:
+        them("Báo khách mới qua email", False, "Chưa cấu hình, nhân viên chưa được báo khi có khách mới",
+             "Render > Environment > thêm SMTP_USER, SMTP_PASSWORD (mật khẩu ứng dụng Gmail), NOTIFY_EMAIL.")
     if _bot.thong_ke.get("loi"):
         them("Lỗi gần đây của bot", False, f"{_bot.thong_ke['loi']} lỗi: {_bot.thong_ke.get('loi_cuoi', '')[:160]}")
     return kq
@@ -215,11 +222,11 @@ def lay_kho_xem():
 class _KhoXemLazy:
     """Tạo bộ xem kho khi cần, để máy chủ vẫn chạy nếu chưa có DRIVE_KHO_ID."""
 
-    def anh_nho(self, file_id):
+    def anh_nho(self, file_id, canh=640):
         k = lay_kho_xem()
         if not k:
             raise ValueError("Chưa cấu hình DRIVE_KHO_ID trên máy chủ.")
-        return k.anh_nho(file_id)
+        return k.anh_nho(file_id, canh)
 
     def danh_sach(self, ten):
         k = lay_kho_xem()

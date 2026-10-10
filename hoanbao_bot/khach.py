@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import os
+import smtplib
 from datetime import datetime
+from email.message import EmailMessage
 
 import requests
 
@@ -47,8 +49,32 @@ class SoKhach:
         ).execute()
 
 
+def gui_email(noi_dung: str) -> bool:
+    """Gửi email báo nhân viên nếu có SMTP_USER, SMTP_PASSWORD (mật khẩu ứng dụng Gmail) và NOTIFY_EMAIL (hoặc dùng SMTP_USER)."""
+    user, mat_khau = os.environ.get("SMTP_USER", "").strip(), os.environ.get("SMTP_PASSWORD", "").replace(" ", "")
+    nguoi_nhan = [e.strip() for e in (os.environ.get("NOTIFY_EMAIL", "") or user).split(",") if e.strip()]
+    if not (user and mat_khau and nguoi_nhan):
+        return False
+    msg = EmailMessage()
+    msg["Subject"] = "Khách mới cần xử lý: " + (noi_dung.splitlines()[0] if noi_dung else "")[:80]
+    msg["From"], msg["To"] = user, ", ".join(nguoi_nhan)
+    msg.set_content(noi_dung[:5000])
+    try:
+        with smtplib.SMTP_SSL(os.environ.get("SMTP_HOST", "smtp.gmail.com"), 465, timeout=20) as smtp:
+            smtp.login(user, mat_khau)
+            smtp.send_message(msg)
+        return True
+    except (smtplib.SMTPException, OSError):
+        return False
+
+
+def email_da_cau_hinh() -> bool:
+    return bool(os.environ.get("SMTP_USER", "").strip() and os.environ.get("SMTP_PASSWORD", "").strip())
+
+
 def bao_nhan_vien(noi_dung: str) -> None:
-    """Gửi tin Telegram nếu có TELEGRAM_BOT_TOKEN và TELEGRAM_CHAT_ID; không có thì bỏ qua."""
+    """Báo nhân viên qua email và/hoặc Telegram, tùy cái nào đã cấu hình. Không cấu hình gì thì bỏ qua."""
+    gui_email(noi_dung)
     token, chat = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip(), os.environ.get("TELEGRAM_CHAT_ID", "").strip()
     if not (token and chat):
         return

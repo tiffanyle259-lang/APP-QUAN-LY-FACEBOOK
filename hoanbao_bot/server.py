@@ -100,7 +100,11 @@ def tao_ung_dung(bot, app_secret: str, verify_token: str, chay=None, moi_truong=
         if not da_dang_nhap() or not kho_xem:
             return "forbidden", 403
         try:
-            noi_dung = kho_xem.anh_nho(file_id)
+            canh = max(200, min(int(request.args.get("s", 640)), 1600))
+        except ValueError:
+            canh = 640
+        try:
+            noi_dung = kho_xem.anh_nho(file_id, canh)
         except ValueError as e:
             return str(e), 404
         except Exception:

@@ -124,6 +124,17 @@ padding:10px 14px;cursor:pointer;color:var(--ink)}.cl:last-child{border-bottom:0
 .tcol{display:flex;flex-direction:column;gap:8px;padding:8px;background:var(--bar-bg);min-width:0}
 .thumb{border-radius:10px;overflow:hidden;aspect-ratio:4/3;min-height:0}.vd{position:absolute;right:6px;bottom:6px;background:rgba(0,0,0,.72);
 color:#fff;font-size:11px;font-weight:700;border-radius:6px;padding:1px 7px;letter-spacing:.04em}
+.thumb.phong{cursor:zoom-in}.thumb.phong:hover{filter:brightness(1.05)}.thumb.phong:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+dialog#xem-anh{border:1px solid var(--line);border-radius:16px;padding:0;width:min(1100px,calc(100vw - 24px));max-height:calc(100vh - 24px);
+background:var(--card);color:var(--ink);box-shadow:0 20px 60px rgba(0,0,0,.35)}dialog#xem-anh::backdrop{background:rgba(10,14,20,.6)}
+.xa{display:flex;flex-direction:column;max-height:calc(100vh - 24px)}.xa header{padding:12px 18px;border-bottom:1px solid var(--line);
+display:flex;justify-content:space-between;align-items:center;gap:10px}.xa h3{margin:0;font-size:16px}
+.xa-than{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:0;overflow:hidden;min-height:0}
+.xa-anh{background:var(--bar-bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:14px;min-height:260px}
+.xa-anh img{max-width:100%;max-height:calc(100vh - 170px);object-fit:contain;border-radius:10px}
+.xa-ct{font-size:13px;color:var(--muted);text-align:center}.xa-chu{padding:16px 20px;overflow-y:auto;max-height:calc(100vh - 100px)}
+.xa-van{white-space:pre-wrap;overflow-wrap:anywhere;font-size:15px;line-height:1.6;margin-top:6px}.xa .ghi{color:var(--muted);font-size:13px;font-weight:600}
+@media (max-width:760px){.xa-than{grid-template-columns:1fr;overflow-y:auto}.xa-chu{max-height:none}.xa-anh img{max-height:50vh}}
 .ghi-nho{font-size:12px;color:var(--muted);line-height:1.35;padding:0 2px}.tcol .bt{width:100%;padding:5px 6px;font-size:12.5px}
 dialog#hop-anh{border:1px solid var(--line);border-radius:16px;padding:0;width:min(920px,calc(100vw - 24px));max-height:calc(100vh - 32px);
 background:var(--card);color:var(--ink);box-shadow:0 20px 60px rgba(0,0,0,.35)}
@@ -173,6 +184,24 @@ JS = r"""
       .catch(function(){bao('Mất kết nối, thử lại sau',true);if(nut)nut.disabled=false});
   }
 
+
+  var xa=document.getElementById('xem-anh');
+  if(xa){
+    var xi=document.getElementById('xa-img'),xct=document.getElementById('xa-ct'),xc=document.getElementById('xa-chu');
+    function moXem(t){
+      var card=t.closest('.post'),f=t.dataset.fid,vd=t.dataset.video==='1';
+      xi.src='/api/anh/'+f+'?s=1400';xi.hidden=false;xi.onerror=function(){xi.hidden=true;xct.textContent='Chưa xem trước được ảnh này.'};
+      xct.innerHTML='';
+      var a=document.createElement('a');a.href='https://drive.google.com/file/d/'+f+'/view';a.target='_blank';a.rel='noopener';
+      a.textContent=vd?'Mở video trên Google Drive để xem đầy đủ':'Mở ảnh gốc trên Google Drive';xct.appendChild(a);
+      var tx=card?card.querySelector('.pv-full'):null;xc.textContent=tx?tx.textContent:'';
+      xa.showModal();
+    }
+    document.addEventListener('click',function(e){var t=e.target.closest('.thumb.phong');if(t)moXem(t)});
+    document.addEventListener('keydown',function(e){if((e.key==='Enter'||e.key===' ')&&e.target.matches&&e.target.matches('.thumb.phong')){e.preventDefault();moXem(e.target)}});
+    document.getElementById('xa-dong').addEventListener('click',function(){xa.close()});
+    xa.addEventListener('click',function(e){if(e.target===xa)xa.close()});
+  }
   var hop=document.getElementById('hop-anh');
   if(hop){
     var luoi=document.getElementById('hop-luoi'),chon=document.getElementById('hop-thu-muc'),ghi=document.getElementById('hop-ghi'),
@@ -366,6 +395,13 @@ def dung_html(d: dict) -> str:
                 f"<div class='acts'><button type='button' class='bt' data-hanh='bai_noi_dung' data-ma='{_e(b['ma_bai'])}'>"
                 "Lưu nội dung</button></div>")
 
+    def phong_attr(b):
+        m = _DRIVE_ID.search(b.get("media") or "")
+        if not (sua and m):
+            return ""
+        return (f"data-fid='{m.group(1)}' data-video='{1 if _DUOI_VIDEO.search(b.get('ghi_chu') or '') else 0}' "
+                "role='button' tabindex='0' title='Bấm để xem ảnh to cạnh nội dung bài'")
+
     def la_video(b):
         return "<span class='vd'>VIDEO</span>" if _DUOI_VIDEO.search(b.get("ghi_chu") or "") else ""
 
@@ -383,12 +419,13 @@ def dung_html(d: dict) -> str:
         lop = _LOP.get(b["trang_thai"], "s-moi")
         xem_anh = f"<a href='{_e(b['media'])}' target='_blank' rel='noopener'>Mở ảnh/video</a>" if b.get("media") else ""
         the.append(
-            f"<article class='post' data-tt='{_e(b['trang_thai'] or 'Chưa có')}'><div class='tcol'><div class='thumb'>{_anh_nho(b.get('media'), sua)}{la_video(b)}</div>{nut_doi_anh(b)}</div>"
+            f"<article class='post' data-tt='{_e(b['trang_thai'] or 'Chưa có')}'><div class='tcol'><div class='thumb{' phong' if sua and _DRIVE_ID.search(b.get('media') or '') else ''}' "
+            f"{phong_attr(b)}>{_anh_nho(b.get('media'), sua)}{la_video(b)}</div>{nut_doi_anh(b)}</div>"
             f"<div class='pb'>"
             f"<div class='row'><span class='when'>{_e(_ngay(b['ngay']))} · {_e(b['gio'])}</span>"
             f"<span class='badge {lop}'>{_e(b['trang_thai'] or 'Chưa có')}</span></div>"
             f"<div class='loai'>{_e(b['loai'])}</div>"
-            f"<div class='dich'>Đăng lên Fanpage <b>{ten_page}</b>{link_fb(b)}</div><div class='pv'>{_e(b['noi_dung'])}</div>{ghi_chu}{hanh_dong_bai(b)}"
+            f"<div class='dich'>Đăng lên Fanpage <b>{ten_page}</b>{link_fb(b)}</div><div class='pv'>{_e(b['noi_dung'])}</div><div class='pv-full' hidden>{_e(b['noi_dung'])}</div>{ghi_chu}{hanh_dong_bai(b)}"
             f"<details><summary>{'Xem và sửa bài' if sua_noi_dung(b) else 'Xem cả bài'}</summary>"
             f"{sua_noi_dung(b) or ('<div class=body>' + _e(b['noi_dung']) + '</div>')}"
             f"<div style='margin-top:6px;font-size:13px'>{xem_anh}</div></details></div></article>")
@@ -483,6 +520,12 @@ def dung_html(d: dict) -> str:
                "<span class='acts'><button type='button' class='bt' id='hop-bo'>Bỏ ảnh (chỉ đăng chữ)</button>"
                "<button type='button' class='bt' id='hop-dong'>Đóng</button>"
                "<button type='button' class='bt chinh' id='hop-dung' disabled>Dùng ảnh/video này</button></span></footer></div></dialog>")
+    xem_to = ""
+    if sua:
+        xem_to = ("<dialog id='xem-anh' aria-labelledby='xa-tieu-de'><div class='xa'><header><h3 id='xa-tieu-de'>Ảnh/video và nội dung bài</h3>"
+                  "<button type='button' class='bt' id='xa-dong'>Đóng</button></header><div class='xa-than'>"
+                  "<div class='xa-anh'><img id='xa-img' alt='Ảnh hoặc video sẽ đăng kèm bài'><div class='xa-ct' id='xa-ct'></div></div>"
+                  "<div class='xa-chu'><div class='ghi'>Nội dung bài sẽ đăng</div><div id='xa-chu' class='xa-van'></div></div></div></div></dialog>")
     he_thong = d.get("he_thong") or []
     ht_hong = sum(1 for x in he_thong if not x["ok"])
     ht_html = ""
@@ -531,7 +574,7 @@ def dung_html(d: dict) -> str:
 <div class="live"><span><i class="dot"></i>Đang chạy</span><span class="pill">Cập nhật {_e(d['cap_nhat'])}</span>
 {f'<span class="pill">{che_do}</span>' if che_do else ''}</div></div>
 <nav class="tabs" role="tablist" aria-label="Các mục">{thanh_tab}</nav></div>
-<div class="wrap">{panels}<p class="foot">{chu_cuoi}</p></div>{hop}{js}</body></html>"""
+<div class="wrap">{panels}<p class="foot">{chu_cuoi}</p></div>{hop}{xem_to}{js}</body></html>"""
 
 
 def thu_thap(cfg, drive, sheets, sheet_id: str, kho_id: str, ten_page: str = "") -> dict:
