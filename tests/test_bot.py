@@ -494,3 +494,21 @@ def test_gui_email_qua_apps_script(monkeypatch):
     assert goi[0][1]["secret"] == "bi-mat" and "0912" in goi[0][1]["body"]
     R.text = "forbidden"  # sai mật khẩu bên Apps Script thì báo thất bại
     assert k.gui_email("x") is False
+
+
+def test_gui_email_chi_tiet_noi_ro_ly_do(monkeypatch):
+    import hoanbao_bot.khach as k
+
+    class R:
+        status_code = 200
+        text = "forbidden"
+
+    monkeypatch.setattr(k.requests, "post", lambda *a, **kw: R())
+    monkeypatch.setenv("EMAIL_WEBHOOK_URL", "https://script.google.com/macros/s/x/exec")
+    monkeypatch.setenv("EMAIL_WEBHOOK_SECRET", "s")
+    ok, ly_do = k.gui_email_chi_tiet("x")
+    assert not ok and "chuỗi bí mật" in ly_do
+    R.text = "<!DOCTYPE html><html>dang nhap</html>"
+    assert "Bất kỳ ai" in k.gui_email_chi_tiet("x")[1]
+    R.text = "loi"
+    assert "cấp quyền" in k.gui_email_chi_tiet("x")[1]

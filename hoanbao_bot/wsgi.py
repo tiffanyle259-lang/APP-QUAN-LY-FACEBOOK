@@ -244,12 +244,13 @@ def thao_tac(lenh: dict) -> dict:
     from .khach import TAB, TRANG_THAI_KHACH
 
     if lenh.get("hanh") == "email_thu":
-        from .khach import email_da_cau_hinh, gui_email
+        from .khach import email_da_cau_hinh, gui_email_chi_tiet
 
         if not email_da_cau_hinh():
-            raise LoiThaoTac("Chưa cấu hình email trên Render (SMTP_USER, SMTP_PASSWORD).")
-        if not gui_email("Thư thử từ bảng điều khiển Golden Lion\nNếu chị/anh đọc được thư này, báo khách mới qua email đã hoạt động."):
-            raise LoiThaoTac("Gửi thư không được. Kiểm tra EMAIL_WEBHOOK_URL, EMAIL_WEBHOOK_SECRET trên Render (Render miễn phí chặn SMTP nên cần dùng Google Apps Script).")
+            raise LoiThaoTac("Chưa cấu hình email trên Render (EMAIL_WEBHOOK_URL, EMAIL_WEBHOOK_SECRET).")
+        ok, ly_do = gui_email_chi_tiet("Thư thử từ bảng điều khiển Golden Lion\nNếu chị/anh đọc được thư này, báo khách mới qua email đã hoạt động.")
+        if not ok:
+            raise LoiThaoTac(ly_do)
         return {"ok": True, "thong_bao": "Đã gửi thư thử, chị/anh kiểm tra hộp thư (cả mục Thư rác)."}
 
     cfg = CauHinh.doc()

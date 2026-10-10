@@ -50,7 +50,11 @@ class SoKhach:
 
 
 def gui_email(noi_dung: str) -> bool:
-    """Gửi email báo nhân viên.
+    return gui_email_chi_tiet(noi_dung)[0]
+
+
+def gui_email_chi_tiet(noi_dung: str) -> tuple[bool, str]:
+    """Gửi email báo nhân viên. Trả về (thành công, lý do nếu lỗi).
 
     Ưu tiên Google Apps Script (EMAIL_WEBHOOK_URL + EMAIL_WEBHOOK_SECRET): đi qua HTTPS nên chạy được trên Render miễn phí,
     vì gói miễn phí của Render chặn cổng SMTP. Nếu không có thì thử SMTP (SMTP_USER, SMTP_PASSWORD, NOTIFY_EMAIL).
@@ -60,13 +64,23 @@ def gui_email(noi_dung: str) -> bool:
     if url and bi_mat:
         try:
             r = requests.post(url, json={"secret": bi_mat, "subject": tieu_de, "body": noi_dung[:5000]}, timeout=30)
-            return r.status_code == 200 and r.text.strip() == "ok"
-        except requests.RequestException:
-            return False
+        except requests.RequestException as e:
+            return False, f"Không gọi được địa chỉ Apps Script ({type(e).__name__}). Kiểm tra EMAIL_WEBHOOK_URL có đúng và đủ không."
+        kq = r.text.strip()
+        if r.status_code == 200 and kq == "ok":
+            return True, ""
+        if kq == "forbidden":
+            return False, "Apps Script từ chối: chuỗi bí mật không trùng. EMAIL_WEBHOOK_SECRET trên Render phải giống hệt dòng MAT_KHAU trong mã."
+        if kq == "loi":
+            return False, "Apps Script chạy nhưng gửi thư lỗi. Mở Apps Script > Thực thi để xem chi tiết, thường do chưa cấp quyền gửi thư."
+        if kq.lower().startswith(("<!doctype", "<html")):
+            return False, ("Google trả về trang web thay vì kết quả. Thường do triển khai chưa chọn 'Người có quyền truy cập: Bất kỳ ai', "
+                           "hoặc chưa cấp quyền, hoặc dùng địa chỉ /dev thay vì /exec. Triển khai lại cho đúng.")
+        return False, f"Apps Script trả về mã {r.status_code}. Kiểm tra lại địa chỉ EMAIL_WEBHOOK_URL."
     user, mat_khau = os.environ.get("SMTP_USER", "").strip(), os.environ.get("SMTP_PASSWORD", "").replace(" ", "")
     nguoi_nhan = [e.strip() for e in (os.environ.get("NOTIFY_EMAIL", "") or user).split(",") if e.strip()]
     if not (user and mat_khau and nguoi_nhan):
-        return False
+        return False, "Chưa cấu hình email."
     msg = EmailMessage()
     msg["Subject"] = tieu_de
     msg["From"], msg["To"] = user, ", ".join(nguoi_nhan)
@@ -75,9 +89,9 @@ def gui_email(noi_dung: str) -> bool:
         with smtplib.SMTP_SSL(os.environ.get("SMTP_HOST", "smtp.gmail.com"), 465, timeout=20) as smtp:
             smtp.login(user, mat_khau)
             smtp.send_message(msg)
-        return True
-    except (smtplib.SMTPException, OSError):
-        return False
+        return True, ""
+    except (smtplib.SMTPException, OSError) as e:
+        return False, f"SMTP lỗi ({type(e).__name__}). Gói Render miễn phí chặn SMTP, hãy dùng Google Apps Script."
 
 
 def email_da_cau_hinh() -> bool:
