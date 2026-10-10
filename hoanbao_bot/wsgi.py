@@ -52,6 +52,8 @@ def kiem_moi_truong() -> dict:
         ket_qua["khoa_claude"] = "SAI: " + str(e)[:80]
     for ten in ("FB_PAGE_ID", "FB_PAGE_TOKEN", "FB_APP_SECRET", "SHEET_DUYET_ID", "GOOGLE_SERVICE_ACCOUNT_JSON"):
         ket_qua[ten] = "có" if os.environ.get(ten, "").strip() else "THIẾU"
+    ket_qua["bang_dieu_khien"] = {"da_co_ban": bool(_bdk["html"]), "dang_dung": _bdk["dang_dung"],
+                                  "loi": _bdk["loi"] or "không", "dang_dem_kho": _cache_cham["dang_dem"]}
     ket_qua["ghi_so_khach"] = "có" if _bot.so_khach else "KHÔNG (không nối được Google Sheet)"
     return ket_qua
 
@@ -61,6 +63,14 @@ def kiem_moi_truong() -> dict:
 _ht_cache: dict = {"claude_luc": 0.0, "claude": None}
 _claude_client = None
 _google_doc: dict = {}
+
+
+def http_co_timeout(creds, giay: int = 30):
+    """Kết nối Google có giới hạn thời gian, để một lệnh gọi treo không làm kẹt cả bảng điều khiển."""
+    import google_auth_httplib2
+    import httplib2
+
+    return google_auth_httplib2.AuthorizedHttp(creds, http=httplib2.Http(timeout=giay))
 
 
 def google_chi_doc(cfg, viec: str = "chinh"):
@@ -73,8 +83,8 @@ def google_chi_doc(cfg, viec: str = "chinh"):
             cfg.google_service_account(),
             scopes=["https://www.googleapis.com/auth/drive.readonly",
                     "https://www.googleapis.com/auth/spreadsheets.readonly"])
-        _google_doc[viec] = (build("drive", "v3", credentials=creds, cache_discovery=False),
-                             build("sheets", "v4", credentials=creds, cache_discovery=False))
+        _google_doc[viec] = (build("drive", "v3", http=http_co_timeout(creds), cache_discovery=False),
+                             build("sheets", "v4", http=http_co_timeout(creds), cache_discovery=False))
     return _google_doc[viec]
 
 
@@ -88,7 +98,7 @@ def kiem_claude(cfg) -> tuple[bool, str]:
     try:
         CauHinh.khoa_claude()
         if _claude_client is None:
-            _claude_client = anthropic.Anthropic()
+            _claude_client = anthropic.Anthropic(timeout=20.0, max_retries=1)
         _claude_client.models.retrieve(cfg["bot"]["model"])
         kq = (True, "Khóa dùng được, mô hình " + cfg["bot"]["model"])
     except Exception as e:
@@ -290,7 +300,7 @@ def lay_kho_xem():
             creds.refresh(Request())
         return creds.token
 
-    _kho_xem = KhoXem(build("drive", "v3", credentials=creds, cache_discovery=False), kho_id, token)
+    _kho_xem = KhoXem(build("drive", "v3", http=http_co_timeout(creds), cache_discovery=False), kho_id, token)
     return _kho_xem
 
 
