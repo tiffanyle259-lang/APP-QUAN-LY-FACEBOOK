@@ -71,8 +71,10 @@ def gui_email_chi_tiet(noi_dung: str) -> tuple[bool, str]:
             return True, ""
         if kq == "forbidden":
             return False, "Apps Script từ chối: chuỗi bí mật không trùng. EMAIL_WEBHOOK_SECRET trên Render phải giống hệt dòng MAT_KHAU trong mã."
-        if kq == "loi":
-            return False, "Apps Script chạy nhưng gửi thư lỗi. Mở Apps Script > Thực thi để xem chi tiết, thường do chưa cấp quyền gửi thư."
+        if kq.startswith("loi"):
+            chi_tiet = kq[3:].lstrip(": ").strip()[:200]
+            return False, ("Apps Script chạy nhưng gửi thư lỗi" + (f": {chi_tiet}" if chi_tiet else
+                           ". Cập nhật mã mới trong Apps Script để thấy chi tiết lỗi.") )
         if kq.lower().startswith(("<!doctype", "<html")):
             return False, ("Google trả về trang web thay vì kết quả. Thường do triển khai chưa chọn 'Người có quyền truy cập: Bất kỳ ai', "
                            "hoặc chưa cấp quyền, hoặc dùng địa chỉ /dev thay vì /exec. Triển khai lại cho đúng.")

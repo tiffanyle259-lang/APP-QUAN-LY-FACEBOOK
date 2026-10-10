@@ -512,3 +512,17 @@ def test_gui_email_chi_tiet_noi_ro_ly_do(monkeypatch):
     assert "Bất kỳ ai" in k.gui_email_chi_tiet("x")[1]
     R.text = "loi"
     assert "cấp quyền" in k.gui_email_chi_tiet("x")[1]
+
+
+def test_gui_email_hien_chi_tiet_loi_tu_apps_script(monkeypatch):
+    import hoanbao_bot.khach as k
+
+    class R:
+        status_code = 200
+        text = "loi: Invalid argument: recipient"
+
+    monkeypatch.setattr(k.requests, "post", lambda *a, **kw: R())
+    monkeypatch.setenv("EMAIL_WEBHOOK_URL", "https://script.google.com/macros/s/x/exec")
+    monkeypatch.setenv("EMAIL_WEBHOOK_SECRET", "s")
+    ok, ly_do = k.gui_email_chi_tiet("x")
+    assert not ok and "Invalid argument: recipient" in ly_do
