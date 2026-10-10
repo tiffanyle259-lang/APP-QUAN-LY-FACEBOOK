@@ -180,6 +180,7 @@ JS = r"""
       .then(function(r){return r.json().then(function(j){return{ok:r.ok,j:j}})})
       .then(function(x){
         if(!x.ok){bao(x.j.loi||'Không lưu được',true);if(nut)nut.disabled=false;return}
+        if(x.j.thong_bao){bao(x.j.thong_bao);if(nut)nut.disabled=false;return}
         bao('Đã lưu');setTimeout(function(){location.reload()},700)})
       .catch(function(){bao('Mất kết nối, thử lại sau',true);if(nut)nut.disabled=false});
   }
@@ -234,7 +235,8 @@ JS = r"""
   document.addEventListener('click',function(e){
     var b=e.target.closest('button[data-hanh]');if(!b)return;
     var h=b.dataset.hanh;
-    if(h==='bai_trang_thai')gui({hanh:h,ma_bai:b.dataset.ma,trang_thai:b.dataset.tt},b);
+    if(h==='email_thu')gui({hanh:h},b);
+    else if(h==='bai_trang_thai')gui({hanh:h,ma_bai:b.dataset.ma,trang_thai:b.dataset.tt},b);
     else if(h==='bai_noi_dung'){var ta=document.getElementById('nd-'+b.dataset.ma);gui({hanh:h,ma_bai:b.dataset.ma,noi_dung:ta?ta.value:''},b)}
   });
   document.addEventListener('change',function(e){
@@ -533,7 +535,9 @@ def dung_html(d: dict) -> str:
         dong_ht = "".join(
             f"<div class='ht {'ok' if x['ok'] else 'hong'}'><span class='cham'></span><div><b>{_e(x['ten'])}</b>"
             f"<div class='ct'>{_e(x['chi_tiet'])}</div>"
-            f"{('<div class=hd>' + _e(x['huong_dan']) + '</div>') if x.get('huong_dan') else ''}</div></div>" for x in he_thong)
+            f"{('<div class=hd>' + _e(x['huong_dan']) + '</div>') if x.get('huong_dan') else ''}"
+            f"{('<div class=acts><button type=button class=bt data-hanh=email_thu>Gửi thư thử</button></div>') if sua and x.get('nut') == 'email_thu' else ''}"
+            "</div></div>" for x in he_thong)
         ht_html = ("<h2>Tình trạng hệ thống <small>kiểm tra mỗi lần mở trang</small></h2>"
                    + (f"<div class='todo'><b class='t'>{ht_hong} bộ phận cần chú ý</b>Xem dòng màu đỏ bên dưới.</div>" if ht_hong
                       else "<div class='todo ok'><b class='t'>Mọi bộ phận đang chạy tốt</b></div>")

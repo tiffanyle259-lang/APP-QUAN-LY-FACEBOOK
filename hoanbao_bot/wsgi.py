@@ -103,8 +103,8 @@ def kiem_he_thong(cfg, drive, sheets, ten_page: str) -> list[dict]:
     """Tình trạng từng bộ phận để chủ shop nhìn là biết cái nào hỏng. Không bao giờ hiện khóa hay token."""
     kq = []
 
-    def them(ten, ok, chi_tiet, huong_dan=""):
-        kq.append({"ten": ten, "ok": ok, "chi_tiet": chi_tiet, "huong_dan": huong_dan})
+    def them(ten, ok, chi_tiet, huong_dan="", nut=""):
+        kq.append({"ten": ten, "ok": ok, "chi_tiet": chi_tiet, "huong_dan": huong_dan, "nut": nut})
 
     them("Máy chủ bot (Render)", True, "Đang chạy, khởi động lúc " + _bot.thong_ke.get("khoi_dong", "?"))
     them("Fanpage (Meta)", bool(ten_page), f"Token dùng được, Page: {ten_page}" if ten_page else "Không đọc được Page bằng token hiện tại",
@@ -133,7 +133,7 @@ def kiem_he_thong(cfg, drive, sheets, ten_page: str) -> list[dict]:
     from .khach import email_da_cau_hinh
 
     if email_da_cau_hinh():
-        them("Báo khách mới qua email", True, "Đã cấu hình, có khách để lại số điện thoại thì gửi email ngay")
+        them("Báo khách mới qua email", True, "Đã cấu hình, có khách để lại số điện thoại thì gửi email ngay", nut="email_thu")
     else:
         them("Báo khách mới qua email", False, "Chưa cấu hình, nhân viên chưa được báo khi có khách mới",
              "Render > Environment > thêm SMTP_USER, SMTP_PASSWORD (mật khẩu ứng dụng Gmail), NOTIFY_EMAIL.")
@@ -242,6 +242,15 @@ def thao_tac(lenh: dict) -> dict:
 
     from hoanbao_mkt.duyet_bai import BO, CHO_DUYET, DA_LEN_LICH, DUYET, SheetDuyet
     from .khach import TAB, TRANG_THAI_KHACH
+
+    if lenh.get("hanh") == "email_thu":
+        from .khach import email_da_cau_hinh, gui_email
+
+        if not email_da_cau_hinh():
+            raise LoiThaoTac("Chưa cấu hình email trên Render (SMTP_USER, SMTP_PASSWORD).")
+        if not gui_email("Thư thử từ bảng điều khiển Golden Lion\nNếu chị/anh đọc được thư này, báo khách mới qua email đã hoạt động."):
+            raise LoiThaoTac("Gửi thư không được. Kiểm tra lại SMTP_USER và mật khẩu ứng dụng Gmail trên Render.")
+        return {"ok": True, "thong_bao": "Đã gửi thư thử, chị/anh kiểm tra hộp thư (cả mục Thư rác)."}
 
     cfg = CauHinh.doc()
     creds = Credentials.from_service_account_info(

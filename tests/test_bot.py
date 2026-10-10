@@ -465,3 +465,13 @@ def test_gui_email_bao_khach_moi(monkeypatch):
     gui = next(x for x in daGui if x[0] == "gui")
     assert gui[1] == "x@y.vn, z@y.vn" and "0912" in gui[3]
     assert ("dang_nhap", "a@gmail.com", "abcdefghijklmnop") in daGui
+
+
+def test_he_thong_co_nut_gui_thu_email():
+    from hoanbao_mkt.bang_dieu_khien import dung_html
+
+    d = {"cap_nhat": "x", "page": "P", "che_do_duyet": True, "sheet_url": "", "bai": [], "kho": [], "sua_duoc": True,
+         "he_thong": [{"ten": "Báo khách mới qua email", "ok": True, "chi_tiet": "Đã cấu hình", "huong_dan": "", "nut": "email_thu"}]}
+    assert "data-hanh=email_thu" in dung_html(d)
+    d["sua_duoc"] = False
+    assert "email_thu" not in dung_html(d).split("<script>")[0]
