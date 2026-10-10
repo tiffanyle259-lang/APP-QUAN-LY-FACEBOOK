@@ -169,11 +169,12 @@ def _dung_bang_dieu_khien() -> str:
     """Dựng lại toàn bộ bảng điều khiển từ dữ liệu thật. Các phần nặng (đếm kho, tin nhắn) được nhớ lại."""
     import time
 
-    from hoanbao_mkt import bang_dieu_khien as bdk
-    from hoanbao_mkt.facebook import Fanpage
-
     def buoc(ten):
         _bdk["buoc"] = f"{ten} ({time.time() - _bdk['bat_dau']:.0f}s)"
+
+    buoc("nạp thư viện")
+    from hoanbao_mkt import bang_dieu_khien as bdk
+    from hoanbao_mkt.facebook import Fanpage
 
     buoc("khởi tạo kết nối Google")
     cfg = CauHinh.doc()
