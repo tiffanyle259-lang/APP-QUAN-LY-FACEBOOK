@@ -124,7 +124,7 @@ padding:10px 14px;cursor:pointer;color:var(--ink)}.cl:last-child{border-bottom:0
 .tcol{display:flex;flex-direction:column;gap:8px;padding:8px;background:var(--bar-bg);min-width:0}
 .thumb{border-radius:10px;overflow:hidden;aspect-ratio:4/3;min-height:0}.vd{position:absolute;right:6px;bottom:6px;background:rgba(0,0,0,.72);
 color:#fff;font-size:11px;font-weight:700;border-radius:6px;padding:1px 7px;letter-spacing:.04em}
-.tcol .bt{width:100%;padding:5px 6px;font-size:12.5px}
+.ghi-nho{font-size:12px;color:var(--muted);line-height:1.35;padding:0 2px}.tcol .bt{width:100%;padding:5px 6px;font-size:12.5px}
 dialog#hop-anh{border:1px solid var(--line);border-radius:16px;padding:0;width:min(920px,calc(100vw - 24px));max-height:calc(100vh - 32px);
 background:var(--card);color:var(--ink);box-shadow:0 20px 60px rgba(0,0,0,.35)}
 dialog#hop-anh::backdrop{background:rgba(10,14,20,.55)}
@@ -286,7 +286,7 @@ def _anh_nho(link: str, qua_may_chu: bool = False) -> str:
     nguon = (f"/api/anh/{m.group(1)}" if qua_may_chu
              else f"https://drive.google.com/thumbnail?id={m.group(1)}&sz=w400")
     return (f"<span>Đang tải ảnh…</span><img loading='lazy' alt='Ảnh hoặc video sẽ đăng kèm bài' referrerpolicy='no-referrer' "
-            f"src='{nguon}' onerror=\"this.remove()\">")
+            f"src='{nguon}' onerror=\"this.previousElementSibling.textContent='Chưa xem trước được. Mở bài trên Facebook để xem ảnh đã gắn.';this.remove()\">")
 
 
 _DUOI_VIDEO = re.compile(r"\.(mp4|mov|m4v|avi|mkv|webm)\b", re.IGNORECASE)
@@ -370,6 +370,8 @@ def dung_html(d: dict) -> str:
         return "<span class='vd'>VIDEO</span>" if _DUOI_VIDEO.search(b.get("ghi_chu") or "") else ""
 
     def nut_doi_anh(b):
+        if sua and b["trang_thai"] == "Đã lên lịch":
+            return "<div class='ghi-nho'>Đã lên lịch. Muốn đổi ảnh, sửa trong Meta Business Suite.</div>"
         if not (sua and d.get("kho") and b["trang_thai"] in ("Chờ duyệt", "Duyệt", "Lỗi", "Bỏ")):
             return ""
         return f"<button type='button' class='bt doi-anh' data-ma='{_e(b['ma_bai'])}'>Đổi ảnh/video</button>"
