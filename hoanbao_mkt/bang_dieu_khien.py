@@ -425,7 +425,7 @@ def dung_html(d: dict) -> str:
                     f"<button type='button' class='bt' data-hanh='bai_huy_lich' data-ma='{_e(b['ma_bai'])}' "
                     "data-hoi='Hủy lịch bài này trên Facebook để đổi ảnh? Bài sẽ về Chờ duyệt, cần duyệt lại sau khi đổi.'>"
                     "Hủy lịch để đổi ảnh</button>")
-        if not (sua and d.get("kho") and b["trang_thai"] in ("Chờ duyệt", "Duyệt", "Lỗi", "Bỏ")):
+        if not (sua and (d.get("kho") or d.get("ten_kho")) and b["trang_thai"] in ("Chờ duyệt", "Duyệt", "Lỗi", "Bỏ")):
             return ""
         return f"<button type='button' class='bt doi-anh' data-ma='{_e(b['ma_bai'])}'>Đổi ảnh/video</button>"
 
@@ -527,7 +527,7 @@ def dung_html(d: dict) -> str:
         chat_html = "<div class='canhbao'>Chưa có dữ liệu tin nhắn.</div>"
 
 
-    ten_kho = [k["ten"] for k in d.get("kho", [])]
+    ten_kho = [k["ten"] for k in d.get("kho", [])] or d.get("ten_kho") or []
     hop = ""
     if sua and ten_kho:
         tuy = "".join(f"<option value='{_e(t)}'>{_e(t)}</option>" for t in ten_kho)
@@ -624,7 +624,9 @@ def thu_thap(cfg, drive, sheets, sheet_id: str, kho_id: str, ten_page: str = "",
     dem = dem_kho_san if dem_kho_san is not None else dem_kho(cfg, drive, kho_id)
     return {"cap_nhat": datetime.now(cfg.mui_gio).strftime("%H:%M %d/%m/%Y"), "page": ten_page,
             "che_do_duyet": sheet.che_do_duyet(cfg["che_do_duyet"]),
-            "sheet_url": f"https://docs.google.com/spreadsheets/d/{sheet_id}", "bai": bai, "kho": dem}
+            "sheet_url": f"https://docs.google.com/spreadsheets/d/{sheet_id}", "bai": bai, "kho": dem,
+            # tên thư mục luôn có, kể cả khi số file kho chưa đếm xong, để nút Đổi ảnh không biến mất
+            "ten_kho": sorted(set(_ten_thu_muc_kho(cfg))) + ["_chua-phan-loai", "_can-xem-lai"] if kho_id else []}
 
 
 def _ten_thu_muc_kho(cfg):
