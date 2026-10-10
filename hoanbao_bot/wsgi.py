@@ -464,9 +464,9 @@ def thao_tac(lenh: dict) -> dict:
                     raise LoiThaoTac("Không tìm thấy bài gốc này trong Sheet.")
                 try:
                     noi_dung = _bot.ai.viet_cho_nhom(bai.noi_dung, n["ten"], n["nganh"], n["luat"])
-                except Exception:
+                except Exception as e:
                     logging.getLogger("hoanbao_bot").exception("Lỗi soạn bài cho nhóm")
-                    raise LoiThaoTac("AI chưa soạn được bài, thử lại sau ít giây.")
+                    raise LoiThaoTac(f"AI chưa soạn được bài ({type(e).__name__}: {str(e)[:120]}). Thử lại sau ít giây.")
                 return {"ok": True, "noi_dung": noi_dung}
             else:
                 raise LoiThaoTac("Thao tác không hỗ trợ.")

@@ -302,11 +302,13 @@ JS_NHOM = r"""
   });
   soan.addEventListener('click',function(){
     if(!bai.value){bao('Chưa có bài Fanpage nào để lấy ý.',true);return}
-    soan.disabled=true;soan.textContent='Đang soạn…';
+    var loi=document.getElementById('hn-loi');loi.hidden=true;
+    soan.disabled=true;soan.textContent='Đang soạn, chờ khoảng 10-30 giây…';
     gui({hanh:'nhom_soan_bai',dong:dong,ma_bai:bai.value}).then(function(x){
       soan.disabled=false;soan.textContent='Soạn bài cho nhóm này';
-      if(!x.ok){bao(x.j.loi||'Không soạn được',true);return}
+      if(!x.ok){loi.textContent='Không soạn được: '+(x.j.loi||'lỗi không rõ');loi.hidden=false;return}
       nd.value=x.j.noi_dung||'';
+      if(!nd.value){loi.textContent='AI không trả về bài, thử lại.';loi.hidden=false}
     });
   });
   document.getElementById('hn-chep').addEventListener('click',function(){
@@ -630,6 +632,7 @@ def dung_html(d: dict) -> str:
                     "<div class='ghi-nho' id='hn-ten'></div><label>Lấy ý từ bài Fanpage: "
                     f"<select id='hn-bai'>{tuy_bai}</select></label>"
                     "<button type='button' class='bt chinh' id='hn-soan'>Soạn bài cho nhóm này</button>"
+                    "<div class='ghi-nho' id='hn-loi' style='color:var(--loi)' hidden></div>"
                     "<textarea id='hn-nd' placeholder='Bài soạn xong sẽ hiện ở đây, có thể sửa tay trước khi sao chép.'></textarea>"
                     "<img id='hn-anh' alt='Ảnh đi kèm bài' hidden>"
                     "<div class='acts'><button type='button' class='bt' id='hn-chep'>Sao chép bài</button>"

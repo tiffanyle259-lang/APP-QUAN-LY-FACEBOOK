@@ -53,12 +53,12 @@ class AiBot:
         self.he_thong, self.model, self.effort = he_thong, model, effort
         self.client = client or anthropic.Anthropic()
 
-    def _goi(self, extra_system: str, messages: list[dict], schema):
+    def _goi(self, extra_system: str, messages: list[dict], schema, client=None):
         # Phần dữ liệu dài được lưu đệm (cache) để các lần gọi sau rẻ hơn.
         he_thong = [{"type": "text", "text": self.he_thong, "cache_control": {"type": "ephemeral"}}]
         if extra_system:
             he_thong.append({"type": "text", "text": extra_system})
-        r = self.client.beta.messages.parse(
+        r = (client or self.client).beta.messages.parse(
             model=self.model, max_tokens=1500, system=he_thong, messages=messages, output_format=schema,
             output_config={"effort": self.effort},
             betas=["server-side-fallback-2026-07-01"], fallbacks="default",
@@ -86,4 +86,8 @@ class AiBot:
     def viet_cho_nhom(self, bai_goc: str, ten_nhom: str, nganh: str, luat: str) -> str:
         yeu_cau = (f"BÀI GỐC:\n{bai_goc}\n\nNHÓM: {ten_nhom}\nNGÀNH CỦA NHÓM: {nganh}\n"
                    f"LUẬT NHÓM: {luat or 'không có ghi chú'}")
-        return self._goi(LUAT_NHOM, [{"role": "user", "content": yeu_cau}], KetQuaNhom).noi_dung.strip()
+        client = self.client.with_options(timeout=80.0, max_retries=1) if hasattr(self.client, "with_options") else None
+        kq = self._goi(LUAT_NHOM, [{"role": "user", "content": yeu_cau}], KetQuaNhom, client)
+        if not kq.noi_dung.strip():
+            raise RuntimeError("AI trả về bài trống")
+        return kq.noi_dung.strip()
