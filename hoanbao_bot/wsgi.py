@@ -56,11 +56,25 @@ def kiem_moi_truong() -> dict:
         ket_qua[ten] = "có" if os.environ.get(ten, "").strip() else "THIẾU"
     ket_qua["bang_dieu_khien"] = {"da_co_ban": bool(_bdk["html"]), "dang_dung": _bdk["dang_dung"],
                                   "loi": _bdk["loi"] or "không", "dang_dem_kho": _cache_cham["dang_dem"],
-                                  "buoc": _bdk["buoc"] or "-"}
+                                  "buoc": _bdk["buoc"] or "-", "dang_o": _noi_dang_ket()}
     ket_qua["ghi_so_khach"] = "có" if _bot.so_khach else "KHÔNG (không nối được Google Sheet)"
     return ket_qua
 
 
+
+
+def _noi_dang_ket() -> str:
+    """Luồng dựng bảng đang dừng ở dòng code nào (để biết bước nào kẹt)."""
+    import sys
+    import traceback
+
+    for t in threading.enumerate():
+        if t.name in ("bdk-dung", "dem-kho"):
+            f = sys._current_frames().get(t.ident)
+            if f:
+                return t.name + ": " + " < ".join(
+                    f"{os.path.basename(x.filename)}:{x.lineno}" for x in reversed(traceback.extract_stack(f)[-5:]))
+    return "-"
 
 
 _ht_cache: dict = {"claude_luc": 0.0, "claude": None}
@@ -240,7 +254,7 @@ def _dem_kho_ngam(cfg, kho_id: str) -> None:
             _cache_cham["dang_dem"] = False
         _lam_moi_ngam()
 
-    threading.Thread(target=lam, daemon=True).start()
+    threading.Thread(target=lam, daemon=True, name="dem-kho").start()
 
 
 def lam_moi_bang_dieu_khien() -> None:
@@ -264,7 +278,7 @@ def lam_moi_bang_dieu_khien() -> None:
 
 def _lam_moi_ngam() -> None:
     if not _bdk["dang_dung"]:
-        threading.Thread(target=lam_moi_bang_dieu_khien, daemon=True).start()
+        threading.Thread(target=lam_moi_bang_dieu_khien, daemon=True, name="bdk-dung").start()
 
 
 def dung_bang_dieu_khien() -> str:
