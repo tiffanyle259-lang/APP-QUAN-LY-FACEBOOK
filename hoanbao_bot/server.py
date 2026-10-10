@@ -16,6 +16,19 @@ from flask import Flask, jsonify, make_response, redirect, request, send_file
 log = logging.getLogger("hoanbao_bot")
 
 
+TRANG_DANG_NHAP = """<!doctype html><html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Đăng nhập bảng điều khiển</title>
+<style>:root{color-scheme:light dark}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f3f4f6;color:#141a24;
+font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}@media(prefers-color-scheme:dark){body{background:#0d1117;color:#e8edf4}
+form{background:#161b22!important;border-color:#2a323d!important}input{background:#0d1117!important;color:#e8edf4!important;border-color:#2a323d!important}}
+form{background:#fff;border:1px solid #e1e4ea;border-radius:16px;padding:24px;width:min(360px,calc(100vw - 32px));display:grid;gap:12px}
+h1{font-size:18px;margin:0}input,button{font:inherit;padding:10px 12px;border-radius:10px;border:1px solid #cfd4dc}
+button{background:#d99a00;border-color:#d99a00;color:#1a1200;font-weight:700;cursor:pointer}.l{color:#b42318;font-size:14px;min-height:1.2em}</style></head>
+<body><form method="get" action="/bang-dieu-khien"><h1>Bảng điều khiển Golden Lion</h1>
+<label for="k">Mật khẩu</label><input id="k" name="k" type="password" autocomplete="current-password" autofocus required>
+<div class="l">{{LOI}}</div><button type="submit">Vào bảng điều khiển</button></form></body></html>"""
+
+
 class LoiThaoTac(ValueError):
     """Thao tác từ bảng điều khiển không hợp lệ; thông báo được hiện cho người dùng."""
 
@@ -71,7 +84,9 @@ def tao_ung_dung(bot, app_secret: str, verify_token: str, chay=None, moi_truong=
                          secure=request.is_secure)
             return r
         if not da_dang_nhap():
-            return "forbidden", 403
+            sai = "k" in request.args  # có nhập mà sai
+            return TRANG_DANG_NHAP.replace("{{LOI}}", "Mật khẩu chưa đúng, thử lại." if sai else ""), 403, {
+                "Content-Type": "text/html; charset=utf-8"}
         if not bang_dieu_khien:
             return "chưa bật", 404
         try:

@@ -282,7 +282,10 @@ def test_bang_dieu_khien_can_mat_khau():
     app = tao_ung_dung(SimpleNamespace(), "s", "mat-khau", bang_dieu_khien=lambda: "<html>ok</html>")
     c = app.test_client()
     assert c.get("/bang-dieu-khien").status_code == 403
-    assert c.get("/bang-dieu-khien?k=sai").status_code == 403
+    chua = c.get("/bang-dieu-khien")
+    assert b'type="password"' in chua.data and "chưa đúng".encode() not in chua.data  # hiện ô nhập mật khẩu
+    sai = c.get("/bang-dieu-khien?k=sai")
+    assert sai.status_code == 403 and "chưa đúng".encode() in sai.data
     r = c.get("/bang-dieu-khien?k=mat-khau")  # đúng mật khẩu: đặt cookie rồi chuyển về địa chỉ không có mật khẩu
     assert r.status_code == 302 and r.headers["Location"].endswith("/bang-dieu-khien")
     r = c.get("/bang-dieu-khien")
