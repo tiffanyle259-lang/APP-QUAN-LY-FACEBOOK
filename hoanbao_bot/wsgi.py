@@ -8,6 +8,43 @@ import threading
 
 import anthropic
 
+
+def _libc():
+    try:
+        import ctypes
+        return ctypes.CDLL("libc.so.6")
+    except Exception:
+        return None
+
+
+_LIBC = _libc()
+if _LIBC:  # ít vùng nhớ riêng cho mỗi luồng: máy chủ 512 MB rất dễ hết RAM vì Python nhiều luồng phình bộ nhớ
+    try:
+        _LIBC.mallopt(-8, 2)  # M_ARENA_MAX
+    except Exception:
+        pass
+
+
+def giam_ram() -> None:
+    """Trả bộ nhớ đã giải phóng về cho hệ điều hành (gọi sau các việc nặng)."""
+    if _LIBC:
+        try:
+            _LIBC.malloc_trim(0)
+        except Exception:
+            pass
+
+
+def ram_mb() -> int:
+    try:
+        with open("/proc/self/status") as f:
+            for dong in f:
+                if dong.startswith("VmRSS:"):
+                    return int(dong.split()[1]) // 1024
+    except Exception:
+        pass
+    return -1
+
+
 from hoanbao_mkt import bang_dieu_khien as bdk
 from hoanbao_mkt.cau_hinh import CauHinh
 from hoanbao_mkt.du_lieu import doc_du_lieu
@@ -57,7 +94,7 @@ def kiem_moi_truong() -> dict:
         ket_qua[ten] = "có" if os.environ.get(ten, "").strip() else "THIẾU"
     ket_qua["bang_dieu_khien"] = {"da_co_ban": bool(_bdk["html"]), "dang_dung": _bdk["dang_dung"],
                                   "loi": _bdk["loi"] or "không", "dang_dem_kho": _cache_cham["dang_dem"],
-                                  "buoc": _bdk["buoc"] or "-", "dang_o": _noi_dang_ket()}
+                                  "buoc": _bdk["buoc"] or "-", "dang_o": _noi_dang_ket(), "ram_mb": ram_mb()}
     ket_qua["ghi_so_khach"] = "có" if _bot.so_khach else "KHÔNG (không nối được Google Sheet)"
     return ket_qua
 
@@ -281,6 +318,7 @@ def lam_moi_bang_dieu_khien() -> None:
         finally:
             _bdk["dang_dung"] = False
             _bdk["buoc"] = ""
+            giam_ram()
     if _bdk.pop("dung_lai", False):  # ngoài khóa, tránh tự chặn mình
         lam_moi_bang_dieu_khien()
 
@@ -463,7 +501,10 @@ def thao_tac(lenh: dict) -> dict:
                 if not bai or not bai.noi_dung.strip():
                     raise LoiThaoTac("Không tìm thấy bài gốc này trong Sheet.")
                 try:
+                    log_ram = ram_mb()
                     noi_dung = _bot.ai.viet_cho_nhom(bai.noi_dung, n["ten"], n["nganh"], n["luat"])
+                    logging.getLogger("hoanbao_bot").info("Soạn bài nhóm xong, RAM %s -> %s MB", log_ram, ram_mb())
+                    giam_ram()
                 except Exception as e:
                     logging.getLogger("hoanbao_bot").exception("Lỗi soạn bài cho nhóm")
                     raise LoiThaoTac(f"AI chưa soạn được bài ({type(e).__name__}: {str(e)[:120]}). Thử lại sau ít giây.")
