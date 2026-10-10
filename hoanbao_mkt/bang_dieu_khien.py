@@ -247,6 +247,7 @@ JS = r"""
     var b=e.target.closest('button[data-hanh]');if(!b)return;
     var h=b.dataset.hanh;
     if(h==='email_thu')gui({hanh:h},b);
+    else if(h==='bai_huy_lich'){if(confirm(b.dataset.hoi||'Hủy lịch bài này?'))gui({hanh:h,ma_bai:b.dataset.ma},b)}
     else if(h==='bai_trang_thai')gui({hanh:h,ma_bai:b.dataset.ma,trang_thai:b.dataset.tt},b);
     else if(h==='bai_noi_dung'){var ta=document.getElementById('nd-'+b.dataset.ma);gui({hanh:h,ma_bai:b.dataset.ma,noi_dung:ta?ta.value:''},b)}
   });
@@ -420,7 +421,10 @@ def dung_html(d: dict) -> str:
 
     def nut_doi_anh(b):
         if sua and b["trang_thai"] == "Đã lên lịch":
-            return "<div class='ghi-nho'>Đã lên lịch. Muốn đổi ảnh, sửa trong Meta Business Suite.</div>"
+            return (f"<div class='ghi-nho'>Đã lên lịch trên Facebook. Muốn đổi ảnh thì hủy lịch trước.</div>"
+                    f"<button type='button' class='bt' data-hanh='bai_huy_lich' data-ma='{_e(b['ma_bai'])}' "
+                    "data-hoi='Hủy lịch bài này trên Facebook để đổi ảnh? Bài sẽ về Chờ duyệt, cần duyệt lại sau khi đổi.'>"
+                    "Hủy lịch để đổi ảnh</button>")
         if not (sua and d.get("kho") and b["trang_thai"] in ("Chờ duyệt", "Duyệt", "Lỗi", "Bỏ")):
             return ""
         return f"<button type='button' class='bt doi-anh' data-ma='{_e(b['ma_bai'])}'>Đổi ảnh/video</button>"

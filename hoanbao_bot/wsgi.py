@@ -380,7 +380,33 @@ def thao_tac(lenh: dict) -> dict:
     sheet_id = CauHinh.bien("SHEET_DUYET_ID")
     sheet = SheetDuyet(sheets, sheet_id)
     hanh = lenh.get("hanh")
-    if hanh in ("bai_trang_thai", "bai_noi_dung", "bai_media"):
+    if hanh == "bai_huy_lich":
+        from datetime import datetime, timedelta
+
+        from hoanbao_mkt.duyet_bai import doc_gio, doc_ngay
+        from hoanbao_mkt.facebook import Fanpage, LoiFacebook
+
+        bai = next((b for b in sheet.doc_tat_ca() if b.ma_bai == str(lenh.get("ma_bai", ""))), None)
+        if not bai:
+            raise LoiThaoTac("Không tìm thấy bài này trong Sheet.")
+        if bai.trang_thai != DA_LEN_LICH or not bai.facebook_id.strip():
+            raise LoiThaoTac("Bài này chưa lên lịch trên Facebook, không cần hủy.")
+        try:
+            gio_dang = datetime.combine(doc_ngay(bai.ngay), doc_gio(bai.gio), tzinfo=cfg.mui_gio)
+        except Exception:
+            raise LoiThaoTac("Không đọc được giờ đăng của bài.")
+        if gio_dang - datetime.now(cfg.mui_gio) < timedelta(minutes=5):
+            raise LoiThaoTac("Bài sắp hoặc đã đăng rồi, không hủy lịch được nữa.")
+        try:
+            Fanpage(CauHinh.bien("FB_PAGE_ID"), CauHinh.bien("FB_PAGE_TOKEN"), cfg["facebook"]["graph_version"]
+                    ).xoa(bai.facebook_id.strip())
+        except LoiFacebook as e:
+            raise LoiThaoTac(f"Facebook không cho hủy: {e}")
+        ghi = "Đã hủy lịch trên Facebook. Đổi ảnh rồi duyệt lại."
+        if "YouTube" in (bai.ghi_chu or ""):
+            ghi += " (Video đã tải lên YouTube vẫn còn, xóa trong YouTube Studio nếu không muốn đăng.)"
+        sheet.cap_nhat(bai.dong, CHO_DUYET, ghi, "")
+    elif hanh in ("bai_trang_thai", "bai_noi_dung", "bai_media"):
         bai = next((b for b in sheet.doc_tat_ca() if b.ma_bai == str(lenh.get("ma_bai", ""))), None)
         if not bai:
             raise LoiThaoTac("Không tìm thấy bài này trong Sheet.")

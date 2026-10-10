@@ -32,6 +32,16 @@ class Fanpage:
             raise LoiFacebook(f"{loi.get('message', r.text)} (mã {loi.get('code')})")
         return body
 
+    def xoa(self, doi_tuong_id: str) -> None:
+        """Xóa bài/ảnh/video (dùng để hủy bài đã hẹn giờ). Đã không còn thì coi như xong."""
+        r = requests.delete(f"{self.graph}/{doi_tuong_id}", params={"access_token": self.token}, timeout=60)
+        body = r.json() if r.content else {}
+        if r.status_code >= 400 or "error" in body:
+            loi = body.get("error", {})
+            if loi.get("code") in (100, 803) and "exist" in str(loi.get("message", "")).lower():
+                return
+            raise LoiFacebook(f"{loi.get('message', r.text)} (mã {loi.get('code')})")
+
     def kiem_tra(self) -> str:
         r = requests.get(f"{self.graph}/{self.page_id}", params={"fields": "name", "access_token": self.token},
                          timeout=30)
