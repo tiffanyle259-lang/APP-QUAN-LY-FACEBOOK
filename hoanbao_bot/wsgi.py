@@ -8,8 +8,10 @@ import threading
 
 import anthropic
 
+from hoanbao_mkt import bang_dieu_khien as bdk
 from hoanbao_mkt.cau_hinh import CauHinh
 from hoanbao_mkt.du_lieu import doc_du_lieu
+from hoanbao_mkt.facebook import Fanpage
 
 from .ai_bot import AiBot
 from .khach import SoKhach, bao_nhan_vien
@@ -172,10 +174,6 @@ def _dung_bang_dieu_khien() -> str:
     def buoc(ten):
         _bdk["buoc"] = f"{ten} ({time.time() - _bdk['bat_dau']:.0f}s)"
 
-    buoc("nạp thư viện")
-    from hoanbao_mkt import bang_dieu_khien as bdk
-    from hoanbao_mkt.facebook import Fanpage
-
     buoc("khởi tạo kết nối Google")
     cfg = CauHinh.doc()
     drive, sheets = google_chi_doc(cfg)
@@ -231,8 +229,6 @@ def _dem_kho_ngam(cfg, kho_id: str) -> None:
     _cache_cham["dang_dem"] = True
 
     def lam():
-        from hoanbao_mkt import bang_dieu_khien as bdk
-
         try:
             drive, _ = google_chi_doc(cfg, "dem-kho")
             _cache_cham["dem_kho"] = (time.time(), bdk.dem_kho(cfg, drive, kho_id))
