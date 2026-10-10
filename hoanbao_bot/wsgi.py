@@ -53,7 +53,8 @@ def kiem_moi_truong() -> dict:
     for ten in ("FB_PAGE_ID", "FB_PAGE_TOKEN", "FB_APP_SECRET", "SHEET_DUYET_ID", "GOOGLE_SERVICE_ACCOUNT_JSON"):
         ket_qua[ten] = "có" if os.environ.get(ten, "").strip() else "THIẾU"
     ket_qua["bang_dieu_khien"] = {"da_co_ban": bool(_bdk["html"]), "dang_dung": _bdk["dang_dung"],
-                                  "loi": _bdk["loi"] or "không", "dang_dem_kho": _cache_cham["dang_dem"]}
+                                  "loi": _bdk["loi"] or "không", "dang_dem_kho": _cache_cham["dang_dem"],
+                                  "buoc": _bdk["buoc"] or "-"}
     ket_qua["ghi_so_khach"] = "có" if _bot.so_khach else "KHÔNG (không nối được Google Sheet)"
     return ket_qua
 
@@ -151,13 +152,13 @@ def kiem_he_thong(cfg, drive, sheets, ten_page: str) -> list[dict]:
 
 
 _khoa_dung = threading.Lock()
-_bdk = {"html": "", "luc": 0.0, "dang_dung": False, "loi": ""}
+_bdk = {"html": "", "luc": 0.0, "dang_dung": False, "loi": "", "buoc": "", "bat_dau": 0.0}
 _cache_cham = {"dem_kho": (0.0, None), "ten_page": "", "hoi_thoai": (0.0, None, ""), "dang_dem": False}
 TUOI_BANG_DIEU_KHIEN = 90      # giây: quá hạn này thì làm mới ngầm, người dùng vẫn thấy ngay bản gần nhất
 TUOI_DEM_KHO = 30 * 60         # đếm file kho rất tốn lần gọi Drive nên nhớ 30 phút
 TUOI_HOI_THOAI = 90
 
-TRANG_DANG_TAI = """<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta http-equiv="refresh" content="3">
+TRANG_DANG_TAI = """<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta http-equiv="refresh" content="4">
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>Đang chuẩn bị</title>
 <style>body{font:16px system-ui,sans-serif;display:grid;place-items:center;min-height:100vh;margin:0;background:#f3f4f6;color:#141a24}
 @media(prefers-color-scheme:dark){body{background:#0d1117;color:#e8edf4}}</style></head>
@@ -171,8 +172,13 @@ def _dung_bang_dieu_khien() -> str:
     from hoanbao_mkt import bang_dieu_khien as bdk
     from hoanbao_mkt.facebook import Fanpage
 
+    def buoc(ten):
+        _bdk["buoc"] = f"{ten} ({time.time() - _bdk['bat_dau']:.0f}s)"
+
+    buoc("khởi tạo kết nối Google")
     cfg = CauHinh.doc()
     drive, sheets = google_chi_doc(cfg)
+    buoc("hỏi tên Fanpage")
     if not _cache_cham["ten_page"]:  # tên Fanpage không đổi, hỏi một lần
         try:
             _cache_cham["ten_page"] = Fanpage(CauHinh.bien("FB_PAGE_ID"), CauHinh.bien("FB_PAGE_TOKEN"),
@@ -181,12 +187,15 @@ def _dung_bang_dieu_khien() -> str:
             logging.getLogger("hoanbao_bot").warning("Không lấy được tên Fanpage cho bảng điều khiển")
     ten_page = _cache_cham["ten_page"]
     kho_id = os.environ.get("DRIVE_KHO_ID", "").strip()
+    buoc("đọc Google Sheet bài viết")
     luc_kho, dem = _cache_cham["dem_kho"]
     if kho_id and (dem is None or time.time() - luc_kho > TUOI_DEM_KHO):
         _dem_kho_ngam(cfg, kho_id)  # đếm chạy riêng, không bắt người dùng chờ
     d = bdk.thu_thap(cfg, drive, sheets, CauHinh.bien("SHEET_DUYET_ID"), kho_id, ten_page, dem_kho_san=dem or [])
     d["kho_dang_dem"] = bool(kho_id and dem is None)
+    buoc("kiểm tra hệ thống")
     d["he_thong"] = kiem_he_thong(cfg, drive, sheets, ten_page)
+    buoc("đọc danh sách khách")
     d["bot"] = dict(_bot.thong_ke)
     d["sua_duoc"] = True
     try:
@@ -197,6 +206,7 @@ def _dung_bang_dieu_khien() -> str:
     except Exception as e:
         d["khach"] = None
         d["khach_loi"] = type(e).__name__
+    buoc("đọc tin nhắn Messenger")
     luc_hoi, hoi, loi_hoi = _cache_cham["hoi_thoai"]
     if hoi is None or time.time() - luc_hoi > TUOI_HOI_THOAI:
         try:
@@ -207,6 +217,7 @@ def _dung_bang_dieu_khien() -> str:
     d["hoi_thoai"] = hoi
     if hoi is None:
         d["hoi_thoai_loi"] = loi_hoi
+    buoc("dựng trang")
     return bdk.dung_html(d)
 
 
@@ -241,6 +252,7 @@ def lam_moi_bang_dieu_khien() -> None:
 
     with _khoa_dung:
         _bdk["dang_dung"] = True
+        _bdk["bat_dau"] = time.time()
         try:
             bat_dau = time.time()
             _bdk.update(html=_dung_bang_dieu_khien(), luc=time.time(), loi="")
@@ -250,6 +262,7 @@ def lam_moi_bang_dieu_khien() -> None:
             logging.getLogger("hoanbao_bot").exception("Lỗi dựng bảng điều khiển")
         finally:
             _bdk["dang_dung"] = False
+            _bdk["buoc"] = ""
 
 
 def _lam_moi_ngam() -> None:
@@ -258,7 +271,8 @@ def _lam_moi_ngam() -> None:
 
 
 def dung_bang_dieu_khien() -> str:
-    """Trả về ngay bản gần nhất. Nếu đã cũ thì làm mới ngầm cho lần mở sau, nên mở trang luôn nhanh."""
+    """Trả về ngay bản gần nhất. Nếu đã cũ thì làm mới ngầm cho lần mở sau, nên mở trang luôn nhanh.
+    Chưa có bản nào thì trả trang chờ ngay (không giữ yêu cầu, vì giữ sẽ chiếm hết luồng của máy chủ)."""
     import time
 
     if _bdk["html"]:
@@ -266,13 +280,12 @@ def dung_bang_dieu_khien() -> str:
             _lam_moi_ngam()
         return _bdk["html"]
     _lam_moi_ngam()
-    for _ in range(50):  # lần đầu sau khi máy chủ khởi động: chờ tối đa khoảng 25 giây
-        time.sleep(0.5)
-        if _bdk["html"]:
-            return _bdk["html"]
+    ghi = ""
     if _bdk["loi"]:
-        return TRANG_DANG_TAI.replace("vài giây nữa là xong…", "gặp lỗi, đang thử lại (" + _bdk["loi"].replace("<", "") + ")")
-    return TRANG_DANG_TAI
+        ghi = " Gặp lỗi, đang thử lại: " + _bdk["loi"].replace("<", "")
+    elif _bdk["buoc"]:
+        ghi = " Đang ở bước: " + _bdk["buoc"].replace("<", "")
+    return TRANG_DANG_TAI.replace("vài giây nữa là xong…", "vài giây nữa là xong…" + ghi)
 
 
 _kho_xem = None
