@@ -282,6 +282,9 @@ _luong_dung: list = []  # luồng đang dựng; nếu luồng đã mất (vd. m�
 def _lam_moi_ngam() -> None:
     if _bdk["dang_dung"] and any(t.is_alive() for t in _luong_dung):
         return
+    global _khoa_dung
+    if _bdk["dang_dung"]:  # luồng cũ đã mất giữa chừng: khóa của nó có thể còn kẹt, đổi khóa mới
+        _khoa_dung = threading.Lock()
     t = threading.Thread(target=lam_moi_bang_dieu_khien, daemon=True, name="bdk-dung")
     _luong_dung[:] = [t]
     t.start()
