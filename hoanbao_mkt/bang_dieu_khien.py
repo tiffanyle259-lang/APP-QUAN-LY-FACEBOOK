@@ -296,6 +296,11 @@ JS_NHOM = r"""
     else{anh.hidden=true;tai.hidden=true}
   }
   bai.addEventListener('change',capNhatAnh);
+  document.getElementById('hn-goc').addEventListener('click',function(){
+    var o=bai.options[bai.selectedIndex];
+    if(!o||!o.dataset.nd){bao('Chưa có bài Fanpage nào để lấy.',true);return}
+    nd.value=o.dataset.nd;document.getElementById('hn-loi').hidden=true;
+  });
   document.addEventListener('click',function(e){
     var b=e.target.closest('.nhom-soan');if(!b)return;
     dong=b.dataset.dong;ten.textContent='Nhóm: '+b.dataset.ten;mo.href=b.dataset.link;nd.value='';capNhatAnh();hn.showModal();
@@ -305,7 +310,7 @@ JS_NHOM = r"""
     var loi=document.getElementById('hn-loi');loi.hidden=true;
     soan.disabled=true;soan.textContent='Đang soạn, chờ khoảng 10-30 giây…';
     gui({hanh:'nhom_soan_bai',dong:dong,ma_bai:bai.value}).then(function(x){
-      soan.disabled=false;soan.textContent='Soạn bài cho nhóm này';
+      soan.disabled=false;soan.textContent='AI soạn lại cho nhóm này';
       if(!x.ok){loi.textContent='Không soạn được: '+(x.j.loi||'lỗi không rõ');loi.hidden=false;return}
       nd.value=x.j.noi_dung||'';
       if(!nd.value){loi.textContent='AI không trả về bài, thử lại.';loi.hidden=false}
@@ -626,12 +631,14 @@ def dung_html(d: dict) -> str:
                         "<div class='canhbao'>Chưa có nhóm nào. Bấm “+ Thêm nhóm” và dán link các nhóm anh/chị đã tham gia.</div>"))
         goc = [b for b in bai if b["trang_thai"] != "Bỏ" and (b.get("noi_dung") or "").strip()]
         tuy_bai = "".join(
-            f"<option value='{_e(b['ma_bai'])}' data-fid='{_e((_DRIVE_ID.search(b.get('media') or '') or [None, ''])[1])}'>"
+            f"<option value='{_e(b['ma_bai'])}' data-fid='{_e((_DRIVE_ID.search(b.get('media') or '') or [None, ''])[1])}' "
+            f"data-nd='{_e((b.get('noi_dung') or '')[:5000])}'>"
             f"{_e(_ngay(b['ngay']))} · {_e(b['loai'])} · {_e((b['noi_dung'] or '')[:40])}</option>" for b in goc[-40:][::-1])
         hop_nhom = ("<dialog id='hop-nhom' aria-labelledby='hn-tieu-de'><div class='hn'><h3 id='hn-tieu-de'>Soạn bài đăng nhóm</h3>"
                     "<div class='ghi-nho' id='hn-ten'></div><label>Lấy ý từ bài Fanpage: "
                     f"<select id='hn-bai'>{tuy_bai}</select></label>"
-                    "<button type='button' class='bt chinh' id='hn-soan'>Soạn bài cho nhóm này</button>"
+                    "<div class='acts'><button type='button' class='bt chinh' id='hn-goc'>Dùng nguyên bài gốc (nhanh)</button>"
+                    "<button type='button' class='bt' id='hn-soan'>AI soạn lại cho nhóm này</button></div>"
                     "<div class='ghi-nho' id='hn-loi' style='color:var(--loi)' hidden></div>"
                     "<textarea id='hn-nd' placeholder='Bài soạn xong sẽ hiện ở đây, có thể sửa tay trước khi sao chép.'></textarea>"
                     "<img id='hn-anh' alt='Ảnh đi kèm bài' hidden>"
