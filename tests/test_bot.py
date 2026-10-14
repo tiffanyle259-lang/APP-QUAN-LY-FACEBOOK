@@ -650,3 +650,16 @@ def test_bang_dieu_khien_co_tab_bao_cao():
     h = dung_html(d)
     assert "id='p-bao-cao'" in h and "Bài &lt;A&gt;" in h
     assert "id='p-bao-cao'" not in dung_html({**d, "bao_cao": None})
+
+
+def test_nhap_khach_quang_cao_tu_csv_meta():
+    from hoanbao_mkt.nhap_khach import chuan_sdt, doc_csv_quang_cao
+
+    assert chuan_sdt("+84912345678") == "0912345678" and chuan_sdt("0912 345 678") == "0912345678"
+    csv_text = ("id,created_time,form_name,campaign_name,full_name,phone_number,lead_status\\n"
+                "L1,2026-10-10T00:30:00-07:00,Form A,Camp,Nguyễn An,+84912345678,complete\\n"
+                ",2026-10-10T00:30:00-07:00,Form A,Camp,Thiếu mã,+84900000000,complete\\n").replace("\\n", "\n")
+    rows = doc_csv_quang_cao(csv_text)
+    assert len(rows) == 1
+    assert rows[0] == ["10/10/2026 14:30", "Quảng cáo Facebook", "lead:L1", "Nguyễn An", "0912345678",
+                       "Quảng cáo: Form A", "Để lại thông tin qua biểu mẫu quảng cáo", "Mới", ""]

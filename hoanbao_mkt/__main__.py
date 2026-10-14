@@ -8,6 +8,7 @@
   dang-ky-webhook --url https://...         Nối Facebook với máy chủ chatbot (webhook)
   chan-doan --url https://...               Chẩn đoán chatbot: tin có tới không, lỗi ở đâu
   tao-thu-muc                               Tạo sẵn các thư mục con trong Kho-Marketing
+  nhap-khach --file khach.csv               Nhập khách từ quảng cáo (CSV của Meta) vào tab Khách hàng
   bao-cao-tuan                              Báo cáo tương tác 7 ngày qua, lưu vào Sheet, gửi email
   kiem-tra                                  Kiểm tra kết nối Facebook, Drive, Sheet, Claude
 """
@@ -283,6 +284,18 @@ def bao_cao_tuan(cfg: CauHinh, args) -> None:
         print(f"Bỏ qua email: {e}")
 
 
+def nhap_khach(cfg: CauHinh, args) -> None:
+    """Nhập file CSV khách từ quảng cáo Facebook vào tab 'Khách hàng' (không nhập trùng, không gửi email)."""
+    from hoanbao_bot.khach import SoKhach
+
+    from .nhap_khach import doc_csv_quang_cao
+
+    rows = doc_csv_quang_cao(Path(args.file).read_text(encoding="utf-8-sig"))
+    _, sheets = _google(cfg)
+    them, da_co = SoKhach(sheets, CauHinh.bien("SHEET_DUYET_ID")).nhap_nhieu(rows)
+    print(f"Đã thêm {them} khách mới từ quảng cáo, {da_co} khách đã có từ trước.")
+
+
 def tao_thu_muc(cfg: CauHinh, args) -> None:
     """Tạo sẵn các thư mục con trong Kho-Marketing (chạy lại an toàn, không tạo trùng)."""
     from .kho_anh import KhoDrive
@@ -411,6 +424,8 @@ def main(argv=None) -> None:
     t.add_argument("--tuan")
     sub.add_parser("len-lich")
     sub.add_parser("tao-thu-muc")
+    nk = sub.add_parser("nhap-khach")
+    nk.add_argument("--file", required=True)
     sub.add_parser("bao-cao-tuan")
     nn = sub.add_parser("nhap-nhom")
     nn.add_argument("--file", required=True)
@@ -428,7 +443,7 @@ def main(argv=None) -> None:
     cfg = CauHinh.doc()
     lenh = {"xem-ke-hoach": xem_ke_hoach, "tao-tuan": tao_tuan, "len-lich": len_lich,
             "tao-thu-muc": tao_thu_muc, "chan-doan": chan_doan_bot, "dang-ky-webhook": dang_ky_webhook, "bang-dieu-khien": bang_dieu_khien, "phan-loai": phan_loai_kho, "gan-anh": gan_anh, "kiem-tra": kiem_tra,
-            "nhap-nhom": nhap_nhom, "bao-cao-tuan": bao_cao_tuan}
+            "nhap-nhom": nhap_nhom, "bao-cao-tuan": bao_cao_tuan, "nhap-khach": nhap_khach}
     try:
         lenh[args.lenh](cfg, args)
     except ThieuCauHinh as e:

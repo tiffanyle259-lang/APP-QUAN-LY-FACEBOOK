@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 import smtplib
 from datetime import datetime
 from email.message import EmailMessage
@@ -40,6 +41,25 @@ class SoKhach:
             self.svc.values().update(spreadsheetId=self.id, range=f"'{TAB}'!A1", valueInputOption="RAW",
                                      body={"values": [TIEU_DE]}).execute()
         self._san_sang = True
+
+    def nhap_nhieu(self, rows: list[list[str]]) -> tuple[int, int]:
+        """Nhập hàng loạt khách (đủ 9 cột như TIEU_DE), bỏ khách đã có (cùng mã ở cột C hoặc cùng số điện thoại)."""
+        self._dam_bao()
+        cu = self.svc.values().get(spreadsheetId=self.id, range=f"'{TAB}'!A2:E5000").execute().get("values", [])
+        ma_cu = {str(r[2]).strip() for r in cu if len(r) > 2 and str(r[2]).strip()}
+        sdt_cu = {re.sub(r"\D", "", str(r[4]))[-9:] for r in cu if len(r) > 4 and re.sub(r"\D", "", str(r[4]))}
+        moi = []
+        for r in rows:
+            sdt = re.sub(r"\D", "", r[4])[-9:]
+            if r[2] in ma_cu or (sdt and sdt in sdt_cu):
+                continue
+            ma_cu.add(r[2])
+            sdt and sdt_cu.add(sdt)
+            moi.append(r)
+        for i in range(0, len(moi), 100):
+            self.svc.values().append(spreadsheetId=self.id, range=f"'{TAB}'!A1", valueInputOption="RAW",
+                                     insertDataOption="INSERT_ROWS", body={"values": moi[i:i + 100]}).execute()
+        return len(moi), len(rows) - len(moi)
 
     def ghi(self, kenh: str, psid: str, ten: str, sdt: str, nhu_cau: str, ly_do: str, luc: datetime) -> None:
         self._dam_bao()
