@@ -663,3 +663,13 @@ def test_nhap_khach_quang_cao_tu_csv_meta():
     assert len(rows) == 1
     assert rows[0] == ["10/10/2026 14:30", "Quảng cáo Facebook", "lead:L1", "Nguyễn An", "0912345678",
                        "Quảng cáo: Form A", "Để lại thông tin qua biểu mẫu quảng cáo", "Mới", ""]
+
+
+def test_nhom_co_nut_da_dang_ngoai_dong_nhom():
+    from hoanbao_mkt.bang_dieu_khien import dung_html
+
+    n = {"dong": 2, "ten": "N1", "link": "https://www.facebook.com/groups/a", "nganh": "Khác", "luat": "", "cach": 7,
+         "lan_cuoi": "", "so_lan": "0", "trang_thai": "Đang dùng"}
+    d = {"cap_nhat": "x", "page": "P", "che_do_duyet": True, "sheet_url": "", "kho": [], "bai": [], "sua_duoc": True,
+         "nhom": [n, {**n, "dong": 3, "trang_thai": "Tạm dừng"}]}
+    assert dung_html(d).count("data-hanh='nhom_da_dang'") == 1  # nhóm tạm dừng không có nút

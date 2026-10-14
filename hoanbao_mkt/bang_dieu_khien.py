@@ -263,6 +263,7 @@ JS = r"""
     var b=e.target.closest('button[data-hanh]');if(!b)return;
     var h=b.dataset.hanh;
     if(h==='email_thu')gui({hanh:h},b);
+    else if(h==='nhom_da_dang'){if(confirm(b.dataset.hoi||'Xác nhận đã đăng?'))gui({hanh:h,dong:b.dataset.dong},b)}
     else if(h==='nhom_trang_thai')gui({hanh:h,dong:b.dataset.dong,trang_thai:b.dataset.tt},b);
     else if(h==='bai_huy_lich'){if(confirm(b.dataset.hoi||'Hủy lịch bài này?'))gui({hanh:h,ma_bai:b.dataset.ma},b)}
     else if(h==='bai_trang_thai')gui({hanh:h,ma_bai:b.dataset.ma,trang_thai:b.dataset.tt},b);
@@ -615,6 +616,8 @@ def dung_html(d: dict) -> str:
                 f"<div class='acts'><button type='button' class='bt chinh nhom-soan' data-dong='{n['dong']}' data-ten='{_e(n['ten'])}' "
                 f"data-link='{_e(n['link'])}'>Soạn bài và đăng</button>"
                 f"<a class='bt' href='{_e(n['link'])}' target='_blank' rel='noopener'>Mở nhóm</a>"
+                + (f"<button type='button' class='bt' data-hanh='nhom_da_dang' data-dong='{n['dong']}' "
+                   f"data-hoi='Xác nhận đã đăng bài vào nhóm này?'>Đã đăng</button>" if n["trang_thai"] != TAM_DUNG else "") +
                 f"<button type='button' class='bt' data-hanh='nhom_trang_thai' data-dong='{n['dong']}' data-tt='{_e(nut_tt[1])}'>{nut_tt[0]}</button>"
                 "</div></article>")
         tuy_nganh = "".join(f"<option>{_e(x)}</option>" for x in NGANH)
