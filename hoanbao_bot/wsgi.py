@@ -46,6 +46,7 @@ def ram_mb() -> int:
 
 
 from hoanbao_mkt import bang_dieu_khien as bdk
+from hoanbao_mkt.bao_cao import doc_bao_cao
 from hoanbao_mkt.cau_hinh import CauHinh
 from hoanbao_mkt.du_lieu import doc_du_lieu
 from hoanbao_mkt.facebook import Fanpage
@@ -263,6 +264,10 @@ def _dung_bang_dieu_khien() -> str:
     except Exception as e:
         d["nhom"] = None
         d["nhom_loi"] = type(e).__name__
+    try:
+        d["bao_cao"] = doc_bao_cao(sheets.spreadsheets(), CauHinh.bien("SHEET_DUYET_ID"))
+    except Exception:
+        d["bao_cao"] = None
     buoc("đọc tin nhắn Messenger")
     luc_hoi, hoi, loi_hoi = _cache_cham["hoi_thoai"]
     if hoi is None or time.time() - luc_hoi > TUOI_HOI_THOAI:

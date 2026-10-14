@@ -652,6 +652,21 @@ def dung_html(d: dict) -> str:
         nhom_html = ("<h2>Nhóm Facebook</h2><div class='canhbao'>Chưa đọc được tab <b>Nhóm</b> trong Google Sheet ("
                      + _e(d["nhom_loi"]) + ").</div>")
 
+    bao_cao_html = ""
+    if d.get("bao_cao") is not None:
+        dong_bc = []
+        for r in d["bao_cao"]:
+            top = "".join(f"<li>{_e(t.strip())}</li>" for t in (r["top"] or "").split(" | ") if t.strip())
+            doi = _e(r["doi"]) or "—"
+            dong_bc.append(f"<tr><td>{_e(r['ngay'])}</td><td>{_e(r['nguoi'])} <small>({doi})</small></td><td>{_e(r['bai'])}</td>"
+                           f"<td>{_e(r['cam_xuc'])}</td><td>{_e(r['binh_luan'])}</td><td>{_e(r['chia_se'])}</td>"
+                           f"<td>{_e(r['khach'])}</td><td><ul style='margin:0;padding-left:16px'>{top}</ul></td></tr>")
+        bao_cao_html = ("<h2>Báo cáo tuần <small>tự cập nhật sáng Thứ 2 từ số liệu thật của Facebook</small></h2>"
+                        + ("<div class='scroll'><table><thead><tr><th>Ngày</th><th>Người theo dõi</th><th>Số bài</th><th>Cảm xúc</th>"
+                           "<th>Bình luận</th><th>Chia sẻ</th><th>Khách mới</th><th>Bài nổi bật</th></tr></thead><tbody>"
+                           + "".join(dong_bc) + "</tbody></table></div>" if dong_bc else
+                           "<div class='canhbao'>Chưa có báo cáo nào. Báo cáo đầu tiên sẽ có sau sáng Thứ 2 tới, hoặc chạy tay trong GitHub → Actions → Báo cáo tuần.</div>"))
+
     chat_html = ""
     if d.get("hoi_thoai"):
         ds_ten, ds_chat = [], []
@@ -713,7 +728,7 @@ def dung_html(d: dict) -> str:
     n_khach_moi = sum(1 for r in (d.get("khach") or []) if (r[7] or "Mới").strip() == "Mới")
     n_kho = cho_phan_loai + xem_lai
     tabs = [("tong-quan", "Tổng quan", 0), ("bai-dang", "Bài đăng", dem["Chờ duyệt"]),
-            ("khach-hang", "Khách hàng", n_khach_moi)] + ([("nhom", "Nhóm", n_nhom_san_sang)] if nhom_html else []) + [("tin-nhan", "Tin nhắn", 0), ("kho-anh", "Kho ảnh", n_kho)] + ([("he-thong", "Hệ thống", ht_hong)] if he_thong else [])
+            ("khach-hang", "Khách hàng", n_khach_moi)] + ([("nhom", "Nhóm", n_nhom_san_sang)] if nhom_html else []) + ([("bao-cao", "Báo cáo", 0)] if bao_cao_html else []) + [("tin-nhan", "Tin nhắn", 0), ("kho-anh", "Kho ảnh", n_kho)] + ([("he-thong", "Hệ thống", ht_hong)] if he_thong else [])
     thanh_tab = "".join(
         f"<button type='button' role='tab' class='tab' id='t-{k}' data-tab='{k}' aria-controls='p-{k}'>{ten}"
         f"{f'<i class=dau>{n}</i>' if n else ''}</button>" for k, ten, n in tabs)
@@ -722,6 +737,7 @@ def dung_html(d: dict) -> str:
         "bai-dang": f"<h2>Lịch bài đăng <small>{len(bai)} bài · đăng lên Fanpage {ten_page}</small></h2>{ds_html}",
         "khach-hang": khach_html or "<div class='canhbao'>Chưa có dữ liệu khách hàng.</div>",
         "nhom": nhom_html,
+        "bao-cao": bao_cao_html,
         "tin-nhan": f"<h2>Tin nhắn gần đây <small>đọc trực tiếp từ Messenger, bấm một cuộc để xem</small></h2>{chat_html}",
         "he-thong": ht_html,
         "kho-anh": kho_html or ("<div class='canhbao'>Đang đếm ảnh trong kho, vài chục giây nữa sẽ có số liệu. Tải lại trang sau ít phút.</div>"

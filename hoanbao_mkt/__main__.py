@@ -8,6 +8,7 @@
   dang-ky-webhook --url https://...         Nối Facebook với máy chủ chatbot (webhook)
   chan-doan --url https://...               Chẩn đoán chatbot: tin có tới không, lỗi ở đâu
   tao-thu-muc                               Tạo sẵn các thư mục con trong Kho-Marketing
+  bao-cao-tuan                              Báo cáo tương tác 7 ngày qua, lưu vào Sheet, gửi email
   kiem-tra                                  Kiểm tra kết nối Facebook, Drive, Sheet, Claude
 """
 
@@ -249,6 +250,39 @@ def nhap_nhom(cfg: CauHinh, args) -> None:
         print("  -", b)
 
 
+def bao_cao_tuan(cfg: CauHinh, args) -> None:
+    """Lấy số liệu tương tác 7 ngày qua từ Facebook, lưu vào tab 'Báo cáo tuần', gửi email nếu đã cấu hình."""
+    from datetime import timedelta
+
+    from . import bao_cao
+    from .facebook import Fanpage
+
+    bay_gio = datetime.now(cfg.mui_gio)
+    page = Fanpage(CauHinh.bien("FB_PAGE_ID"), CauHinh.bien("FB_PAGE_TOKEN"), cfg["facebook"]["graph_version"])
+    ten = page.kiem_tra()
+    _, sheets = _google(cfg)
+    sheet_id = CauHinh.bien("SHEET_DUYET_ID")
+    so = bao_cao.SoBaoCao(sheets, sheet_id)
+    bai = page.bai_da_dang(bay_gio - timedelta(days=7))
+    try:
+        dong_khach = sheets.spreadsheets().values().get(
+            spreadsheetId=sheet_id, range="'Khách hàng'!A2:A2000").execute().get("values", [])
+    except Exception:
+        dong_khach = []
+    khach = bao_cao.dem_khach_moi(dong_khach, bay_gio - timedelta(days=7))
+    dong = bao_cao.tinh(bai, page.so_nguoi_theo_doi(), so.nguoi_theo_doi_cuoi(), khach, bay_gio)
+    so.ghi(dong)
+    print(bao_cao.noi_dung_email(dong, ten))
+    try:
+        from hoanbao_bot.khach import email_da_cau_hinh, gui_email_chi_tiet
+
+        if email_da_cau_hinh():
+            ok, ly_do = gui_email_chi_tiet(bao_cao.noi_dung_email(dong, ten))
+            print("Đã gửi email báo cáo." if ok else f"Không gửi được email: {ly_do}")
+    except Exception as e:
+        print(f"Bỏ qua email: {e}")
+
+
 def tao_thu_muc(cfg: CauHinh, args) -> None:
     """Tạo sẵn các thư mục con trong Kho-Marketing (chạy lại an toàn, không tạo trùng)."""
     from .kho_anh import KhoDrive
@@ -377,6 +411,7 @@ def main(argv=None) -> None:
     t.add_argument("--tuan")
     sub.add_parser("len-lich")
     sub.add_parser("tao-thu-muc")
+    sub.add_parser("bao-cao-tuan")
     nn = sub.add_parser("nhap-nhom")
     nn.add_argument("--file", required=True)
     sub.add_parser("phan-loai")
@@ -393,7 +428,7 @@ def main(argv=None) -> None:
     cfg = CauHinh.doc()
     lenh = {"xem-ke-hoach": xem_ke_hoach, "tao-tuan": tao_tuan, "len-lich": len_lich,
             "tao-thu-muc": tao_thu_muc, "chan-doan": chan_doan_bot, "dang-ky-webhook": dang_ky_webhook, "bang-dieu-khien": bang_dieu_khien, "phan-loai": phan_loai_kho, "gan-anh": gan_anh, "kiem-tra": kiem_tra,
-            "nhap-nhom": nhap_nhom}
+            "nhap-nhom": nhap_nhom, "bao-cao-tuan": bao_cao_tuan}
     try:
         lenh[args.lenh](cfg, args)
     except ThieuCauHinh as e:

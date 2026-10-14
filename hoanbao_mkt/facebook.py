@@ -32,6 +32,27 @@ class Fanpage:
             raise LoiFacebook(f"{loi.get('message', r.text)} (mã {loi.get('code')})")
         return body
 
+    def so_nguoi_theo_doi(self) -> int:
+        r = requests.get(f"{self.graph}/{self.page_id}", params={"fields": "followers_count,fan_count",
+                                                                  "access_token": self.token}, timeout=30)
+        body = r.json()
+        if "error" in body:
+            raise LoiFacebook(body["error"].get("message"))
+        return int(body.get("followers_count") or body.get("fan_count") or 0)
+
+    def bai_da_dang(self, tu_luc: datetime) -> list[dict]:
+        """Các bài đã đăng từ thời điểm tu_luc, kèm số cảm xúc, bình luận, chia sẻ."""
+        r = requests.get(
+            f"{self.graph}/{self.page_id}/published_posts",
+            params={"since": int(tu_luc.timestamp()), "limit": 50, "access_token": self.token,
+                    "fields": "id,created_time,message,permalink_url,shares,"
+                              "reactions.summary(total_count).limit(0),comments.summary(total_count).limit(0)"},
+            timeout=60)
+        body = r.json()
+        if "error" in body:
+            raise LoiFacebook(body["error"].get("message"))
+        return body.get("data", [])
+
     def xoa(self, doi_tuong_id: str) -> None:
         """Xóa bài/ảnh/video (dùng để hủy bài đã hẹn giờ). Đã không còn thì coi như xong."""
         r = requests.delete(f"{self.graph}/{doi_tuong_id}", params={"access_token": self.token}, timeout=60)

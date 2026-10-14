@@ -624,3 +624,29 @@ def test_nhap_nhom_tu_van_ban():
     assert [r[2] for r in rows] == ["Sofa, nệm, nội thất", "Giày dép, túi da", "Đồ gỗ, tủ bếp"]
     assert rows[1][3] == "không dán link" and rows[0][3].startswith("Chưa kiểm tra nội quy")
     assert len(bo) == 3
+
+
+def test_bao_cao_tuan_tinh_so_lieu():
+    from datetime import datetime
+
+    from hoanbao_mkt.bao_cao import dem_khach_moi, tinh
+
+    bai = [{"id": "1", "created_time": "t", "message": "Bài A\nchi tiết", "permalink_url": "https://fb/a",
+            "reactions": {"summary": {"total_count": 10}}, "comments": {"summary": {"total_count": 2}}, "shares": {"count": 1}},
+           {"id": "2", "message": "Bài B", "reactions": {"summary": {"total_count": 3}}}]
+    dong = tinh(bai, 120, 100, 4, datetime(2026, 10, 19))
+    assert dong[:8] == ["19/10/2026", "120", "+20", "2", "13", "2", "1", "4"]
+    assert dong[8].startswith("Bài A (cảm xúc 10, bình luận 2, chia sẻ 1) https://fb/a")
+    assert tinh([], 5, None, 0, datetime(2026, 10, 19))[2] == ""
+    assert dem_khach_moi([["15/10/2026 10:00"], ["01/09/2026 10:00"], ["hỏng"]], datetime(2026, 10, 12)) == 1
+
+
+def test_bang_dieu_khien_co_tab_bao_cao():
+    from hoanbao_mkt.bang_dieu_khien import dung_html
+
+    d = {"cap_nhat": "x", "page": "P", "che_do_duyet": True, "sheet_url": "", "kho": [], "bai": [], "sua_duoc": True,
+         "bao_cao": [{"ngay": "19/10/2026", "nguoi": "120", "doi": "+20", "bai": "2", "cam_xuc": "13", "binh_luan": "2",
+                      "chia_se": "1", "khach": "4", "top": "Bài <A> | Bài B"}]}
+    h = dung_html(d)
+    assert "id='p-bao-cao'" in h and "Bài &lt;A&gt;" in h
+    assert "id='p-bao-cao'" not in dung_html({**d, "bao_cao": None})
