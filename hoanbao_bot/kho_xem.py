@@ -88,8 +88,9 @@ class KhoXem:
             if r.status_code == 200 and r.content:
                 return r.content
         if f["mimeType"].startswith("image/"):  # không có ảnh xem trước từ Drive: tải ảnh gốc rồi thu nhỏ
-            if int(f.get("size") or 0) > 6_000_000:  # ảnh quá nặng có thể làm máy chủ hết bộ nhớ
-                raise NgoaiKho("Ảnh quá lớn để xem trước.")
+            # Giải mã ảnh gốc rất tốn RAM (PNG 4000x4000 ≈ 100 MB), máy chủ chỉ có 512 MB: chỉ ảnh nhỏ mới giải mã.
+            if int(f.get("size") or 0) > 1_500_000:
+                raise NgoaiKho("Ảnh quá lớn để xem trước, bấm 'Mở ảnh gốc trên Google Drive'.")
             from PIL import Image
 
             with _MOT_ANH_GOC:  # giải mã ảnh lớn rất tốn RAM: mỗi lần chỉ một ảnh

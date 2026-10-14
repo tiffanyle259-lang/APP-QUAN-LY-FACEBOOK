@@ -405,7 +405,7 @@ def _anh_nho(link: str, qua_may_chu: bool = False) -> str:
     m = _DRIVE_ID.search(link or "")
     if not m:
         return "<span>Chưa có ảnh/video.<br>Đăng chỉ chữ.</span>"
-    nguon = (f"/api/anh/{m.group(1)}" if qua_may_chu
+    nguon = (f"/api/anh/{m.group(1)}?s=360" if qua_may_chu
              else f"https://drive.google.com/thumbnail?id={m.group(1)}&sz=w400")
     return (f"<span>Đang tải ảnh…</span><img loading='lazy' alt='Ảnh hoặc video sẽ đăng kèm bài' referrerpolicy='no-referrer' "
             f"src='{nguon}' onerror=\"this.previousElementSibling.textContent='Chưa xem trước được. Mở bài trên Facebook để xem ảnh đã gắn.';this.remove()\">")

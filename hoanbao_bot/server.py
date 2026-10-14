@@ -7,6 +7,7 @@ import hmac
 import json
 import logging
 import os
+import threading
 from concurrent.futures import ThreadPoolExecutor
 
 from pathlib import Path
@@ -38,6 +39,9 @@ def chu_ky_hop_le(raw: bytes, header: str, app_secret: str) -> bool:
         return False
     mong_doi = hmac.new(app_secret.encode(), raw, hashlib.sha256).hexdigest()
     return hmac.compare_digest(mong_doi, header[len("sha256="):])
+
+
+_MOT_LUC_ANH = threading.BoundedSemaphore(2)
 
 
 def tao_ung_dung(bot, app_secret: str, verify_token: str, chay=None, moi_truong=None, bang_dieu_khien=None, thao_tac=None, kho_xem=None) -> Flask:
@@ -104,7 +108,8 @@ def tao_ung_dung(bot, app_secret: str, verify_token: str, chay=None, moi_truong=
         except ValueError:
             canh = 640
         try:
-            noi_dung = kho_xem.anh_nho(file_id, canh)
+            with _MOT_LUC_ANH:  # tối đa 2 ảnh xử lý cùng lúc, trang có hàng chục ảnh không làm tràn bộ nhớ
+                noi_dung = kho_xem.anh_nho(file_id, canh)
         except ValueError as e:
             return str(e), 404
         except Exception:
