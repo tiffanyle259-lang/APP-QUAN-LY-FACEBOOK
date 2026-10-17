@@ -277,8 +277,13 @@ JS = r"""
     else if(h==='nhom_da_dang'){if(confirm(b.dataset.hoi||'Xác nhận đã đăng?'))gui({hanh:h,dong:b.dataset.dong},b)}
     else if(h==='nhom_trang_thai')gui({hanh:h,dong:b.dataset.dong,trang_thai:b.dataset.tt},b);
     else if(h==='bai_huy_lich'){if(confirm(b.dataset.hoi||'Hủy lịch bài này?'))gui({hanh:h,ma_bai:b.dataset.ma},b)}
-    else if(h==='bai_trang_thai')gui({hanh:h,ma_bai:b.dataset.ma,trang_thai:b.dataset.tt},b);
-    else if(h==='bai_noi_dung'){var ta=document.getElementById('nd-'+b.dataset.ma);gui({hanh:h,ma_bai:b.dataset.ma,noi_dung:ta?ta.value:''},b)}
+    else if(h==='bai_trang_thai'){var tt=b.dataset.tt;gui({hanh:h,ma_bai:b.dataset.ma,trang_thai:tt},b,function(){
+      var card=b.closest('.post'),lop={'Chờ duyệt':'s-cho','Duyệt':'s-duyet','Bỏ':'s-bo'},bd=card&&card.querySelector('.row .badge');
+      if(bd){bd.textContent=tt;bd.className='badge '+(lop[tt]||'s-moi')}
+      if(card)card.dataset.tt=tt;
+      var a=b.closest('.acts');if(a){a.innerHTML='';var m=document.createElement('div');m.className='ghi-nho';
+        m.textContent=tt==='Duyệt'?'Đã duyệt. App sẽ lên lịch trong vòng 1 giờ.':tt==='Bỏ'?'Đã bỏ bài này.':'Đã đưa về chờ duyệt.';a.appendChild(m)}})}
+    else if(h==='bai_noi_dung'){var ta=document.getElementById('nd-'+b.dataset.ma);gui({hanh:h,ma_bai:b.dataset.ma,noi_dung:ta?ta.value:''},b,function(){})}
   });
   document.addEventListener('change',function(e){
     var s=e.target.closest('select[data-hanh="khach_trang_thai"]');if(!s)return;

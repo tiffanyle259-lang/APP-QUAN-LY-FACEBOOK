@@ -542,12 +542,20 @@ def thao_tac(lenh: dict) -> dict:
         raise LoiThaoTac("Thao tác không hỗ trợ.")
     if hanh == "khach_trang_thai":
         _cache_cham["hoi_thoai"] = (0.0, None, "")
-    if hanh in ("bai_media", "bai_da_chia_se"):  # trình duyệt tự đổi khung ảnh ngay; bản lưu dựng lại ngầm cho lần mở sau
-        _bdk["luc"] = 0.0
-        _bdk["dung_lai"] = True  # nếu đang có bản dựng chạy dở (đọc Sheet trước khi ghi), dựng lại sau khi nó xong
-        _lam_moi_ngam()
-    else:
-        lam_moi_bang_dieu_khien()  # dựng lại ngay để lần tải lại sau thao tác thấy đúng dữ liệu mới
+    # Trả lời ngay sau khi đã ghi vào Sheet; bảng điều khiển dựng lại ngầm. Máy chủ yếu dựng cả trang mất cả phút,
+    # giữ yêu cầu chờ lâu thì trình duyệt báo "mất kết nối".
+    import time
+
+    t0 = time.time()
+    _bdk["luc"] = 0.0
+    _bdk["dung_lai"] = True  # nếu đang có bản dựng chạy dở (đọc Sheet trước khi ghi), dựng lại sau khi nó xong
+    _lam_moi_ngam()
+    if hanh not in ("bai_media", "bai_da_chia_se", "bai_trang_thai", "bai_noi_dung"):
+        # các thao tác cần thấy danh sách mới ngay (thêm nhóm, hủy lịch, khách...): đợi bản mới tối đa ~25 giây
+        for _ in range(50):
+            if _bdk["bat_dau"] >= t0 and _bdk["luc"] > _bdk["bat_dau"] and not _bdk["dang_dung"]:
+                break
+            time.sleep(0.5)
     return {"ok": True}
 
 
