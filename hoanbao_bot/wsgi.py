@@ -544,6 +544,27 @@ def thao_tac(lenh: dict) -> dict:
     return {"ok": True}
 
 
+def _nap_san_thu_vien() -> None:
+    """Nạp sẵn mọi thư viện hay bị nạp "lười" giữa chừng, ở luồng chính lúc khởi động.
+    Nếu để các luồng nền vừa nạp vừa chạy thì có thể kẹt đợi khóa nạp thư viện (importlib) và bảng điều khiển đứng mãi."""
+    import importlib
+
+    for ten in ("netrc", "shlex", "encodings.idna", "http.cookiejar", "urllib.request", "smtplib", "ssl",
+                "google.oauth2.service_account", "googleapiclient.discovery", "googleapiclient.http",
+                "google_auth_httplib2", "httplib2", "PIL.Image", "zoneinfo"):
+        try:
+            importlib.import_module(ten)
+        except Exception:
+            logging.getLogger("hoanbao_bot").warning("Không nạp sẵn được %s", ten)
+    try:  # một lần gọi thử để requests nạp nốt phần "lười" (netrc, proxy...)
+        import requests
+
+        requests.Session().merge_environment_settings("https://graph.facebook.com", {}, None, None, None)
+    except Exception:
+        pass
+
+
+_nap_san_thu_vien()
 logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO"))
 _bot, _secret, _verify = tao_bot()
 app = tao_ung_dung(_bot, _secret, _verify, moi_truong=kiem_moi_truong, bang_dieu_khien=dung_bang_dieu_khien, thao_tac=thao_tac,
