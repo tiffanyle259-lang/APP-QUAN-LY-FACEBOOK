@@ -262,6 +262,14 @@ JS = r"""
     document.getElementById('hop-bo').addEventListener('click',function(){gui({hanh:'bai_media',ma_bai:maBai,file_id:''},this,function(){capNhatKhung('')})});
   }
   document.addEventListener('click',function(e){
+    var c=e.target.closest('.chep-loi');
+    if(c){
+      var t=c.dataset.loi||'';
+      function xong(){bao('Đã sao chép lời dẫn. Bấm Chia sẻ rồi dán (Ctrl+V) vào ô nội dung.')}
+      if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(xong,function(){bao('Không sao chép được, hãy tự gõ lời dẫn.',true)})}
+      else{var ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');xong()}catch(x){bao('Không sao chép được.',true)}ta.remove()}
+      return;
+    }
     var b=e.target.closest('button[data-hanh]');if(!b)return;
     var h=b.dataset.hanh;
     if(h==='email_thu')gui({hanh:h},b);
@@ -485,8 +493,12 @@ def dung_html(d: dict) -> str:
         if (bay_gio_vn - gio_dang).total_seconds() < 300:
             return "<div class='ghi-nho'>Chưa đến giờ đăng, đến giờ sẽ có nút chia sẻ lên trang cá nhân.</div>"
         url = quote(f"https://www.facebook.com/{b['facebook_id']}", safe="")
+        dau = next((x.strip() for x in (b.get("noi_dung") or "").splitlines() if x.strip() and not x.strip().startswith("#")), "")
+        loi_dan = (f"{dau[:180]}\n\n" if dau else "") + "Cần tư vấn keo dán, anh/chị nhắn Fanpage hoặc Zalo 0976.884.341 nhé."
+        chep = (f"<button type='button' class='bt chep-loi' data-loi='{_e(loi_dan)}'>Sao chép lời dẫn (tùy chọn)</button>"
+                if sua else "")
         return (f"<div class='acts'><a class='bt chinh' href='https://www.facebook.com/sharer/sharer.php?u={url}' "
-                "target='_blank' rel='noopener'>Chia sẻ lên trang cá nhân</a></div>")
+                f"target='_blank' rel='noopener'>Chia sẻ lên trang cá nhân</a>{chep}</div>")
 
     def nut(ma, tt, nhan, chinh=False):
         return (f"<button type='button' class='bt{' chinh' if chinh else ''}' data-hanh='bai_trang_thai' "

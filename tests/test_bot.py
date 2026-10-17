@@ -689,3 +689,17 @@ def test_nut_chia_se_chi_hien_khi_bai_da_dang():
     assert "sharer.php?u=https%3A%2F%2Fwww.facebook.com%2F123_456" in h
     assert "Chưa đến giờ đăng" in h
 
+
+
+def test_chia_se_co_ca_nut_chia_se_va_nut_sao_chep_loi_dan_tuy_chon():
+    from hoanbao_mkt.bang_dieu_khien import dung_html
+
+    b = {"ma_bai": "a", "ngay": "2020-01-01", "gio": "08:00", "loai": "L", "media": "", "trang_thai": "Đã lên lịch",
+         "ghi_chu": "", "facebook_id": "1_2", "noi_dung": "#tag\nXưởng sofa <dán> bị bong?\nchi tiết"}
+    d = {"cap_nhat": "x", "page": "P", "che_do_duyet": True, "sheet_url": "", "kho": [], "bai": [b]}
+    xem = dung_html(d)
+    assert "Chia sẻ lên trang cá nhân</a>" in xem and "chep-loi" not in xem   # bản chỉ xem: chỉ có nút chia sẻ
+    h = dung_html({**d, "sua_duoc": True})
+    assert "Chia sẻ lên trang cá nhân</a>" in h
+    assert "class='bt chep-loi'" in h and "Xưởng sofa &lt;dán&gt; bị bong?" in h and "0976.884.341" in h
+    assert "#tag" not in h.split("data-loi=")[1].split("'")[1]
