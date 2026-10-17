@@ -34,6 +34,18 @@ def giam_ram() -> None:
             pass
 
 
+def ram_dinh_mb() -> int:
+    """RAM lớn nhất từng dùng từ lúc khởi động (VmHWM)."""
+    try:
+        with open("/proc/self/status") as f:
+            for dong in f:
+                if dong.startswith("VmHWM:"):
+                    return int(dong.split()[1]) // 1024
+    except Exception:
+        pass
+    return -1
+
+
 def ram_mb() -> int:
     try:
         with open("/proc/self/status") as f:
@@ -95,7 +107,8 @@ def kiem_moi_truong() -> dict:
         ket_qua[ten] = "có" if os.environ.get(ten, "").strip() else "THIẾU"
     ket_qua["bang_dieu_khien"] = {"da_co_ban": bool(_bdk["html"]), "dang_dung": _bdk["dang_dung"],
                                   "loi": _bdk["loi"] or "không", "dang_dem_kho": _cache_cham["dang_dem"],
-                                  "buoc": _bdk["buoc"] or "-", "dang_o": _noi_dang_ket(), "ram_mb": ram_mb()}
+                                  "buoc": _bdk["buoc"] or "-", "dang_o": _noi_dang_ket(), "ram_mb": ram_mb(), "ram_dinh_mb": ram_dinh_mb(),
+                                  "ram_cac_lan_dung": _bdk.get("ram_lich_su", [])}
     ket_qua["ghi_so_khach"] = "có" if _bot.so_khach else "KHÔNG (không nối được Google Sheet)"
     return ket_qua
 
@@ -315,7 +328,9 @@ def lam_moi_bang_dieu_khien() -> None:
         _bdk["bat_dau"] = time.time()
         try:
             bat_dau = time.time()
+            ram_truoc = ram_mb()
             _bdk.update(html=_dung_bang_dieu_khien(), luc=time.time(), loi="")
+            _bdk["ram_lich_su"] = (_bdk.get("ram_lich_su", []) + [f"{ram_truoc}->{ram_mb()}MB/{time.time() - bat_dau:.0f}s"])[-8:]
             logging.getLogger("hoanbao_bot").info("Dựng bảng điều khiển mất %.1f giây", time.time() - bat_dau)
         except Exception as e:
             _bdk["loi"] = f"{type(e).__name__}: {str(e)[:160]}"
@@ -326,6 +341,24 @@ def lam_moi_bang_dieu_khien() -> None:
             giam_ram()
     if _bdk.pop("dung_lai", False):  # ngoài khóa, tránh tự chặn mình
         lam_moi_bang_dieu_khien()
+
+
+_hen_gio: list = []
+
+
+def _hen_dung_lai(giay: float = 20.0) -> None:
+    """Hẹn dựng lại bảng điều khiển sau ít giây; hẹn rồi thì không hẹn thêm (gom nhiều thao tác thành một lần dựng)."""
+    if _hen_gio and _hen_gio[0].is_alive():
+        return
+
+    def chay():
+        _bdk["dung_lai"] = True
+        _lam_moi_ngam()
+
+    t = threading.Timer(giay, chay)
+    t.daemon = True
+    _hen_gio[:] = [t]
+    t.start()
 
 
 _luong_dung: list = []  # luồng đang dựng; nếu luồng đã mất (vd. máy chủ rẽ tiến trình) thì cờ "đang dựng" là cờ ma
@@ -542,16 +575,19 @@ def thao_tac(lenh: dict) -> dict:
         raise LoiThaoTac("Thao tác không hỗ trợ.")
     if hanh == "khach_trang_thai":
         _cache_cham["hoi_thoai"] = (0.0, None, "")
-    # Trả lời ngay sau khi đã ghi vào Sheet; bảng điều khiển dựng lại ngầm. Máy chủ yếu dựng cả trang mất cả phút,
-    # giữ yêu cầu chờ lâu thì trình duyệt báo "mất kết nối".
+    # Trả lời ngay sau khi đã ghi vào Sheet. Dựng lại cả bảng điều khiển rất nặng với máy chủ 512 MB, nên các thao tác
+    # nhỏ (duyệt, bỏ, sửa, đổi ảnh, đánh dấu) chỉ hẹn dựng lại MỘT lần sau 20 giây dù bấm bao nhiêu lần;
+    # trình duyệt đã tự đổi nhãn nên không cần chờ.
     import time
 
-    t0 = time.time()
     _bdk["luc"] = 0.0
-    _bdk["dung_lai"] = True  # nếu đang có bản dựng chạy dở (đọc Sheet trước khi ghi), dựng lại sau khi nó xong
-    _lam_moi_ngam()
-    if hanh not in ("bai_media", "bai_da_chia_se", "bai_trang_thai", "bai_noi_dung"):
-        # các thao tác cần thấy danh sách mới ngay (thêm nhóm, hủy lịch, khách...): đợi bản mới tối đa ~25 giây
+    if hanh in ("bai_media", "bai_da_chia_se", "bai_trang_thai", "bai_noi_dung", "nhom_da_dang", "nhom_trang_thai"):
+        _hen_dung_lai()
+    else:
+        # thao tác cần thấy danh sách mới ngay (thêm nhóm, hủy lịch, khách...): dựng ngay, đợi tối đa ~25 giây
+        t0 = time.time()
+        _bdk["dung_lai"] = True
+        _lam_moi_ngam()
         for _ in range(50):
             if _bdk["bat_dau"] >= t0 and _bdk["luc"] > _bdk["bat_dau"] and not _bdk["dang_dung"]:
                 break
