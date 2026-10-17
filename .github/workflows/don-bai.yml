@@ -1,0 +1,38 @@
+name: Dọn bài trong Sheet
+
+on:
+  # Chạy tay. duyet: Duyệt tất cả bài "Chờ duyệt" còn hạn đăng (trừ bài AI cảnh báo).
+  # bo-qua-gio: chuyển bài "Chờ duyệt" đã quá giờ đăng sang "Bỏ". dinh-dang: tô màu dòng theo Trạng thái.
+  # Chọn "thu" = true để chỉ xem trước, không ghi gì.
+  workflow_dispatch:
+    inputs:
+      viec:
+        description: "Việc cần làm"
+        required: true
+        type: choice
+        options: ["duyet", "bo-qua-gio", "dinh-dang"]
+      thu:
+        description: "Chỉ xem trước (không ghi vào Sheet)"
+        required: true
+        default: true
+        type: boolean
+
+concurrency:
+  group: fanpage
+  cancel-in-progress: false
+
+jobs:
+  chay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+      SHEET_DUYET_ID: ${{ secrets.SHEET_DUYET_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python -m hoanbao_mkt don-bai --viec "${{ inputs.viec }}" ${{ inputs.thu && '--thu' || '' }}

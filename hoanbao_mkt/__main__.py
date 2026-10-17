@@ -304,6 +304,29 @@ def che_do_duyet(cfg: CauHinh, args) -> None:
     print(f"Chế độ duyệt: {'BẬT (duyệt tay)' if sheet.che_do_duyet(True) else 'TẮT (bài sạch tự lên lịch)'}")
 
 
+def don_bai(cfg: CauHinh, args) -> None:
+    """--viec duyet | bo-qua-gio | dinh-dang. Thêm --thu để chỉ xem trước, không ghi."""
+    from . import don_bai as db
+
+    _, sheets = _google(cfg)
+    sheet = SheetDuyet(sheets, CauHinh.bien("SHEET_DUYET_ID"))
+    if args.viec == "dinh-dang":
+        print(f"Đã tô màu theo trạng thái ({sheet.dinh_dang_mau()} màu) trong tab Bài viết.")
+        return
+    bay_gio = datetime.now(cfg.mui_gio)
+    doi, bo_qua = db.chon_bai(sheet.doc_tat_ca(), args.viec, bay_gio, cfg.mui_gio)
+    moi = db.trang_thai_moi(args.viec)
+    print(f"{'XEM TRƯỚC: ' if args.thu else ''}{len(doi)} bài sẽ chuyển sang '{moi}', {len(bo_qua)} bài giữ nguyên.")
+    for b in doi:
+        print(f"  - {b.ma_bai} ({b.ngay} {b.gio}) -> {moi}")
+        if not args.thu:
+            sheet.dat_trang_thai(b.dong, moi)
+            if args.viec == "bo-qua-gio":
+                sheet.dat_ghi_chu(b.dong, "Quá giờ đăng, đã bỏ khi dọn bài")
+    for b, ly_do in bo_qua:
+        print(f"  . {b.ma_bai} ({b.ngay} {b.gio}) giữ nguyên: {ly_do}")
+
+
 def tao_thu_muc(cfg: CauHinh, args) -> None:
     """Tạo sẵn các thư mục con trong Kho-Marketing (chạy lại an toàn, không tạo trùng)."""
     from .kho_anh import KhoDrive
@@ -432,6 +455,9 @@ def main(argv=None) -> None:
     t.add_argument("--tuan")
     sub.add_parser("len-lich")
     sub.add_parser("tao-thu-muc")
+    db_ = sub.add_parser("don-bai")
+    db_.add_argument("--viec", choices=["duyet", "bo-qua-gio", "dinh-dang"], required=True)
+    db_.add_argument("--thu", action="store_true")
     cd2 = sub.add_parser("che-do-duyet")
     cd2.add_argument("--dat", choices=["BAT", "TAT"], required=True)
     nk = sub.add_parser("nhap-khach")
@@ -453,7 +479,7 @@ def main(argv=None) -> None:
     cfg = CauHinh.doc()
     lenh = {"xem-ke-hoach": xem_ke_hoach, "tao-tuan": tao_tuan, "len-lich": len_lich,
             "tao-thu-muc": tao_thu_muc, "chan-doan": chan_doan_bot, "dang-ky-webhook": dang_ky_webhook, "bang-dieu-khien": bang_dieu_khien, "phan-loai": phan_loai_kho, "gan-anh": gan_anh, "kiem-tra": kiem_tra,
-            "nhap-nhom": nhap_nhom, "bao-cao-tuan": bao_cao_tuan, "nhap-khach": nhap_khach, "che-do-duyet": che_do_duyet}
+            "nhap-nhom": nhap_nhom, "bao-cao-tuan": bao_cao_tuan, "nhap-khach": nhap_khach, "che-do-duyet": che_do_duyet, "don-bai": don_bai}
     try:
         lenh[args.lenh](cfg, args)
     except ThieuCauHinh as e:

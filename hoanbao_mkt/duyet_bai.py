@@ -140,6 +140,25 @@ class SheetDuyet:
             ).execute()
         return len(moi)
 
+    def dat_ghi_chu(self, dong: int, ghi_chu: str) -> None:
+        self._ghi(f"'{TAB_BAI}'!H{dong}", [[ghi_chu]])
+
+    def dinh_dang_mau(self) -> int:
+        """Tô màu cả dòng trong tab Bài viết theo Trạng thái (cột G). Chạy lại an toàn: xóa luật cũ rồi tạo lại."""
+        info = self.svc.get(spreadsheetId=self.id, fields="sheets(properties(sheetId,title),conditionalFormats)").execute()
+        tab = next(t for t in info["sheets"] if t["properties"]["title"] == TAB_BAI)
+        tab_id = tab["properties"]["sheetId"]
+        yc = [{"deleteConditionalFormatRule": {"sheetId": tab_id, "index": 0}} for _ in tab.get("conditionalFormats", [])]
+        mau = [(CHO_DUYET, (1.0, 0.95, 0.70)), (DUYET, (0.85, 0.92, 1.0)), (DA_LEN_LICH, (0.85, 0.95, 0.85)),
+               (LOI, (1.0, 0.85, 0.85)), (BO, (0.88, 0.88, 0.88))]
+        for i, (tt, (r, g, b)) in enumerate(mau):
+            yc.append({"addConditionalFormatRule": {"index": i, "rule": {
+                "ranges": [{"sheetId": tab_id, "startRowIndex": 1, "endRowIndex": 2000, "startColumnIndex": 0, "endColumnIndex": 10}],
+                "booleanRule": {"condition": {"type": "CUSTOM_FORMULA", "values": [{"userEnteredValue": f'=$G2="{tt}"'}]},
+                                "format": {"backgroundColor": {"red": r, "green": g, "blue": b}}}}}})
+        self.svc.batchUpdate(spreadsheetId=self.id, body={"requests": yc}).execute()
+        return len(mau)
+
     def dat_da_chia_se(self, dong: int, ngay: str) -> None:
         self._ghi(f"'{TAB_BAI}'!J{dong}", [[ngay]])
 
