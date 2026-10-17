@@ -76,6 +76,7 @@ class DongBai:
     trang_thai: str
     ghi_chu: str
     facebook_id: str
+    da_chia_se: str = ""  # ngày đã chia sẻ bài lên trang cá nhân (cột J), để nhân viên biết bài nào đã chia sẻ
 
 
 class SheetDuyet:
@@ -96,6 +97,7 @@ class SheetDuyet:
 
         if not self._lay(f"'{TAB_BAI}'!A1:I1"):
             self._ghi(f"'{TAB_BAI}'!A1", [TIEU_DE])
+        self._ghi(f"'{TAB_BAI}'!J1", [["Đã chia sẻ"]])  # cột J: ngày đã chia sẻ lên trang cá nhân
         # Luôn đặt lại danh sách chọn cho cột Trạng thái (chạy lại an toàn), để người duyệt bấm chọn, không phải gõ.
         self._dropdown(co_san[TAB_BAI], 1, 1000, 6, TRANG_THAI)
         if not self._lay(f"'{TAB_CAI_DAT}'!A1:B1"):
@@ -119,10 +121,10 @@ class SheetDuyet:
 
     def doc_tat_ca(self) -> list[DongBai]:
         ds = []
-        for i, dong in enumerate(self._lay(f"'{TAB_BAI}'!A2:I"), start=2):
-            dong = list(dong) + [""] * (9 - len(dong))
+        for i, dong in enumerate(self._lay(f"'{TAB_BAI}'!A2:J"), start=2):
+            dong = list(dong) + [""] * (10 - len(dong))
             if dong[0].strip():
-                d = DongBai(i, *[str(c) for c in dong[:9]])
+                d = DongBai(i, *[str(c) for c in dong[:9]], da_chia_se=str(dong[9]).strip())
                 d.trang_thai = chuan_trang_thai(d.trang_thai)
                 ds.append(d)
         return ds
@@ -137,6 +139,9 @@ class SheetDuyet:
                 insertDataOption="INSERT_ROWS", body={"values": moi},
             ).execute()
         return len(moi)
+
+    def dat_da_chia_se(self, dong: int, ngay: str) -> None:
+        self._ghi(f"'{TAB_BAI}'!J{dong}", [[ngay]])
 
     def dat_trang_thai(self, dong: int, trang_thai: str) -> None:
         self._ghi(f"'{TAB_BAI}'!G{dong}", [[trang_thai]])

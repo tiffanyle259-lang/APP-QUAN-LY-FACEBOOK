@@ -458,6 +458,13 @@ def thao_tac(lenh: dict) -> dict:
         if "YouTube" in (bai.ghi_chu or ""):
             ghi += " (Video đã tải lên YouTube vẫn còn, xóa trong YouTube Studio nếu không muốn đăng.)"
         sheet.cap_nhat(bai.dong, CHO_DUYET, ghi, "")
+    elif hanh == "bai_da_chia_se":  # chỉ ghi dấu "đã chia sẻ" (không đụng bài trên Facebook)
+        from datetime import datetime
+
+        bai = next((b for b in sheet.doc_tat_ca() if b.ma_bai == str(lenh.get("ma_bai", ""))), None)
+        if not bai or not bai.facebook_id.strip():
+            raise LoiThaoTac("Không tìm thấy bài đã đăng này trong Sheet.")
+        sheet.dat_da_chia_se(bai.dong, datetime.now(cfg.mui_gio).strftime("%d/%m/%Y"))
     elif hanh in ("bai_trang_thai", "bai_noi_dung", "bai_media"):
         bai = next((b for b in sheet.doc_tat_ca() if b.ma_bai == str(lenh.get("ma_bai", ""))), None)
         if not bai:
@@ -535,7 +542,7 @@ def thao_tac(lenh: dict) -> dict:
         raise LoiThaoTac("Thao tác không hỗ trợ.")
     if hanh == "khach_trang_thai":
         _cache_cham["hoi_thoai"] = (0.0, None, "")
-    if hanh == "bai_media":  # trình duyệt tự đổi khung ảnh ngay; bản lưu dựng lại ngầm cho lần mở sau
+    if hanh in ("bai_media", "bai_da_chia_se"):  # trình duyệt tự đổi khung ảnh ngay; bản lưu dựng lại ngầm cho lần mở sau
         _bdk["luc"] = 0.0
         _bdk["dung_lai"] = True  # nếu đang có bản dựng chạy dở (đọc Sheet trước khi ghi), dựng lại sau khi nó xong
         _lam_moi_ngam()

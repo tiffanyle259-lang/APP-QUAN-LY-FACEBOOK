@@ -703,3 +703,15 @@ def test_chia_se_co_ca_nut_chia_se_va_nut_sao_chep_loi_dan_tuy_chon():
     assert "Chia sẻ lên trang cá nhân</a>" in h
     assert "class='bt chep-loi'" in h and "Xưởng sofa &lt;dán&gt; bị bong?" in h and "0976.884.341" in h
     assert "#tag" not in h.split("data-loi=")[1].split("'")[1]
+
+
+def test_danh_dau_da_chia_se_tren_bai():
+    from hoanbao_mkt.bang_dieu_khien import dung_html
+
+    b = {"ma_bai": "a", "ngay": "2020-01-01", "gio": "08:00", "loai": "L", "media": "", "trang_thai": "Đã lên lịch",
+         "ghi_chu": "", "facebook_id": "1_2", "noi_dung": "nd", "da_chia_se": ""}
+    d = {"cap_nhat": "x", "page": "P", "che_do_duyet": True, "sheet_url": "", "kho": [], "sua_duoc": True, "bai": [b]}
+    h = dung_html(d)
+    assert "data-hanh='bai_da_chia_se'" in h and "Đánh dấu đã chia sẻ" in h
+    h2 = dung_html({**d, "bai": [{**b, "da_chia_se": "17/10/2026"}]})
+    assert "✓ Đã chia sẻ 17/10/2026" in h2 and "data-hanh='bai_da_chia_se'" not in h2 and "Chia sẻ lại" in h2

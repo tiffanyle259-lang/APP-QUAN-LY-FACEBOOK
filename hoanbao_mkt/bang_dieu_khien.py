@@ -199,7 +199,7 @@ JS = r"""
       .then(function(x){
         if(!x.ok){bao(x.j.loi||'Không lưu được',true);if(nut)nut.disabled=false;return}
         if(x.j.thong_bao){bao(x.j.thong_bao);if(nut)nut.disabled=false;return}
-        if(sau){bao('Đã đổi');sau();if(nut)nut.disabled=false;return}
+        if(sau){bao('Đã lưu');sau();if(nut)nut.disabled=false;return}
         bao('Đã lưu');setTimeout(function(){location.reload()},700)})
       .catch(function(){bao('Mất kết nối, thử lại sau',true);if(nut)nut.disabled=false});
   }
@@ -273,6 +273,7 @@ JS = r"""
     var b=e.target.closest('button[data-hanh]');if(!b)return;
     var h=b.dataset.hanh;
     if(h==='email_thu')gui({hanh:h},b);
+    else if(h==='bai_da_chia_se')gui({hanh:h,ma_bai:b.dataset.ma},b,function(){var a=b.closest('.acts');if(a){var l=a.querySelector('a.bt');var m=document.createElement('span');m.className='badge s-ok';m.textContent='✓ Đã chia sẻ hôm nay';a.innerHTML='';a.appendChild(m);if(l){l.classList.remove('chinh');l.textContent='Chia sẻ lại';a.appendChild(l)}}});
     else if(h==='nhom_da_dang'){if(confirm(b.dataset.hoi||'Xác nhận đã đăng?'))gui({hanh:h,dong:b.dataset.dong},b)}
     else if(h==='nhom_trang_thai')gui({hanh:h,dong:b.dataset.dong,trang_thai:b.dataset.tt},b);
     else if(h==='bai_huy_lich'){if(confirm(b.dataset.hoi||'Hủy lịch bài này?'))gui({hanh:h,ma_bai:b.dataset.ma},b)}
@@ -497,8 +498,13 @@ def dung_html(d: dict) -> str:
         loi_dan = (f"{dau[:180]}\n\n" if dau else "") + "Cần tư vấn keo dán, anh/chị nhắn Fanpage hoặc Zalo 0976.884.341 nhé."
         chep = (f"<button type='button' class='bt chep-loi' data-loi='{_e(loi_dan)}'>Sao chép lời dẫn (tùy chọn)</button>"
                 if sua else "")
-        return (f"<div class='acts'><a class='bt chinh' href='https://www.facebook.com/sharer/sharer.php?u={url}' "
-                f"target='_blank' rel='noopener'>Chia sẻ lên trang cá nhân</a>{chep}</div>")
+        lien_ket = (f"<a class='bt{'' if b.get('da_chia_se') else ' chinh'}' href='https://www.facebook.com/sharer/sharer.php?u={url}' "
+                    f"target='_blank' rel='noopener'>{'Chia sẻ lại' if b.get('da_chia_se') else 'Chia sẻ lên trang cá nhân'}</a>")
+        if b.get("da_chia_se"):
+            return f"<div class='acts'><span class='badge s-ok'>✓ Đã chia sẻ {_e(b['da_chia_se'])}</span>{lien_ket}</div>"
+        danh_dau = (f"<button type='button' class='bt' data-hanh='bai_da_chia_se' data-ma='{_e(b['ma_bai'])}'>"
+                    "Đánh dấu đã chia sẻ</button>" if sua else "")
+        return f"<div class='acts'>{lien_ket}{chep}{danh_dau}</div>"
 
     def nut(ma, tt, nhan, chinh=False):
         return (f"<button type='button' class='bt{' chinh' if chinh else ''}' data-hanh='bai_trang_thai' "
@@ -817,7 +823,8 @@ def thu_thap(cfg, drive, sheets, sheet_id: str, kho_id: str, ten_page: str = "",
 
     sheet = SheetDuyet(sheets, sheet_id)
     bai = [{"ma_bai": r.ma_bai, "ngay": r.ngay, "gio": r.gio, "loai": r.loai_bai, "noi_dung": r.noi_dung,
-            "media": r.media, "trang_thai": r.trang_thai.strip(), "ghi_chu": r.ghi_chu, "facebook_id": r.facebook_id}
+            "media": r.media, "trang_thai": r.trang_thai.strip(), "ghi_chu": r.ghi_chu, "facebook_id": r.facebook_id,
+            "da_chia_se": r.da_chia_se}
            for r in sheet.doc_tat_ca()]
     dem = dem_kho_san if dem_kho_san is not None else dem_kho(cfg, drive, kho_id)
     return {"cap_nhat": datetime.now(cfg.mui_gio).strftime("%H:%M %d/%m/%Y"), "page": ten_page,
