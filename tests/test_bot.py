@@ -673,3 +673,18 @@ def test_nhom_co_nut_da_dang_ngoai_dong_nhom():
     d = {"cap_nhat": "x", "page": "P", "che_do_duyet": True, "sheet_url": "", "kho": [], "bai": [], "sua_duoc": True,
          "nhom": [n, {**n, "dong": 3, "trang_thai": "Tạm dừng"}]}
     assert dung_html(d).count("data-hanh='nhom_da_dang'") == 1  # nhóm tạm dừng không có nút
+
+
+def test_nut_chia_se_chi_hien_khi_bai_da_dang():
+    from hoanbao_mkt.bang_dieu_khien import dung_html
+
+    bai = lambda ma, ngay, tt, fid: {"ma_bai": ma, "ngay": ngay, "gio": "08:00", "loai": "L", "noi_dung": "nd", "media": "",
+                                      "trang_thai": tt, "ghi_chu": "", "facebook_id": fid}
+    d = {"cap_nhat": "x", "page": "P", "che_do_duyet": True, "sheet_url": "", "kho": [],
+         "bai": [bai("a", "2020-01-01", "Đã lên lịch", "123_456"),   # đã đăng từ lâu
+                 bai("b", "2099-01-01", "Đã lên lịch", "789"),       # chưa tới giờ
+                 bai("c", "2020-01-01", "Chờ duyệt", "")]}
+    h = dung_html(d)
+    assert h.count("Chia sẻ lên trang cá nhân</a>") == 1
+    assert "sharer.php?u=https%3A%2F%2Fwww.facebook.com%2F123_456" in h
+    assert "Chưa đến giờ đăng" in h

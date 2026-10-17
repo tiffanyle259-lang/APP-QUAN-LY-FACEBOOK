@@ -5,7 +5,9 @@ from __future__ import annotations
 import html
 import re
 from collections import Counter
+import datetime as _dtmod
 from datetime import date, datetime
+from urllib.parse import quote
 from zoneinfo import ZoneInfo
 
 CSS = """
@@ -468,6 +470,23 @@ def dung_html(d: dict) -> str:
         return ""
 
     sua = bool(d.get("sua_duoc"))
+    bay_gio_vn = _dtmod.datetime.now(ZoneInfo("Asia/Ho_Chi_Minh")).replace(tzinfo=None)
+
+    def nut_chia_se(b):
+        """Bài đã đến giờ đăng trên Fanpage thì có nút mở hộp chia sẻ của Facebook (chia sẻ lên trang cá nhân)."""
+        if b["trang_thai"] != "Đã lên lịch" or not b.get("facebook_id"):
+            return ""
+        try:
+            from .duyet_bai import doc_gio, doc_ngay
+
+            gio_dang = _dtmod.datetime.combine(doc_ngay(b["ngay"]), doc_gio(b["gio"]))
+        except Exception:
+            return ""
+        if (bay_gio_vn - gio_dang).total_seconds() < 300:
+            return "<div class='ghi-nho'>Chưa đến giờ đăng, đến giờ sẽ có nút chia sẻ lên trang cá nhân.</div>"
+        url = quote(f"https://www.facebook.com/{b['facebook_id']}", safe="")
+        return (f"<div class='acts'><a class='bt chinh' href='https://www.facebook.com/sharer/sharer.php?u={url}' "
+                "target='_blank' rel='noopener'>Chia sẻ lên trang cá nhân</a></div>")
 
     def nut(ma, tt, nhan, chinh=False):
         return (f"<button type='button' class='bt{' chinh' if chinh else ''}' data-hanh='bai_trang_thai' "
@@ -527,7 +546,7 @@ def dung_html(d: dict) -> str:
             f"<div class='row'><span class='when'>{_e(_ngay(b['ngay']))} · {_e(b['gio'])}</span>"
             f"<span class='badge {lop}'>{_e(b['trang_thai'] or 'Chưa có')}</span></div>"
             f"<div class='loai'>{_e(b['loai'])}</div>"
-            f"<div class='dich'>Đăng lên Fanpage <b>{ten_page}</b>{link_fb(b)}</div><div class='pv'>{_e(b['noi_dung'])}</div><div class='pv-full' hidden>{_e(b['noi_dung'])}</div>{ghi_chu}{hanh_dong_bai(b)}"
+            f"<div class='dich'>Đăng lên Fanpage <b>{ten_page}</b>{link_fb(b)}</div><div class='pv'>{_e(b['noi_dung'])}</div><div class='pv-full' hidden>{_e(b['noi_dung'])}</div>{ghi_chu}{hanh_dong_bai(b)}{nut_chia_se(b)}"
             f"<details><summary>{'Xem và sửa bài' if sua_noi_dung(b) else 'Xem cả bài'}</summary>"
             f"{sua_noi_dung(b) or ('<div class=body>' + _e(b['noi_dung']) + '</div>')}"
             f"<div style='margin-top:6px;font-size:13px'>{xem_anh}</div></details></div></article>")
