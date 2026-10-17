@@ -296,6 +296,14 @@ def nhap_khach(cfg: CauHinh, args) -> None:
     print(f"Đã thêm {them} khách mới từ quảng cáo, {da_co} khách đã có từ trước.")
 
 
+def che_do_duyet(cfg: CauHinh, args) -> None:
+    """Đặt chế độ duyệt bài: --dat BAT (duyệt tay) hoặc --dat TAT (bài sạch tự lên lịch)."""
+    _, sheets = _google(cfg)
+    sheet = SheetDuyet(sheets, CauHinh.bien("SHEET_DUYET_ID"))
+    sheet.dat_che_do_duyet(args.dat == "BAT")
+    print(f"Chế độ duyệt: {'BẬT (duyệt tay)' if sheet.che_do_duyet(True) else 'TẮT (bài sạch tự lên lịch)'}")
+
+
 def tao_thu_muc(cfg: CauHinh, args) -> None:
     """Tạo sẵn các thư mục con trong Kho-Marketing (chạy lại an toàn, không tạo trùng)."""
     from .kho_anh import KhoDrive
@@ -424,6 +432,8 @@ def main(argv=None) -> None:
     t.add_argument("--tuan")
     sub.add_parser("len-lich")
     sub.add_parser("tao-thu-muc")
+    cd2 = sub.add_parser("che-do-duyet")
+    cd2.add_argument("--dat", choices=["BAT", "TAT"], required=True)
     nk = sub.add_parser("nhap-khach")
     nk.add_argument("--file", required=True)
     sub.add_parser("bao-cao-tuan")
@@ -443,7 +453,7 @@ def main(argv=None) -> None:
     cfg = CauHinh.doc()
     lenh = {"xem-ke-hoach": xem_ke_hoach, "tao-tuan": tao_tuan, "len-lich": len_lich,
             "tao-thu-muc": tao_thu_muc, "chan-doan": chan_doan_bot, "dang-ky-webhook": dang_ky_webhook, "bang-dieu-khien": bang_dieu_khien, "phan-loai": phan_loai_kho, "gan-anh": gan_anh, "kiem-tra": kiem_tra,
-            "nhap-nhom": nhap_nhom, "bao-cao-tuan": bao_cao_tuan, "nhap-khach": nhap_khach}
+            "nhap-nhom": nhap_nhom, "bao-cao-tuan": bao_cao_tuan, "nhap-khach": nhap_khach, "che-do-duyet": che_do_duyet}
     try:
         lenh[args.lenh](cfg, args)
     except ThieuCauHinh as e:

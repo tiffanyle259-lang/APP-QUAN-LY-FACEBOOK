@@ -112,6 +112,11 @@ class SheetDuyet:
             return mac_dinh
         return gia_tri[0][0].strip().upper() not in {"TẮT", "TAT", "OFF", "KHÔNG"}
 
+    def dat_che_do_duyet(self, bat: bool) -> None:
+        """Đặt ô 'Chế độ duyệt' (tab Cài đặt, B1): BẬT = duyệt tay, TẮT = bài sạch tự lên lịch."""
+        self.dam_bao_cau_truc(bat)
+        self._ghi(f"'{TAB_CAI_DAT}'!B1", [["BẬT" if bat else "TẮT"]])
+
     def doc_tat_ca(self) -> list[DongBai]:
         ds = []
         for i, dong in enumerate(self._lay(f"'{TAB_BAI}'!A2:I"), start=2):
