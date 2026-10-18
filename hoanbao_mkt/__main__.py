@@ -116,6 +116,7 @@ def tao_tuan(cfg: CauHinh, args) -> None:
 
     hom_nay = datetime.now(cfg.mui_gio).date()
     da_chon: set[str] = set()
+    dang_dung = {drive_id_tu_link(d.media) for d in sheet.doc_tat_ca() if d.media.strip() and d.trang_thai.strip() != "Bỏ"} - {None}
     dong_moi = []
     for b in ds:
         bv = bai_viet.get(b.ma_bai)
@@ -129,7 +130,7 @@ def tao_tuan(cfg: CauHinh, args) -> None:
         media = None
         for tm in b.thu_muc:
             media = chon_file(kho.file_trong(tm), b.tu_khoa_media + bv.tu_khoa_media, b.uu_tien_video,
-                              da_chon, hom_nay, cfg.get("khong_lap_lai_trong_ngay", 28))
+                              da_chon, hom_nay, cfg.get("khong_lap_lai_trong_ngay", 28), dang_dung)
             if media:
                 break
         if media:
@@ -163,6 +164,7 @@ def gan_anh(cfg: CauHinh, args) -> None:
     print(f"{len(thieu)} bài chưa có ảnh/video.")
     ke_hoach: dict = {}
     da_chon: set[str] = set()
+    dang_dung = {drive_id_tu_link(x.media) for x in sheet.doc_tat_ca() if x.media.strip() and x.trang_thai.strip() != "Bỏ"} - {None}
     for d in thieu:
         try:
             ngay = doc_ngay(d.ngay)
@@ -176,7 +178,7 @@ def gan_anh(cfg: CauHinh, args) -> None:
             media = None
             for tm in b.thu_muc:
                 media = chon_file(kho.file_trong(tm), b.tu_khoa_media, b.uu_tien_video, da_chon, hom_nay,
-                                  cfg.get("khong_lap_lai_trong_ngay", 28))
+                                  cfg.get("khong_lap_lai_trong_ngay", 28), dang_dung)
                 if media:
                     break
             if not media:

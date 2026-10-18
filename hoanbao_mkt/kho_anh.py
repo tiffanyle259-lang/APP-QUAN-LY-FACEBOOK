@@ -37,6 +37,7 @@ def chon_file(
     da_chon: set[str],
     hom_nay: date,
     khong_lap_lai_trong_ngay: int,
+    dang_dung: frozenset[str] | set[str] = frozenset(),
 ) -> FileMedia | None:
     """Chấm điểm theo tên file khớp từ khóa, đúng loại (ảnh/video), lâu chưa dùng."""
     tu_khoa = [bo_dau(t) for t in tu_khoa if t.strip()]
@@ -48,7 +49,9 @@ def chon_file(
         d = khop * 3
         d += 5 if f.la_video == uu_tien_video else 0
         if f.lan_dung_cuoi and (hom_nay - f.lan_dung_cuoi).days < khong_lap_lai_trong_ngay:
-            d -= 10
+            d -= 30
+        if f.id in dang_dung:  # đang nằm trong một bài khác của Sheet (chưa/đã lên lịch)
+            d -= 30
         # Ưu tiên file chưa dùng bao giờ, rồi file lâu chưa dùng nhất.
         return (-d, f.lan_dung_cuoi or date.min, f.ten)
 
