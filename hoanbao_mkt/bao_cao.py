@@ -97,4 +97,6 @@ def noi_dung_email(dong: list[str], ten_page: str) -> str:
             f"Người theo dõi: {dong[1]}{doi}\nSố bài đã đăng: {dong[3]}\n"
             f"Cảm xúc: {dong[4]} | Bình luận: {dong[5]} | Chia sẻ: {dong[6]}\n"
             f"Khách mới để lại thông tin trong tuần: {dong[7]}\n\nBài nổi bật:\n"
-            + "\n".join(f"- {t.strip()}" for t in dong[8].split(" | ")))
+            + "\n".join(f"- {t.strip()}" for t in dong[8].split(" | "))
+            + "\n\nNhắc việc: thả ảnh/video mới vào Google Drive (Kho-Marketing/_chua-phan-loai) "
+              "để bài tuần sau có ảnh mới, không trùng.")

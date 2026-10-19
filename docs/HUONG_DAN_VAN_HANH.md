@@ -20,7 +20,7 @@ Meta không cho đăng nhóm hoặc trang cá nhân bằng API. Nhóm và chia s
 
 - **Mã nguồn:** GitHub, nhánh `claude/laughing-edison-thd2m4` (nhánh duy nhất, kho riêng tư).
 - **Google Sheet** (id trong secret `SHEET_DUYET_ID`): tab `Bài viết`, `Cài đặt`, `Khách hàng`, `Nhóm`, `Báo cáo tuần`.
-- **Google Drive kho ảnh** (`DRIVE_KHO_ID`): thư mục `Kho-Marketing` và các thư mục con theo sản phẩm. Ảnh mới thả vào `_chua-phan-loai`, AI tự xếp mỗi sáng.
+- **Google Drive kho ảnh** (`DRIVE_KHO_ID`): thư mục `Kho-Marketing` và các thư mục con theo sản phẩm. Ảnh mới thả vào `_chua-phan-loai`, AI tự xếp mỗi sáng. **Việc định kỳ của sếp: mỗi tuần thả thêm ảnh/video mới** (lịch 3 bài/ngày dùng nhiều ảnh; email báo cáo tuần có nhắc việc này).
 - **Máy chủ Render:** dịch vụ `hoanbao-bot`, gói **miễn phí** (512 MB RAM, CPU yếu, tự ngủ khi lâu không có truy cập). Địa chỉ `https://hoanbao-bot.onrender.com`. UptimeRobot gọi `/healthz` mỗi 5 phút để giữ máy chủ thức.
 - **Email báo khách mới:** Google Apps Script (`cong-cu/apps-script-gui-email.gs`) vì Render miễn phí chặn SMTP.
 - **Facebook:** ứng dụng "Hoan Bao Marketing" (id trong `config.yaml`), Page, webhook về `/webhook`.
