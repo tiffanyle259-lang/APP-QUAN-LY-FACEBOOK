@@ -38,7 +38,7 @@ Meta không cho đăng nhóm hoặc trang cá nhân bằng API. Nhóm và chia s
 |---|---|---|
 | Tạo bài cả tuần | Thứ 6, 09:07 giờ VN | AI viết bài tuần sau, ghi vào Sheet |
 | Lên lịch bài đã duyệt | Mỗi giờ, 06:23–22:23 | Hẹn giờ Facebook (và YouTube) cho bài trạng thái "Duyệt" |
-| Xếp ảnh vào kho | Hằng ngày, 08:17 | AI xếp ảnh mới vào thư mục |
+| Xếp ảnh vào kho | Mỗi 2 giờ | AI xếp ảnh mới vào thư mục |
 | Báo cáo tuần | Thứ 2, 08:07 | Lưu số liệu tương tác vào Sheet |
 | Bảng điều khiển | Hằng ngày | Xuất bản xem tĩnh |
 
