@@ -84,9 +84,13 @@ class KhoDrive:
         thu_muc = self._liet_ke(
             f"'{self.goc}' in parents and name = '{ten}' and mimeType = '{FOLDER}' and trashed = false", "id")
         ds: list[FileMedia] = []
-        for tm in thu_muc:
+        hang_doi = [tm["id"] for tm in thu_muc]  # gồm cả thư mục con (vd. KOL) lồng bên trong
+        while hang_doi:
+            tm_id = hang_doi.pop()
+            hang_doi += [d["id"] for d in self._liet_ke(
+                f"'{tm_id}' in parents and trashed = false and mimeType = '{FOLDER}'", "id")]
             for f in self._liet_ke(
-                f"'{tm['id']}' in parents and trashed = false and "
+                f"'{tm_id}' in parents and trashed = false and "
                 "(mimeType contains 'image/' or mimeType contains 'video/')",
                 "id, name, mimeType, appProperties",
             ):

@@ -26,7 +26,7 @@ from datetime import date, datetime, timedelta
 import anthropic
 
 from .cau_hinh import CauHinh, ThieuCauHinh
-from .du_lieu import DuLieuNen, doc_du_lieu
+from .du_lieu import DuLieuNen, doc_du_lieu, khung_phu
 from .duyet_bai import (CHO_DUYET, DA_LEN_LICH, DUYET, LOI, SheetDuyet, doc_gio, doc_ngay,
                         drive_id_tu_link)
 from .ke_hoach import BaiKeHoach, lap_ke_hoach, thu_hai_tuan_sau
@@ -61,7 +61,9 @@ def _doc_du_lieu(cfg: CauHinh, drive=None) -> DuLieuNen:
             while not xong:
                 _, xong = dl.next_chunk()
         duong_dan = fh.name
-    return doc_du_lieu(duong_dan, cfg.get("cot_bo_qua"))
+    du_lieu = doc_du_lieu(duong_dan, cfg.get("cot_bo_qua"))
+    du_lieu.lich = khung_phu(du_lieu.lich, cfg.get("khung_them") or [])
+    return du_lieu
 
 
 def _tuan(cfg: CauHinh, tuan: str | None) -> date:

@@ -79,6 +79,23 @@ class KhungLich:
     gio_dang: str  # "HH:MM"
 
 
+def khung_phu(lich: list["KhungLich"], khung_them: list[dict]) -> list["KhungLich"]:
+    """Thêm các khung đăng phụ vào mỗi ngày đã có bài; loại bài xoay theo thứ trong tuần."""
+    ngay_co_bai = {k.thu: k.ten_thu for k in lich}
+    moi = []
+    for kt in khung_them:
+        loai = kt.get("loai_bai") or []
+        for thu, ten_thu in sorted(ngay_co_bai.items()):
+            if not loai:
+                continue
+            moi.append(KhungLich(
+                thu=thu, ten_thu=ten_thu, loai_bai=loai[thu % len(loai)],
+                muc_tieu=kt.get("muc_tieu", "Tăng tương tác và nhận inbox"), goi_y=kt.get("goi_y", ""),
+                nguon_media=kt.get("nguon_media", "Thư mục của sản phẩm đó"), gio_dang=str(kt["gio"]).zfill(5),
+            ))
+    return lich + moi
+
+
 @dataclass
 class DuLieuNen:
     cong_ty: list[str]

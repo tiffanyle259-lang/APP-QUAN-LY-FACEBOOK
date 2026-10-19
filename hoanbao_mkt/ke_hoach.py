@@ -76,6 +76,7 @@ def lap_ke_hoach(du_lieu: DuLieuNen, thu_hai: date, cau_hinh_thu_muc: dict, mui_
     theo_nganh = cau_hinh_thu_muc.get("theo_nganh", {})
 
     ds = []
+    da_co_thu: set[int] = set()
     for khung in du_lieu.lich:
         ngay = thu_hai + timedelta(days=khung.thu)
         gio, phut = map(int, khung.gio_dang.split(":"))
@@ -105,8 +106,12 @@ def lap_ke_hoach(du_lieu: DuLieuNen, thu_hai: date, cau_hinh_thu_muc: dict, mui_
         # Dự phòng: thư mục của sản phẩm liên quan.
         thu_muc += [sp.thu_muc for sp in san_pham if sp.thu_muc and sp.thu_muc not in thu_muc]
 
+        ma_bai = f"{ngay.isoformat()}_{bo_dau(khung.ten_thu).replace(' ', '')}"
+        if khung.thu in da_co_thu:  # bài thứ 2, 3 trong ngày: thêm giờ để mã không trùng
+            ma_bai += f"_{gio:02d}{phut:02d}"
+        da_co_thu.add(khung.thu)
         ds.append(BaiKeHoach(
-            ma_bai=f"{ngay.isoformat()}_{bo_dau(khung.ten_thu).replace(' ', '')}",
+            ma_bai=ma_bai,
             ngay=ngay,
             thoi_diem=datetime.combine(ngay, time(gio, phut), tzinfo=mui_gio),
             khung=khung,

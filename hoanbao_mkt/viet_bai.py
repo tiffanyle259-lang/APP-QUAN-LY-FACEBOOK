@@ -83,7 +83,15 @@ def so_lieu_la(noi_dung: str, nguon: str) -> list[str]:
     return la
 
 
-def viet_ca_tuan(ds_bai: list[BaiKeHoach], du_lieu: DuLieuNen, model: str, effort: str) -> dict[str, BaiViet]:
+def viet_ca_tuan(ds_bai: list[BaiKeHoach], du_lieu: DuLieuNen, model: str, effort: str, moi_lan: int = 6) -> dict[str, BaiViet]:
+    """Viết theo từng nhóm vài bài một lần gọi để không bị cắt giữa chừng khi tuần có nhiều bài."""
+    ket_qua: dict[str, BaiViet] = {}
+    for i in range(0, len(ds_bai), moi_lan):
+        ket_qua |= _viet_nhom(ds_bai[i:i + moi_lan], du_lieu, model, effort)
+    return ket_qua
+
+
+def _viet_nhom(ds_bai: list[BaiKeHoach], du_lieu: DuLieuNen, model: str, effort: str) -> dict[str, BaiViet]:
     client = anthropic.Anthropic()
     phan_hoi = client.beta.messages.parse(
         model=model,

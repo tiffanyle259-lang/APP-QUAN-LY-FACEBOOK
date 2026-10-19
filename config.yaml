@@ -28,6 +28,28 @@ nguon_anh_them: []
 # Không dùng lại cùng một ảnh/video trong số ngày này (nếu kho còn file khác).
 khong_lap_lai_trong_ngay: 28
 
+# Bài đăng thêm mỗi ngày (ngoài lịch trong file Excel). Loại bài xoay vòng theo thứ trong tuần.
+# Chủ nhật (nghỉ) vẫn không đăng. Muốn ít bài hơn thì xóa bớt một khung.
+khung_them:
+  - gio: "12:00"
+    loai_bai:
+      - Giới thiệu sản phẩm
+      - Mẹo dùng keo
+      - Giới thiệu sản phẩm
+      - Mẹo dùng keo
+      - Giới thiệu sản phẩm
+      - Mẹo dùng keo
+    goi_y: "Góc nhìn khác với bài chính trong ngày: nêu 1 lợi ích cụ thể hoặc 1 tình huống xưởng hay gặp, ngắn gọn 4-6 dòng, đừng lặp ý bài sáng."
+  - gio: "20:30"
+    loai_bai:
+      - Theo ngành
+      - Giới thiệu sản phẩm
+      - Theo ngành
+      - Giới thiệu sản phẩm
+      - Theo ngành
+      - Giới thiệu sản phẩm
+    goi_y: "Bài buổi tối, giọng gần gũi: câu hỏi khách hay hỏi hoặc so sánh cách làm cũ với dùng keo phun, kết bằng lời mời inbox để được tư vấn."
+
 ai:
   model: claude-sonnet-5-5
   effort: medium

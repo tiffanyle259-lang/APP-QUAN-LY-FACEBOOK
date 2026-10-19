@@ -182,3 +182,14 @@ def test_bang_dieu_khien_html():
     assert "<script>x" not in out and "&lt;script&gt;" in out  # nội dung bị thoát, không chạy được
     assert "Thứ 2 12/10" in out and "Đã lên lịch" in out
     assert "1</b> bài đang chờ duyệt" in out and "3</b> file chưa xếp loại" in out and "keo-x66" in out
+
+
+def test_khung_them_moi_ngay_va_ma_bai_khong_trung(du_lieu):
+    from hoanbao_mkt.du_lieu import khung_phu
+    them = [{"gio": "12:00", "loai_bai": ["Mẹo dùng keo"]}, {"gio": "20:30", "loai_bai": ["Theo ngành", "Giới thiệu sản phẩm"]}]
+    du_lieu.lich = khung_phu(du_lieu.lich, them)
+    assert len(du_lieu.lich) == 18
+    ds = ke_hoach(du_lieu)
+    assert len(ds) == 18 and len({b.ma_bai for b in ds}) == 18
+    assert ds[0].ma_bai.endswith("_thu2")  # bài gốc giữ mã cũ
+    assert any(b.ma_bai.endswith("_thu2_1200") for b in ds)
