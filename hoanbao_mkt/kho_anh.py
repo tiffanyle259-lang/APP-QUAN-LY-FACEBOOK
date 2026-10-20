@@ -71,7 +71,7 @@ class KhoDrive:
             r = self.svc.files().list(
                 q=q, fields=f"nextPageToken, files({fields})", pageSize=200, pageToken=token,
                 includeItemsFromAllDrives=True, **_CHUNG,
-            ).execute()
+            ).execute(num_retries=3)  # Drive thỉnh thoảng báo lỗi 500 tạm thời
             ket_qua += r.get("files", [])
             token = r.get("nextPageToken")
             if not token:
