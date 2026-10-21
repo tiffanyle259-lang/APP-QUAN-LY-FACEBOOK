@@ -27,7 +27,8 @@ color-scheme:dark}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 "Be Vietnam Pro",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
 -webkit-font-smoothing:antialiased}
 .wrap{max-width:1080px;margin:0 auto;padding:0 16px 56px}
-.brand{background:var(--ink);color:var(--bg);border-bottom:4px solid var(--gold)}
+.brand{background:var(--ink);color:var(--bg)}
+.tabbar{position:sticky;top:0;z-index:30;background:var(--ink);color:var(--bg);border-bottom:4px solid var(--gold)}
 .brand .in{max-width:1080px;margin:0 auto;padding:18px 16px;display:flex;flex-wrap:wrap;gap:6px 20px;align-items:center;
 justify-content:space-between}
 .logo{display:flex;align-items:center;gap:12px;min-width:0}
@@ -573,7 +574,8 @@ def dung_html(d: dict) -> str:
         return f"<button type='button' class='bt doi-anh' data-ma='{_e(b['ma_bai'])}'>Đổi ảnh/video</button>"
 
     the = []
-    for b in bai:
+    hien = [b for b in bai if b["trang_thai"] != "Lỗi"]  # bài lỗi không hiện ở tab Bài đăng (số lượng vẫn có ở tab Tổng quan)
+    for b in hien:
         ghi_chu = (f"<div class='note{' loi' if b['trang_thai'] == 'Lỗi' else ''}'>{_e(b['ghi_chu'])}</div>"
                    if b.get("ghi_chu") and b["trang_thai"] != "Đã lên lịch" else "")
         lop = _LOP.get(tt_hien(b), "s-moi")
@@ -590,8 +592,8 @@ def dung_html(d: dict) -> str:
             f"{sua_noi_dung(b) or ('<div class=body>' + _e(b['noi_dung']) + '</div>')}"
             f"<div style='margin-top:6px;font-size:13px'>{xem_anh}</div></details></div></article>")
     loc = "".join(f"<button type='button' class='chip{' on' if t == 'Tất cả' else ''}' data-loc='{t}'>{t}"
-                  f"<i>{len(bai) if t == 'Tất cả' else dem.get(t, 0)}</i></button>"
-                  for t in ("Tất cả", "Chờ duyệt", "Duyệt", "Đã lên lịch", "Đã đăng", "Lỗi", "Bỏ"))
+                  f"<i>{len(hien) if t == 'Tất cả' else dem.get(t, 0)}</i></button>"
+                  for t in ("Tất cả", "Chờ duyệt", "Duyệt", "Đã lên lịch", "Đã đăng", "Bỏ"))
     ds_html = ((f"<div class='chips' role='group' aria-label='Lọc bài theo trạng thái'>{loc}</div>"
                 "<div class='grid'>" + "".join(the) + "</div>") if the else
                "<div class='empty'>Chưa có bài nào. Chạy workflow <b>Tạo bài cả tuần</b> để AI viết bài mới.</div>")
@@ -818,8 +820,8 @@ def dung_html(d: dict) -> str:
 <div class="brand"><div class="in"><div class="logo"><div class="mark">GL</div>
 <div><h1>Bảng điều khiển {ten_page}</h1><div class="sub">Golden Lion · Sư Tử Vàng</div></div></div>
 <div class="live"><span><i class="dot"></i>Đang chạy</span><span class="pill">Cập nhật {_e(d['cap_nhat'])}</span>
-{f'<span class="pill">{che_do}</span>' if che_do else ''}</div></div>
-<nav class="tabs" role="tablist" aria-label="Các mục">{thanh_tab}</nav></div>
+{f'<span class="pill">{che_do}</span>' if che_do else ''}</div></div></div>
+<div class="tabbar"><nav class="tabs" role="tablist" aria-label="Các mục">{thanh_tab}</nav></div>
 <div class="wrap">{panels}<p class="foot">{chu_cuoi}</p></div>{hop}{hop_nhom if sua else ''}{xem_to}{js}</body></html>"""
 
 
