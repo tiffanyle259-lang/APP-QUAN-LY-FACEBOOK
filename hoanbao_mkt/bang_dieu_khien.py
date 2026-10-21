@@ -393,7 +393,7 @@ JS_TAB = r"""
 })();
 </script>"""
 
-_LOP = {"Chờ duyệt": "s-cho", "Duyệt": "s-duyet", "Đã lên lịch": "s-ok", "Lỗi": "s-loi", "Bỏ": "s-bo"}
+_LOP = {"Chờ duyệt": "s-cho", "Duyệt": "s-duyet", "Đã lên lịch": "s-duyet", "Đã đăng": "s-ok", "Lỗi": "s-loi", "Bỏ": "s-bo"}
 _LOP_KHACH = {"Mới": "s-cho", "Đã gọi": "s-duyet", "Báo giá": "s-duyet", "Chốt đơn": "s-ok", "Không mua": "s-bo"}
 _THU = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật"]
 _DRIVE_ID = re.compile(r"(?:/d/|[?&]id=)([A-Za-z0-9_-]{10,})")
@@ -439,7 +439,21 @@ _DUOI_VIDEO = re.compile(r"\.(mp4|mov|m4v|avi|mkv|webm)\b", re.IGNORECASE)
 def dung_html(d: dict) -> str:
     """d: cap_nhat(str), page(str), che_do_duyet(bool|None), sheet_url(str), bai(list), kho(list)."""
     bai = sorted(d["bai"], key=lambda b: (b["ngay"], b["gio"]))
-    dem = Counter(b["trang_thai"] for b in bai)
+    bay_gio_vn = _dtmod.datetime.now(ZoneInfo("Asia/Ho_Chi_Minh")).replace(tzinfo=None)
+
+    def tt_hien(b):
+        """Bài 'Đã lên lịch' mà đã qua giờ đăng thì Facebook đã đăng rồi: hiện 'Đã đăng' cho khỏi nhầm."""
+        if b["trang_thai"] != "Đã lên lịch" or not b.get("facebook_id"):
+            return b["trang_thai"]
+        try:
+            from .duyet_bai import doc_gio, doc_ngay
+
+            gio_dang = _dtmod.datetime.combine(doc_ngay(b["ngay"]), doc_gio(b["gio"]))
+        except Exception:
+            return b["trang_thai"]
+        return "Đã đăng" if (bay_gio_vn - gio_dang).total_seconds() >= 300 else b["trang_thai"]
+
+    dem = Counter(tt_hien(b) for b in bai)
     kho_trong = [k["ten"] for k in d["kho"] if k["so_file"] == 0 and not k["ten"].startswith("_")]
     cho_phan_loai = next((k["so_file"] for k in d["kho"] if k["ten"] == "_chua-phan-loai"), 0)
     xem_lai = next((k["so_file"] for k in d["kho"] if k["ten"] == "_can-xem-lai"), 0)
@@ -471,7 +485,8 @@ def dung_html(d: dict) -> str:
         chi_so(len(bai), "Tổng số bài"),
         chi_so(dem["Chờ duyệt"], "Chờ duyệt", "canh" if dem["Chờ duyệt"] else ""),
         chi_so(dem["Duyệt"], "Đã duyệt, chờ lên lịch"),
-        chi_so(dem["Đã lên lịch"], "Đã lên lịch đăng", "xanh" if dem["Đã lên lịch"] else ""),
+        chi_so(dem["Đã đăng"], "Đã đăng trên Fanpage", "xanh" if dem["Đã đăng"] else ""),
+        chi_so(dem["Đã lên lịch"], "Đã hẹn giờ, chưa đến giờ"),
         chi_so(dem["Lỗi"], "Lỗi", "do" if dem["Lỗi"] else ""),
     ])
 
@@ -484,7 +499,6 @@ def dung_html(d: dict) -> str:
         return ""
 
     sua = bool(d.get("sua_duoc"))
-    bay_gio_vn = _dtmod.datetime.now(ZoneInfo("Asia/Ho_Chi_Minh")).replace(tzinfo=None)
 
     def nut_chia_se(b):
         """Bài đã đến giờ đăng trên Fanpage thì có nút mở hộp chia sẻ của Facebook (chia sẻ lên trang cá nhân)."""
@@ -547,6 +561,8 @@ def dung_html(d: dict) -> str:
         return "<span class='vd'>VIDEO</span>" if _DUOI_VIDEO.search(b.get("ghi_chu") or "") else ""
 
     def nut_doi_anh(b):
+        if tt_hien(b) == "Đã đăng":
+            return ""
         if sua and b["trang_thai"] == "Đã lên lịch":
             return (f"<div class='ghi-nho'>Đã lên lịch trên Facebook. Muốn đổi ảnh thì hủy lịch trước.</div>"
                     f"<button type='button' class='bt' data-hanh='bai_huy_lich' data-ma='{_e(b['ma_bai'])}' "
@@ -560,14 +576,14 @@ def dung_html(d: dict) -> str:
     for b in bai:
         ghi_chu = (f"<div class='note{' loi' if b['trang_thai'] == 'Lỗi' else ''}'>{_e(b['ghi_chu'])}</div>"
                    if b.get("ghi_chu") and b["trang_thai"] != "Đã lên lịch" else "")
-        lop = _LOP.get(b["trang_thai"], "s-moi")
+        lop = _LOP.get(tt_hien(b), "s-moi")
         xem_anh = f"<a href='{_e(b['media'])}' target='_blank' rel='noopener'>Mở ảnh/video</a>" if b.get("media") else ""
         the.append(
-            f"<article class='post' data-tt='{_e(b['trang_thai'] or 'Chưa có')}'><div class='tcol'><div class='thumb{' phong' if sua and _DRIVE_ID.search(b.get('media') or '') else ''}' "
+            f"<article class='post' data-tt='{_e(tt_hien(b) or 'Chưa có')}'><div class='tcol'><div class='thumb{' phong' if sua and _DRIVE_ID.search(b.get('media') or '') else ''}' "
             f"{phong_attr(b)}>{_anh_nho(b.get('media'), sua)}{la_video(b)}</div>{nut_doi_anh(b)}</div>"
             f"<div class='pb'>"
             f"<div class='row'><span class='when'>{_e(_ngay(b['ngay']))} · {_e(b['gio'])}</span>"
-            f"<span class='badge {lop}'>{_e(b['trang_thai'] or 'Chưa có')}</span></div>"
+            f"<span class='badge {lop}'>{_e(tt_hien(b) or 'Chưa có')}</span></div>"
             f"<div class='loai'>{_e(b['loai'])}</div>"
             f"<div class='dich'>Đăng lên Fanpage <b>{ten_page}</b>{link_fb(b)}</div><div class='pv'>{_e(b['noi_dung'])}</div><div class='pv-full' hidden>{_e(b['noi_dung'])}</div>{ghi_chu}{hanh_dong_bai(b)}{nut_chia_se(b)}"
             f"<details><summary>{'Xem và sửa bài' if sua_noi_dung(b) else 'Xem cả bài'}</summary>"
@@ -575,7 +591,7 @@ def dung_html(d: dict) -> str:
             f"<div style='margin-top:6px;font-size:13px'>{xem_anh}</div></details></div></article>")
     loc = "".join(f"<button type='button' class='chip{' on' if t == 'Tất cả' else ''}' data-loc='{t}'>{t}"
                   f"<i>{len(bai) if t == 'Tất cả' else dem.get(t, 0)}</i></button>"
-                  for t in ("Tất cả", "Chờ duyệt", "Duyệt", "Đã lên lịch", "Lỗi", "Bỏ"))
+                  for t in ("Tất cả", "Chờ duyệt", "Duyệt", "Đã lên lịch", "Đã đăng", "Lỗi", "Bỏ"))
     ds_html = ((f"<div class='chips' role='group' aria-label='Lọc bài theo trạng thái'>{loc}</div>"
                 "<div class='grid'>" + "".join(the) + "</div>") if the else
                "<div class='empty'>Chưa có bài nào. Chạy workflow <b>Tạo bài cả tuần</b> để AI viết bài mới.</div>")
@@ -765,10 +781,10 @@ def dung_html(d: dict) -> str:
                       else "<div class='todo ok'><b class='t'>Mọi bộ phận đang chạy tốt</b></div>")
                    + "<div class='kho' style='margin-top:12px'>" + dong_ht + "</div>")
     che_do = {True: "Duyệt tay: bật", False: "Tự lên lịch", None: ""}[d.get("che_do_duyet")]
-    sap_toi = [b for b in bai if b["trang_thai"] in ("Chờ duyệt", "Duyệt", "Đã lên lịch")][:4]
+    sap_toi = [b for b in bai if tt_hien(b) in ("Chờ duyệt", "Duyệt", "Đã lên lịch")][:4]
     sap_html = "".join(
         f"<div class='ln'><span class='when'>{_e(_ngay(b['ngay']))} · {_e(b['gio'])}</span><span class='loai'>{_e(b['loai'])}</span>"
-        f"<span class='badge {_LOP.get(b['trang_thai'], 's-moi')}'>{_e(b['trang_thai'])}</span></div>" for b in sap_toi)
+        f"<span class='badge {_LOP.get(tt_hien(b), 's-moi')}'>{_e(tt_hien(b))}</span></div>" for b in sap_toi)
     sap_html = f"<h2>Bài sắp đăng</h2><div class='kho'>{sap_html}</div>" if sap_html else ""
     n_khach_moi = sum(1 for r in (d.get("khach") or []) if (r[7] or "Mới").strip() == "Mới")
     n_kho = cho_phan_loai + xem_lai

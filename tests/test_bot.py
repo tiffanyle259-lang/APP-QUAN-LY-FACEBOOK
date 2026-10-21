@@ -715,3 +715,16 @@ def test_danh_dau_da_chia_se_tren_bai():
     assert "data-hanh='bai_da_chia_se'" in h and "Đánh dấu đã chia sẻ" in h
     h2 = dung_html({**d, "bai": [{**b, "da_chia_se": "17/10/2026"}]})
     assert "✓ Đã chia sẻ 17/10/2026" in h2 and "data-hanh='bai_da_chia_se'" not in h2 and "Chia sẻ lại" in h2
+
+
+def test_bai_da_qua_gio_hien_da_dang_con_bai_chua_toi_gio_van_da_len_lich():
+    from hoanbao_mkt.bang_dieu_khien import dung_html
+
+    def bai(ma, ngay):
+        return {"ma_bai": ma, "ngay": ngay, "gio": "08:00", "loai": "Mẹo", "noi_dung": "x", "media": "",
+                "trang_thai": "Đã lên lịch", "ghi_chu": "", "facebook_id": "123", "da_chia_se": ""}
+
+    html = dung_html({"cap_nhat": "x", "page": "P", "che_do_duyet": False, "sheet_url": "", "kho": [],
+                      "bai": [bai("cu", "2020-01-01"), bai("moi", "2099-01-01")]})
+    assert "<span class='badge s-ok'>Đã đăng</span>" in html
+    assert "data-tt='Đã đăng'" in html and "data-tt='Đã lên lịch'" in html
