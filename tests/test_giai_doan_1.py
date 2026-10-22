@@ -193,3 +193,14 @@ def test_khung_them_moi_ngay_va_ma_bai_khong_trung(du_lieu):
     assert len(ds) == 18 and len({b.ma_bai for b in ds}) == 18
     assert ds[0].ma_bai.endswith("_thu2")  # bài gốc giữ mã cũ
     assert any(b.ma_bai.endswith("_thu2_1200") for b in ds)
+
+
+def test_chon_file_uu_tien_cung_file_chua_dung_du_khop_tu_khoa_hon():
+    from hoanbao_mkt.kho_anh import FileMedia, chon_file
+
+    hom_nay = date(2026, 10, 22)
+    ds = [FileMedia("cu", "228 sofa phun.jpg", "image/jpeg", date(2026, 10, 20)),
+          FileMedia("trung", "228 sofa phun 2.jpg", "image/jpeg"),
+          FileMedia("moi", "anh khac.jpg", "image/jpeg")]
+    assert chon_file(ds, ["228", "sofa", "phun"], False, set(), hom_nay, 28, {"trung"}).id == "moi"
+    assert chon_file(ds, ["228"], False, {"moi"}, hom_nay, 28, {"trung"}).id == "trung"  # hết file mới thì mới dùng lại

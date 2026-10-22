@@ -56,7 +56,11 @@ def chon_file(
         return (-d, f.lan_dung_cuoi or date.min, f.ten)
 
     con_lai = [f for f in ds if f.id not in da_chon]
-    return min(con_lai, key=diem) if con_lai else None
+    # Ưu tiên cứng: file chưa dùng gần đây và không nằm trong bài nào khác; chỉ khi kho hết file như vậy mới dùng lại.
+    moi = [f for f in con_lai if f.id not in dang_dung
+           and not (f.lan_dung_cuoi and (hom_nay - f.lan_dung_cuoi).days < khong_lap_lai_trong_ngay)]
+    pool = moi or con_lai
+    return min(pool, key=diem) if pool else None
 
 
 class KhoDrive:
