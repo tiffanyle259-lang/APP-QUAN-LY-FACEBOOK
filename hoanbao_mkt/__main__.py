@@ -323,6 +323,24 @@ def don_bai(cfg: CauHinh, args) -> None:
             if b.trang_thai.strip() == CHO_DUYET:
                 print(f"===== {b.ma_bai} ({b.ngay} {b.gio}) | {b.ghi_chu}\n{b.noi_dung}\n")
         return
+    if args.viec == "doi-chieu-fb":  # chỉ đọc: so bài thật trên Facebook với Sheet
+        from .facebook import Fanpage
+        page = Fanpage(CauHinh.bien("FB_PAGE_ID"), CauHinh.bien("FB_PAGE_TOKEN"), cfg["facebook"]["graph_version"])
+        bay_gio = datetime.now(cfg.mui_gio)
+        da_dang = page.bai_da_dang(bay_gio - timedelta(days=9))
+        hen = page.bai_hen_gio()
+        print(f"Facebook: {len(da_dang)} bài đã đăng (9 ngày qua), {len(hen)} bài đang hẹn giờ.")
+        for p_ in sorted(da_dang, key=lambda x: x["created_time"]):
+            dong = next((x.strip() for x in (p_.get("message") or "").splitlines() if x.strip()), "(không có chữ)")
+            print(f"  ĐÃ ĐĂNG {p_['created_time'][:16]} | {dong[:70]}")
+        sheet_ds = [b for b in sheet.doc_tat_ca() if b.facebook_id.strip()]
+        ids_fb = {str(p_["id"]) for p_ in da_dang} | {str(p_["id"]) for p_ in hen}
+        thieu = [b for b in sheet_ds if b.trang_thai.strip() == DA_LEN_LICH and not any(
+            b.facebook_id.strip() in i or i in b.facebook_id.strip() for i in ids_fb)]
+        print(f"Sheet ghi 'Đã lên lịch' nhưng không thấy trên Facebook: {len(thieu)}")
+        for b in thieu:
+            print(f"  ! {b.ma_bai} ({b.ngay} {b.gio}) id={b.facebook_id}")
+        return
     if args.viec == "duyet-ma":  # duyệt đúng một bài đã xem kỹ
         b = next((x for x in sheet.doc_tat_ca() if x.ma_bai == args.ma), None)
         if not b or b.trang_thai.strip() != CHO_DUYET:
@@ -478,7 +496,7 @@ def main(argv=None) -> None:
     sub.add_parser("len-lich")
     sub.add_parser("tao-thu-muc")
     db_ = sub.add_parser("don-bai")
-    db_.add_argument("--viec", choices=["duyet", "bo-qua-gio", "dinh-dang", "xem", "duyet-ma"], required=True)
+    db_.add_argument("--viec", choices=["duyet", "bo-qua-gio", "dinh-dang", "xem", "duyet-ma", "doi-chieu-fb"], required=True)
     db_.add_argument("--thu", action="store_true")
     db_.add_argument("--ma", default="")
     cd2 = sub.add_parser("che-do-duyet")

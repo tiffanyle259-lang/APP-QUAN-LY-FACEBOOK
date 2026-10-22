@@ -53,6 +53,16 @@ class Fanpage:
             raise LoiFacebook(body["error"].get("message"))
         return body.get("data", [])
 
+    def bai_hen_gio(self) -> list[dict]:
+        """Các bài đang hẹn giờ, chưa đăng."""
+        r = requests.get(f"{self.graph}/{self.page_id}/scheduled_posts",
+                         params={"limit": 100, "fields": "id,scheduled_publish_time,message",
+                                 "access_token": self.token}, timeout=60)
+        body = r.json()
+        if "error" in body:
+            raise LoiFacebook(body["error"].get("message"))
+        return body.get("data", [])
+
     def xoa(self, doi_tuong_id: str) -> None:
         """Xóa bài/ảnh/video (dùng để hủy bài đã hẹn giờ). Đã không còn thì coi như xong."""
         r = requests.delete(f"{self.graph}/{doi_tuong_id}", params={"access_token": self.token}, timeout=60)
