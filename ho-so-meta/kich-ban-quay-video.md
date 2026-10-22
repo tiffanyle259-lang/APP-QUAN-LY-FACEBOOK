@@ -7,7 +7,16 @@ Meta từ chối lần 1 vì video thiếu: (1) toàn bộ quy trình **đăng n
 Quay màn hình máy tính (Windows: Win+G) ở **một lần quay liên tục**, dùng tài khoản **"Keo Dán Siêu Dính"** (có vai trò trên ứng dụng).
 Trình duyệt đặt **ngôn ngữ Facebook = English (US)** trước khi quay (Facebook → Settings → Language). Chú thích bằng chữ tiếng Anh ghi sẵn bên dưới (chèn bằng CapCut/Clipchamp, hoặc đọc to).
 
-## Cảnh 1: Đăng nhập Meta và cấp quyền (pages_show_list, pages_manage_metadata)
+## Cảnh 1 (CÁCH ĐƠN GIẢN, dùng trang Meta, không cần /ket-noi): Messenger → Cài đặt API Messenger
+1. Vào developers.facebook.com → app Hoan Bao Marketing → **Messenger → Cài đặt API Messenger**. Dừng 3 giây ở mục "1. Đặt cấu hình webhook".
+   *Chú thích: "Step 1: our server receives Page messages through this webhook."*
+2. Mở mục **"2. Tạo mã truy cập"** → bấm **"Thêm trang" (Add Page)** → hộp thoại Meta: tiếp tục, **bấm "Chỉnh sửa cài đặt" để thấy từng quyền**, chọn Page Golden Lion, bấm Tiếp/Xong.
+   *Chú thích: "The Page admin logs in with Meta and grants pages_show_list, pages_manage_metadata and pages_messaging."*
+3. Quay về bảng Page: dòng Page hiện **"messages, messaging_postbacks và feed"** (đã đăng ký webhook).
+   *Chú thích: "pages_manage_metadata: the Page is subscribed to our webhook."*
+4. Sang Cảnh 2.
+
+## Cảnh 1 (CÁCH DỰ PHÒNG, dùng trang của app): Đăng nhập Meta và cấp quyền (pages_show_list, pages_manage_metadata)
 1. Đăng xuất Facebook trước khi quay để thấy cả màn hình đăng nhập.
 2. Mở `https://hoanbao-bot.onrender.com/ket-noi`. Dừng 3 giây để người xem đọc danh sách quyền.
    *Chú thích: "Step 1: the Page admin opens our app and clicks Continue with Facebook."*
