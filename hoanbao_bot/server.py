@@ -64,6 +64,9 @@ def tao_ung_dung(bot, app_secret: str, verify_token: str, chay=None, moi_truong=
     def xoa_du_lieu():
         return send_file(trang_web / "xoa-du-lieu.html", mimetype="text/html")
 
+    from .ket_noi import dang_ky_route
+    dang_ky_route(app, os.environ.get("FB_APP_ID", "").strip() or "1570474760979317", app_secret, verify_token)
+
     @app.get("/trang-thai")
     def trang_thai():
         """Báo tình trạng bot cho công cụ chẩn đoán. Cần mật khẩu xác minh; không trả về khóa hay nội dung khách."""

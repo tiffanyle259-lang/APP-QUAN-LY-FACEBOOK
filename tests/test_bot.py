@@ -728,3 +728,39 @@ def test_bai_da_qua_gio_hien_da_dang_con_bai_chua_toi_gio_van_da_len_lich():
                       "bai": [bai("cu", "2020-01-01"), bai("moi", "2099-01-01")]})
     assert "<span class='badge s-ok'>Đã đăng</span>" in html
     assert "data-tt='Đã đăng'" in html and "data-tt='Đã lên lịch'" in html
+
+
+def test_trang_ket_noi_dang_nhap_chon_page_va_bat_tro_ly():
+    from hoanbao_bot.server import tao_ung_dung
+
+    class R:
+        def __init__(self, body): self.body, self.status_code, self.content = body, 200, b"x"
+        def json(self): return self.body
+
+    goi = []
+
+    class Http:
+        def request(self, method, url, params=None, timeout=0):
+            goi.append((method, url.split("/", 3)[-1], params))
+            if "oauth/access_token" in url: return R({"access_token": "UT"})
+            if url.endswith("/me"): return R({"name": "Boss"})
+            if url.endswith("/me/accounts"): return R({"data": [{"id": "P1", "name": "Trang A", "access_token": "PT"}]})
+            if url.endswith("/subscribed_apps"): return R({"data": [{"name": "Hoan Bao Marketing"}], "success": True})
+            return R({})
+
+    app = tao_ung_dung(object(), "sec", "vt")
+    import hoanbao_bot.ket_noi as kn
+    app2 = __import__("flask").Flask(__name__)
+    kn.dang_ky_route(app2, "123", "sec", "vt", http=Http())
+    c = app2.test_client()
+    trang = c.get("/ket-noi").get_data(as_text=True)
+    assert "pages_show_list" in trang and "dialog/oauth" in trang and "client_id=123" in trang
+    import re
+    state = re.search(r"state=([^&\"']+)", trang).group(1).replace("%2E", ".")
+    cb = c.get(f"/ket-noi/callback?code=abc&state={state}").get_data(as_text=True)
+    assert "Trang A" in cb and "Enable assistant" in cb
+    assert c.get("/ket-noi/callback?code=abc&state=sai.sai").status_code == 400
+    ok = c.post("/ket-noi/bat", data={"state": state, "page_id": "P1", "page_name": "Trang A", "t": "PT"}).get_data(as_text=True)
+    assert "Assistant enabled" in ok and "Hoan Bao Marketing" in ok
+    assert any(m == "POST" and p.endswith("subscribed_apps") for m, p, _ in goi)
+    assert "PT" not in c.get("/ket-noi").get_data(as_text=True)
