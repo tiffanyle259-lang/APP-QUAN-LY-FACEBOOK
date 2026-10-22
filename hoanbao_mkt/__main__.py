@@ -318,6 +318,20 @@ def don_bai(cfg: CauHinh, args) -> None:
 
     _, sheets = _google(cfg)
     sheet = SheetDuyet(sheets, CauHinh.bien("SHEET_DUYET_ID"))
+    if args.viec == "xem":  # chỉ đọc: in nội dung các bài đang Chờ duyệt để người duyệt xem trong log
+        for b in sheet.doc_tat_ca():
+            if b.trang_thai.strip() == CHO_DUYET:
+                print(f"===== {b.ma_bai} ({b.ngay} {b.gio}) | {b.ghi_chu}\n{b.noi_dung}\n")
+        return
+    if args.viec == "duyet-ma":  # duyệt đúng một bài đã xem kỹ
+        b = next((x for x in sheet.doc_tat_ca() if x.ma_bai == args.ma), None)
+        if not b or b.trang_thai.strip() != CHO_DUYET:
+            raise SystemExit(f"Không có bài '{args.ma}' đang Chờ duyệt.")
+        if not args.thu:
+            sheet.dat_trang_thai(b.dong, DUYET)
+            sheet.dat_ghi_chu(b.dong, "Đã kiểm tra số liệu và duyệt")
+        print(f"{'XEM TRƯỚC: ' if args.thu else ''}{b.ma_bai} -> {DUYET}")
+        return
     if args.viec == "dinh-dang":
         print(f"Đã tô màu theo trạng thái ({sheet.dinh_dang_mau()} màu) trong tab Bài viết.")
         return
@@ -464,8 +478,9 @@ def main(argv=None) -> None:
     sub.add_parser("len-lich")
     sub.add_parser("tao-thu-muc")
     db_ = sub.add_parser("don-bai")
-    db_.add_argument("--viec", choices=["duyet", "bo-qua-gio", "dinh-dang"], required=True)
+    db_.add_argument("--viec", choices=["duyet", "bo-qua-gio", "dinh-dang", "xem", "duyet-ma"], required=True)
     db_.add_argument("--thu", action="store_true")
+    db_.add_argument("--ma", default="")
     cd2 = sub.add_parser("che-do-duyet")
     cd2.add_argument("--dat", choices=["BAT", "TAT"], required=True)
     nk = sub.add_parser("nhap-khach")

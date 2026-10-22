@@ -10,7 +10,10 @@ on:
         description: "Việc cần làm"
         required: true
         type: choice
-        options: ["duyet", "bo-qua-gio", "dinh-dang"]
+        options: ["duyet", "bo-qua-gio", "dinh-dang", "xem", "duyet-ma"]
+      ma:
+        description: "Mã bài (chỉ dùng cho duyet-ma, vd 2026-10-24_thu7_2030)"
+        required: false
       thu:
         description: "Chỉ xem trước (không ghi vào Sheet)"
         required: true
@@ -35,4 +38,4 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: pip install -r requirements.txt
-      - run: python -m hoanbao_mkt don-bai --viec "${{ inputs.viec }}" ${{ inputs.thu && '--thu' || '' }}
+      - run: python -m hoanbao_mkt don-bai --viec "${{ inputs.viec }}" ${{ inputs.ma && format('--ma "{0}"', inputs.ma) || '' }} ${{ inputs.thu && '--thu' || '' }}
