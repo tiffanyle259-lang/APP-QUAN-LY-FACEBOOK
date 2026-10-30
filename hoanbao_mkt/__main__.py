@@ -339,8 +339,22 @@ def don_bai(cfg: CauHinh, args) -> None:
     """--viec duyet | bo-qua-gio | dinh-dang. Thêm --thu để chỉ xem trước, không ghi."""
     from . import don_bai as db
 
-    _, sheets = _google(cfg)
+    drive_, sheets = _google(cfg)
     sheet = SheetDuyet(sheets, CauHinh.bien("SHEET_DUYET_ID"))
+    if args.viec == "thu-muc-drive":  # chỉ đọc: các thư mục Drive đã chia sẻ cho tài khoản dịch vụ
+        kho_id = CauHinh.bien("DRIVE_KHO_ID", bat_buoc=False)
+        r = drive_.files().list(q="mimeType = 'application/vnd.google-apps.folder' and trashed = false and 'me' in owners or "
+                                  "mimeType = 'application/vnd.google-apps.folder' and trashed = false and sharedWithMe",
+                                fields="files(id,name,parents,owners(displayName),modifiedTime)", pageSize=200,
+                                includeItemsFromAllDrives=True, supportsAllDrives=True).execute()
+        ten_cha: dict[str, str] = {}
+        for f in sorted(r.get("files", []), key=lambda x: x.get("modifiedTime", ""), reverse=True):
+            cha = (f.get("parents") or [""])[0]
+            n = len(drive_.files().list(q=f"'{f['id']}' in parents and trashed = false", fields="files(id)", pageSize=200,
+                                        includeItemsFromAllDrives=True, supportsAllDrives=True).execute().get("files", []))
+            print(f"  {f['name']} | id={f['id']} | {n} mục | sửa {f.get('modifiedTime', '')[:10]}" + (" | <- KHO-MARKETING" if f["id"] == kho_id else "")
+                  + (" | nằm trong Kho" if cha == kho_id else ""))
+        return
     if args.viec == "xem":  # chỉ đọc: in nội dung các bài đang Chờ duyệt để người duyệt xem trong log
         for b in sheet.doc_tat_ca():
             if b.trang_thai.strip() == CHO_DUYET:
@@ -537,7 +551,7 @@ def main(argv=None) -> None:
     sub.add_parser("len-lich")
     sub.add_parser("tao-thu-muc")
     db_ = sub.add_parser("don-bai")
-    db_.add_argument("--viec", choices=["duyet", "bo-qua-gio", "dinh-dang", "xem", "duyet-ma", "doi-chieu-fb", "youtube"], required=True)
+    db_.add_argument("--viec", choices=["duyet", "bo-qua-gio", "dinh-dang", "xem", "duyet-ma", "doi-chieu-fb", "youtube", "thu-muc-drive"], required=True)
     db_.add_argument("--thu", action="store_true")
     db_.add_argument("--ma", default="")
     cd2 = sub.add_parser("che-do-duyet")
