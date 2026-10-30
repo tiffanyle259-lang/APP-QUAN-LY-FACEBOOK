@@ -10,7 +10,7 @@ on:
         description: "Việc cần làm"
         required: true
         type: choice
-        options: ["duyet", "bo-qua-gio", "dinh-dang", "xem", "duyet-ma", "doi-chieu-fb"]
+        options: ["duyet", "bo-qua-gio", "dinh-dang", "xem", "duyet-ma", "doi-chieu-fb", "youtube"]
       ma:
         description: "Mã bài (chỉ dùng cho duyet-ma, vd 2026-10-24_thu7_2030)"
         required: false

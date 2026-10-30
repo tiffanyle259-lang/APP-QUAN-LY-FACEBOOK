@@ -341,6 +341,20 @@ def don_bai(cfg: CauHinh, args) -> None:
         for b in thieu:
             print(f"  ! {b.ma_bai} ({b.ngay} {b.gio}) id={b.facebook_id}")
         return
+    if args.viec == "youtube":  # chỉ đọc: liệt kê video đã đẩy lên YouTube và xem đã công khai chưa
+        import re
+
+        import requests as _rq
+        tim = [(b, m.group(1)) for b in sheet.doc_tat_ca() if (m := re.search(r"youtu\.be/([\w-]{11})", b.ghi_chu or ""))]
+        loi = [b for b in sheet.doc_tat_ca() if "YouTube lỗi" in (b.ghi_chu or "")]
+        print(f"{len(tim)} bài có video YouTube, {len(loi)} bài YouTube lỗi.")
+        for b, vid in tim:
+            r = _rq.get("https://www.youtube.com/oembed", params={"url": f"https://youtu.be/{vid}", "format": "json"}, timeout=30)
+            tt = "CÔNG KHAI" if r.status_code == 200 else f"chưa công khai/riêng tư (mã {r.status_code})"
+            print(f"  {b.ngay} {b.gio} | {b.ma_bai} | https://youtu.be/{vid} | {tt}")
+        for b in loi:
+            print(f"  LỖI {b.ma_bai}: {(b.ghi_chu or '')[-200:]}")
+        return
     if args.viec == "duyet-ma":  # duyệt đúng một bài đã xem kỹ
         b = next((x for x in sheet.doc_tat_ca() if x.ma_bai == args.ma), None)
         if not b or b.trang_thai.strip() != CHO_DUYET:
@@ -496,7 +510,7 @@ def main(argv=None) -> None:
     sub.add_parser("len-lich")
     sub.add_parser("tao-thu-muc")
     db_ = sub.add_parser("don-bai")
-    db_.add_argument("--viec", choices=["duyet", "bo-qua-gio", "dinh-dang", "xem", "duyet-ma", "doi-chieu-fb"], required=True)
+    db_.add_argument("--viec", choices=["duyet", "bo-qua-gio", "dinh-dang", "xem", "duyet-ma", "doi-chieu-fb", "youtube"], required=True)
     db_.add_argument("--thu", action="store_true")
     db_.add_argument("--ma", default="")
     cd2 = sub.add_parser("che-do-duyet")
