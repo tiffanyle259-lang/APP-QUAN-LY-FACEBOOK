@@ -348,6 +348,9 @@ def don_bai(cfg: CauHinh, args) -> None:
         tim = [(b, m.group(1)) for b in sheet.doc_tat_ca() if (m := re.search(r"youtu\.be/([\w-]{11})", b.ghi_chu or ""))]
         loi = [b for b in sheet.doc_tat_ca() if "YouTube lỗi" in (b.ghi_chu or "")]
         print(f"{len(tim)} bài có video YouTube, {len(loi)} bài YouTube lỗi.")
+        for vid in [x for x in re.split(r"[,\s]+", args.ma) if x]:  # kiểm tra thêm mã video đã biết (vd bài bị ghi đè ghi chú)
+            r = _rq.get("https://www.youtube.com/oembed", params={"url": f"https://youtu.be/{vid}", "format": "json"}, timeout=30)
+            print(f"  (mã nhập tay) https://youtu.be/{vid} | " + ("CÔNG KHAI: " + r.json().get("title", "") if r.status_code == 200 else f"chưa công khai/riêng tư (mã {r.status_code})"))
         for b, vid in tim:
             r = _rq.get("https://www.youtube.com/oembed", params={"url": f"https://youtu.be/{vid}", "format": "json"}, timeout=30)
             tt = "CÔNG KHAI" if r.status_code == 200 else f"chưa công khai/riêng tư (mã {r.status_code})"
