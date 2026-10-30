@@ -343,6 +343,8 @@ def don_bai(cfg: CauHinh, args) -> None:
     sheet = SheetDuyet(sheets, CauHinh.bien("SHEET_DUYET_ID"))
     if args.viec == "thu-muc-drive":  # chỉ đọc: các thư mục Drive đã chia sẻ cho tài khoản dịch vụ
         kho_id = CauHinh.bien("DRIVE_KHO_ID", bat_buoc=False)
+        print("Email tài khoản dịch vụ của app (chia sẻ thư mục Drive cho email này, quyền Biên tập viên): "
+              + cfg.google_service_account().get("client_email", "?"))
         r = drive_.files().list(q="mimeType = 'application/vnd.google-apps.folder' and trashed = false and 'me' in owners or "
                                   "mimeType = 'application/vnd.google-apps.folder' and trashed = false and sharedWithMe",
                                 fields="files(id,name,parents,owners(displayName),modifiedTime)", pageSize=200,

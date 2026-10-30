@@ -105,6 +105,9 @@ def lap_ke_hoach(du_lieu: DuLieuNen, thu_hai: date, cau_hinh_thu_muc: dict, mui_
             thu_muc.append(m.group(1))
         # Dự phòng: thư mục của sản phẩm liên quan.
         thu_muc += [sp.thu_muc for sp in san_pham if sp.thu_muc and sp.thu_muc not in thu_muc]
+        # Chốt cuối: thư mục ảnh chung, để bài không bị kẹt "thiếu ảnh" khi thư mục sản phẩm còn trống.
+        if cau_hinh_thu_muc.get("anh_chung") and cau_hinh_thu_muc["anh_chung"] not in thu_muc:
+            thu_muc.append(cau_hinh_thu_muc["anh_chung"])
 
         ma_bai = f"{ngay.isoformat()}_{bo_dau(khung.ten_thu).replace(' ', '')}"
         if khung.thu in da_co_thu:  # bài thứ 2, 3 trong ngày: thêm giờ để mã không trùng

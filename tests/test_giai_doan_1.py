@@ -56,7 +56,7 @@ def test_ke_hoach_tuan(du_lieu):
     assert thu4.thu_muc[0] == "video-demo" and thu4.uu_tien_video
     assert thu5.thu_muc[0].startswith("nganh-")
     assert thu6.thu_muc[0] == "khach-hang"
-    assert thu7.thu_muc == ["nha-may"] and thu7.nhom_khach.mua_qua == "Đại lý"
+    assert thu7.thu_muc[0] == "nha-may" and thu7.nhom_khach.mua_qua == "Đại lý"
     # Sản phẩm của tuần đi cùng nhóm khách dùng sản phẩm đó
     assert thu2.san_pham[0].ma in thu4.nhom_khach.ma_san_pham
 
