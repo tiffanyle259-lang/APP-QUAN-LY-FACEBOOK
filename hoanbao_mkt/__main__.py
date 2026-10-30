@@ -111,13 +111,33 @@ def tao_tuan(cfg: CauHinh, args) -> None:
     kho = KhoDrive(drive, CauHinh.bien("DRIVE_KHO_ID"))
 
     du_lieu = _doc_du_lieu(cfg, drive)
-    thu_hai = _tuan(cfg, args.tuan)
-    ds = lap_ke_hoach(du_lieu, thu_hai, cfg["thu_muc"], cfg.mui_gio)
+    da_co = {d.ma_bai for d in sheet.doc_tat_ca()}
+    if getattr(args, "thang", None):  # cả tháng: mọi tuần chạm tháng đó, chỉ lấy bài có ngày trong tháng
+        nam, thg = map(int, args.thang.split("-"))
+        dau = date(nam, thg, 1)
+        thu_hai_ds = []
+        t = dau - timedelta(days=dau.weekday())
+        while t.month != (thg % 12) + 1 or t.year != nam + (thg == 12):
+            thu_hai_ds.append(t)
+            t += timedelta(days=7)
+        ds = [b for th in thu_hai_ds for b in lap_ke_hoach(du_lieu, th, cfg["thu_muc"], cfg.mui_gio)
+              if (b.ngay.year, b.ngay.month) == (nam, thg)]
+        mo_ta = f"tháng {thg}/{nam} ({len(thu_hai_ds)} tuần)"
+    else:
+        thu_hai = _tuan(cfg, args.tuan)
+        ds = lap_ke_hoach(du_lieu, thu_hai, cfg["thu_muc"], cfg.mui_gio)
+        mo_ta = f"tuần {thu_hai:%d/%m/%Y}"
+    co_san = [b for b in ds if b.ma_bai in da_co]
+    if co_san:  # bài đã có trong Sheet thì không nhờ AI viết lại (đỡ tốn tiền, không trùng)
+        print(f"Bỏ {len(co_san)} bài đã có sẵn trong Sheet.")
+        ds = [b for b in ds if b.ma_bai not in da_co]
     qua = [b for b in ds if b.thoi_diem < datetime.now(cfg.mui_gio) + timedelta(minutes=30)]
     if qua:  # tạo giữa tuần: bỏ các khung giờ đã qua, tránh bài báo lỗi "giờ đăng đã qua"
         print(f"Bỏ {len(qua)} khung giờ đã qua.")
         ds = [b for b in ds if b not in qua]
-    print(f"Tạo {len(ds)} bài cho tuần {thu_hai:%d/%m/%Y}. Chế độ duyệt: {'BẬT' if can_duyet else 'TẮT'}")
+    print(f"Tạo {len(ds)} bài cho {mo_ta}. Chế độ duyệt: {'BẬT' if can_duyet else 'TẮT'}")
+    if not ds:
+        return
     bai_viet = viet_ca_tuan(ds, du_lieu, cfg["ai"]["model"], cfg["ai"]["effort"])
 
     hom_nay = datetime.now(cfg.mui_gio).date()
@@ -217,6 +237,9 @@ def len_lich(cfg: CauHinh, args, drive=None, sheets=None) -> None:
             if not d.noi_dung.strip():
                 raise ValueError("Nội dung trống")
             thoi_diem = datetime.combine(doc_ngay(d.ngay), doc_gio(d.gio), tzinfo=cfg.mui_gio)
+            if thoi_diem - datetime.now(cfg.mui_gio) > timedelta(days=28):
+                print(f"  . {d.ma_bai}: còn quá xa (Meta chỉ nhận trong 29 ngày), giữ 'Duyệt', sẽ tự lên lịch khi tới hạn.")
+                continue
             media_id = drive_id_tu_link(d.media)
             media = kho.thong_tin(media_id) if media_id else None
             duong_dan = kho.tai_ve(media.id) if media else None
@@ -510,6 +533,7 @@ def main(argv=None) -> None:
     x.add_argument("--ai", action="store_true", help="Gọi AI viết thử (cần ANTHROPIC_API_KEY)")
     t = sub.add_parser("tao-tuan")
     t.add_argument("--tuan")
+    t.add_argument("--thang", help="Tạo cả tháng, dạng 2026-11 (bỏ qua bài đã có)")
     sub.add_parser("len-lich")
     sub.add_parser("tao-thu-muc")
     db_ = sub.add_parser("don-bai")

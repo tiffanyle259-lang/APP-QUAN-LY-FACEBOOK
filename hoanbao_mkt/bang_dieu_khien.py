@@ -440,6 +440,20 @@ _DUOI_VIDEO = re.compile(r"\.(mp4|mov|m4v|avi|mkv|webm)\b", re.IGNORECASE)
 def dung_html(d: dict) -> str:
     """d: cap_nhat(str), page(str), che_do_duyet(bool|None), sheet_url(str), bai(list), kho(list)."""
     bai = sorted(d["bai"], key=lambda b: (b["ngay"], b["gio"]))
+
+    def trong_thang_nay(b) -> bool:
+        """Sang tháng mới thì không hiện bài của các tháng trước (Sheet vẫn giữ nguyên để tra cứu)."""
+        try:
+            from .duyet_bai import doc_ngay
+
+            n = doc_ngay(b["ngay"])
+        except Exception:
+            return True
+        hn = _dtmod.datetime.now(ZoneInfo("Asia/Ho_Chi_Minh"))
+        return (n.year, n.month) >= (hn.year, hn.month)
+
+    if not d.get("khong_loc_thang"):
+        bai = [b for b in bai if trong_thang_nay(b)]
     bay_gio_vn = _dtmod.datetime.now(ZoneInfo("Asia/Ho_Chi_Minh")).replace(tzinfo=None)
 
     def tt_hien(b):

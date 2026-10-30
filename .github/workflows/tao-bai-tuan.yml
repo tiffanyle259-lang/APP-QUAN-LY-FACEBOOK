@@ -9,6 +9,9 @@ on:
       tuan:
         description: "Ngày Thứ 2 của tuần cần tạo (vd 2026-10-12). Để trống = tuần sau"
         required: false
+      thang:
+        description: "Hoặc tạo CẢ THÁNG, vd 2026-11 (bài đã có thì bỏ qua). Để trống = dùng ô trên"
+        required: false
 
 # Không cho hai lần chạy cùng lúc, tránh đăng trùng bài.
 concurrency:
@@ -18,7 +21,7 @@ concurrency:
 jobs:
   chay:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     env:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
@@ -34,6 +37,7 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: pip install -r requirements.txt
-      - run: python -m hoanbao_mkt tao-tuan ${TUAN:+--tuan "$TUAN"}
+      - run: python -m hoanbao_mkt tao-tuan ${THANG:+--thang "$THANG"} ${TUAN:+--tuan "$TUAN"}
         env:
           TUAN: ${{ inputs.tuan }}
+          THANG: ${{ inputs.thang }}

@@ -680,7 +680,7 @@ def test_nut_chia_se_chi_hien_khi_bai_da_dang():
 
     bai = lambda ma, ngay, tt, fid: {"ma_bai": ma, "ngay": ngay, "gio": "08:00", "loai": "L", "noi_dung": "nd", "media": "",
                                       "trang_thai": tt, "ghi_chu": "", "facebook_id": fid}
-    d = {"cap_nhat": "x", "page": "P", "che_do_duyet": True, "sheet_url": "", "kho": [],
+    d = {"cap_nhat": "x", "page": "P", "che_do_duyet": True, "sheet_url": "", "kho": [], "khong_loc_thang": True,
          "bai": [bai("a", "2020-01-01", "Đã lên lịch", "123_456"),   # đã đăng từ lâu
                  bai("b", "2099-01-01", "Đã lên lịch", "789"),       # chưa tới giờ
                  bai("c", "2020-01-01", "Chờ duyệt", "")]}
@@ -696,7 +696,7 @@ def test_chia_se_co_ca_nut_chia_se_va_nut_sao_chep_loi_dan_tuy_chon():
 
     b = {"ma_bai": "a", "ngay": "2020-01-01", "gio": "08:00", "loai": "L", "media": "", "trang_thai": "Đã lên lịch",
          "ghi_chu": "", "facebook_id": "1_2", "noi_dung": "#tag\nXưởng sofa <dán> bị bong?\nchi tiết"}
-    d = {"cap_nhat": "x", "page": "P", "che_do_duyet": True, "sheet_url": "", "kho": [], "bai": [b]}
+    d = {"cap_nhat": "x", "page": "P", "che_do_duyet": True, "sheet_url": "", "kho": [], "khong_loc_thang": True, "bai": [b]}
     xem = dung_html(d)
     assert "Chia sẻ lên trang cá nhân</a>" in xem and "chep-loi" not in xem   # bản chỉ xem: chỉ có nút chia sẻ
     h = dung_html({**d, "sua_duoc": True})
@@ -710,7 +710,7 @@ def test_danh_dau_da_chia_se_tren_bai():
 
     b = {"ma_bai": "a", "ngay": "2020-01-01", "gio": "08:00", "loai": "L", "media": "", "trang_thai": "Đã lên lịch",
          "ghi_chu": "", "facebook_id": "1_2", "noi_dung": "nd", "da_chia_se": ""}
-    d = {"cap_nhat": "x", "page": "P", "che_do_duyet": True, "sheet_url": "", "kho": [], "sua_duoc": True, "bai": [b]}
+    d = {"cap_nhat": "x", "page": "P", "che_do_duyet": True, "sheet_url": "", "kho": [], "khong_loc_thang": True, "sua_duoc": True, "bai": [b]}
     h = dung_html(d)
     assert "data-hanh='bai_da_chia_se'" in h and "Đánh dấu đã chia sẻ" in h
     h2 = dung_html({**d, "bai": [{**b, "da_chia_se": "17/10/2026"}]})
@@ -724,7 +724,7 @@ def test_bai_da_qua_gio_hien_da_dang_con_bai_chua_toi_gio_van_da_len_lich():
         return {"ma_bai": ma, "ngay": ngay, "gio": "08:00", "loai": "Mẹo", "noi_dung": "x", "media": "",
                 "trang_thai": "Đã lên lịch", "ghi_chu": "", "facebook_id": "123", "da_chia_se": ""}
 
-    html = dung_html({"cap_nhat": "x", "page": "P", "che_do_duyet": False, "sheet_url": "", "kho": [],
+    html = dung_html({"cap_nhat": "x", "page": "P", "che_do_duyet": False, "sheet_url": "", "kho": [], "khong_loc_thang": True,
                       "bai": [bai("cu", "2020-01-01"), bai("moi", "2099-01-01")]})
     assert "<span class='badge s-ok'>Đã đăng</span>" in html
     assert "data-tt='Đã đăng'" in html and "data-tt='Đã lên lịch'" in html
@@ -764,3 +764,21 @@ def test_trang_ket_noi_dang_nhap_chon_page_va_bat_tro_ly():
     assert "Assistant enabled" in ok and "Hoan Bao Marketing" in ok
     assert any(m == "POST" and p.endswith("subscribed_apps") for m, p, _ in goi)
     assert "PT" not in c.get("/ket-noi").get_data(as_text=True)
+
+
+def test_bang_dieu_khien_chi_hien_bai_cua_thang_hien_tai():
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    from hoanbao_mkt.bang_dieu_khien import dung_html
+
+    hn = datetime.now(ZoneInfo("Asia/Ho_Chi_Minh"))
+    thang_truoc = f"{hn.year - 1}-12-15" if hn.month == 1 else f"{hn.year}-{hn.month - 1:02d}-15"
+
+    def bai(ma, ngay):
+        return {"ma_bai": ma, "ngay": ngay, "gio": "08:00", "loai": "Mẹo", "noi_dung": f"noi dung {ma}", "media": "",
+                "trang_thai": "Đã lên lịch", "ghi_chu": "", "facebook_id": "1", "da_chia_se": ""}
+
+    html = dung_html({"cap_nhat": "x", "page": "P", "che_do_duyet": False, "sheet_url": "", "kho": [],
+                      "bai": [bai("cu", thang_truoc), bai("moi", f"{hn.year}-{hn.month:02d}-28")]})
+    assert "noi dung moi" in html and "noi dung cu" not in html
