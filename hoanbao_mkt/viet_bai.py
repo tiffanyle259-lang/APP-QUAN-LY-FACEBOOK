@@ -54,7 +54,12 @@ def du_lieu_cua_bai(bai: BaiKeHoach, du_lieu: DuLieuNen) -> str:
     return "\n".join(phan)
 
 
-def tao_yeu_cau(ds_bai: list[BaiKeHoach], du_lieu: DuLieuNen) -> str:
+def tao_yeu_cau(ds_bai: list[BaiKeHoach], du_lieu: DuLieuNen, bai_mau: list[str] | None = None) -> str:
+    mau = ""
+    if bai_mau:
+        mau = ("CÁC BÀI ĐÃ ĐẠT TƯƠNG TÁC CAO GẦN ĐÂY của chính Fanpage (chỉ để học giọng văn, cách mở bài và cách kết bằng câu hỏi; "
+               "KHÔNG sao chép nội dung, mọi thông số vẫn chỉ lấy từ DỮ LIỆU của từng bài):\n"
+               + "\n---\n".join(bai_mau) + "\n\n=====\n\n")
     khoi = []
     for bai in ds_bai:
         k = bai.khung
@@ -64,7 +69,7 @@ def tao_yeu_cau(ds_bai: list[BaiKeHoach], du_lieu: DuLieuNen) -> str:
             f"Kèm {'video' if bai.uu_tien_video else 'ảnh'} lấy từ kho.\n"
             f"DỮ LIỆU:\n{du_lieu_cua_bai(bai, du_lieu)}"
         )
-    return "Viết nội dung cho các bài sau, mỗi bài một mục, giữ nguyên ma_bai.\n\n" + "\n\n".join(khoi)
+    return mau + "Viết nội dung cho các bài sau, mỗi bài một mục, giữ nguyên ma_bai.\n\n" + "\n\n".join(khoi)
 
 
 _SO = re.compile(r"\d+(?:[.,]\d+)*")
@@ -83,21 +88,23 @@ def so_lieu_la(noi_dung: str, nguon: str) -> list[str]:
     return la
 
 
-def viet_ca_tuan(ds_bai: list[BaiKeHoach], du_lieu: DuLieuNen, model: str, effort: str, moi_lan: int = 6) -> dict[str, BaiViet]:
+def viet_ca_tuan(ds_bai: list[BaiKeHoach], du_lieu: DuLieuNen, model: str, effort: str, moi_lan: int = 6,
+                 bai_mau: list[str] | None = None) -> dict[str, BaiViet]:
     """Viết theo từng nhóm vài bài một lần gọi để không bị cắt giữa chừng khi tuần có nhiều bài."""
     ket_qua: dict[str, BaiViet] = {}
     for i in range(0, len(ds_bai), moi_lan):
-        ket_qua |= _viet_nhom(ds_bai[i:i + moi_lan], du_lieu, model, effort)
+        ket_qua |= _viet_nhom(ds_bai[i:i + moi_lan], du_lieu, model, effort, bai_mau)
     return ket_qua
 
 
-def _viet_nhom(ds_bai: list[BaiKeHoach], du_lieu: DuLieuNen, model: str, effort: str) -> dict[str, BaiViet]:
+def _viet_nhom(ds_bai: list[BaiKeHoach], du_lieu: DuLieuNen, model: str, effort: str,
+               bai_mau: list[str] | None = None) -> dict[str, BaiViet]:
     client = anthropic.Anthropic()
     phan_hoi = client.beta.messages.parse(
         model=model,
         max_tokens=16000,
         system=HUONG_DAN_HE_THONG,
-        messages=[{"role": "user", "content": tao_yeu_cau(ds_bai, du_lieu)}],
+        messages=[{"role": "user", "content": tao_yeu_cau(ds_bai, du_lieu, bai_mau)}],
         output_format=BaiVietTuan,
         output_config={"effort": effort},
         # Nếu model chính từ chối, máy chủ tự chuyển sang model dự phòng.

@@ -308,3 +308,20 @@ def test_chu_nhat_co_khung_rieng_va_ma_bai_khong_trung(du_lieu):
     chu_nhat = [b for b in ds if b.ngay.weekday() == 6]
     assert [b.thoi_diem.hour for b in chu_nhat] == [8, 12]
     assert chu_nhat[1].uu_tien_video and len({b.ma_bai for b in ds}) == len(ds)
+
+
+def test_vong_hoc_xep_hang_va_dua_bai_mau_cho_ai():
+    from types import SimpleNamespace as NS
+
+    from hoanbao_mkt import hoc
+    from hoanbao_mkt.viet_bai import tao_yeu_cau
+
+    tho = [{"id": "1", "message": "Bài hay về sofa", "reactions": {"summary": {"total_count": 10}},
+            "comments": {"summary": {"total_count": 5}}, "shares": {"count": 2}},
+           {"id": "2", "message": "Bài thường", "reactions": {"summary": {"total_count": 1}}}]
+    dong = [NS(noi_dung="Bài hay về sofa", loai_bai="Mẹo dùng keo", gio="12:00"),
+            NS(noi_dung="Bài thường", loai_bai="Theo ngành", gio="20:30")]
+    ph = hoc.phan_tich(tho, dong)
+    assert ph["loai"][0][0] == "Mẹo dùng keo" and ph["gio"][0][0] == "12:00" and ph["top"][0]["id"] == "1"
+    assert hoc.bai_mau(ph)[0] == "Bài hay về sofa" and "TOP" in "\n".join(hoc.tom_tat(ph))
+    assert "ĐẠT TƯƠNG TÁC CAO" in tao_yeu_cau([], object(), ["Bài hay về sofa"])

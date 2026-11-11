@@ -146,7 +146,18 @@ def tao_tuan(cfg: CauHinh, args) -> None:
     print(f"Tạo {len(ds)} bài cho {mo_ta}. Chế độ duyệt: {'BẬT' if can_duyet else 'TẮT'}")
     if not ds:
         return
-    bai_viet = viet_ca_tuan(ds, du_lieu, cfg["ai"]["model"], cfg["ai"]["effort"])
+    mau: list[str] = []
+    try:  # vòng học: lấy bài tương tác cao trong 4 tuần qua làm mẫu cho AI; lỗi ở đây không làm hỏng việc tạo bài
+        from . import hoc
+        from .facebook import Fanpage
+
+        page = Fanpage(CauHinh.bien("FB_PAGE_ID"), CauHinh.bien("FB_PAGE_TOKEN"), cfg["facebook"]["graph_version"])
+        ph = hoc.phan_tich(page.bai_da_dang(datetime.now(cfg.mui_gio) - timedelta(days=28)), sheet.doc_tat_ca())
+        mau = hoc.bai_mau(ph)
+        print("\n".join(hoc.tom_tat(ph)))
+    except Exception as e:  # noqa: BLE001
+        print(f"(Bỏ qua vòng học: {e})")
+    bai_viet = viet_ca_tuan(ds, du_lieu, cfg["ai"]["model"], cfg["ai"]["effort"], bai_mau=mau)
 
     hom_nay = datetime.now(cfg.mui_gio).date()
     da_chon: set[str] = set()
