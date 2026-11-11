@@ -345,6 +345,16 @@ def don_bai(cfg: CauHinh, args) -> None:
         kho_id = CauHinh.bien("DRIVE_KHO_ID", bat_buoc=False)
         print("Email tài khoản dịch vụ của app (chia sẻ thư mục Drive cho email này, quyền Biên tập viên): "
               + cfg.google_service_account().get("client_email", "?"))
+        if args.ma:  # xem bên trong một thư mục (tới 2 cấp), mã thư mục nhập ở ô "ma"
+            def liet(fid, bac, toi):
+                for f in drive_.files().list(q=f"'{fid}' in parents and trashed = false", fields="files(id,name,mimeType)", pageSize=200,
+                                             includeItemsFromAllDrives=True, supportsAllDrives=True).execute().get("files", []):
+                    la_tm = f["mimeType"] == "application/vnd.google-apps.folder"
+                    print("  " * bac + ("[thư mục] " if la_tm else "") + f["name"] + (f" ({f['mimeType'].split('/')[-1]})" if not la_tm else ""))
+                    if la_tm and bac < toi:
+                        liet(f["id"], bac + 1, toi)
+            liet(args.ma.strip(), 0, 2)
+            return
         r = drive_.files().list(q="mimeType = 'application/vnd.google-apps.folder' and trashed = false and 'me' in owners or "
                                   "mimeType = 'application/vnd.google-apps.folder' and trashed = false and sharedWithMe",
                                 fields="files(id,name,parents,owners(displayName),modifiedTime)", pageSize=200,
