@@ -297,3 +297,14 @@ def test_chi_dung_nguon_chung_bo_qua_kho_marketing():
     kho = KhoDrive(None, "k", ["goc"], [], [], ["anh sach ai"], chi_nguon_chung=True)
     kho._liet_ke = lambda q, fields: [{"id": i, "name": n, "mimeType": m} for i, n, m in cay[q.split("'")[1]]]
     assert [f.id for f in kho.file_trong("keo-phun-228")] == ["i1"]  # không hỏi Kho-Marketing
+
+
+def test_chu_nhat_co_khung_rieng_va_ma_bai_khong_trung(du_lieu):
+    from hoanbao_mkt.du_lieu import khung_phu
+
+    cn = [{"gio": "08:00", "loai_bai": "Giới thiệu sản phẩm"}, {"gio": "12:00", "loai_bai": "Video demo thật"}]
+    du_lieu.lich = khung_phu(du_lieu.lich, [{"gio": "10:00", "loai_bai": ["Mẹo dùng keo"]}], cn)
+    ds = ke_hoach(du_lieu)
+    chu_nhat = [b for b in ds if b.ngay.weekday() == 6]
+    assert [b.thoi_diem.hour for b in chu_nhat] == [8, 12]
+    assert chu_nhat[1].uu_tien_video and len({b.ma_bai for b in ds}) == len(ds)

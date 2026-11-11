@@ -39,27 +39,32 @@ chi_dung_nguon_chung: true
 # Không dùng lại cùng một ảnh/video trong số ngày này (nếu kho còn file khác).
 khong_lap_lai_trong_ngay: 28
 
-# Bài đăng thêm mỗi ngày (ngoài lịch trong file Excel). Loại bài xoay vòng theo thứ trong tuần.
-# Chủ nhật (nghỉ) vẫn không đăng. Muốn ít bài hơn thì xóa bớt một khung.
+# Lịch đăng cho Fanpage chính (Golden Lion). Ngoài lịch gốc trong file Excel (1 bài/ngày), mỗi ngày Thứ 2 đến Thứ 7 thêm các khung dưới đây
+# (tổng 6 bài/ngày); Chủ nhật có 6 bài riêng (khung_chu_nhat). Loại bài xoay vòng theo thứ trong tuần. Muốn ít bài hơn thì xóa bớt khung.
 khung_them:
+  - gio: "10:00"
+    loai_bai: [Mẹo dùng keo, Giới thiệu sản phẩm, Theo ngành, Mẹo dùng keo, Giới thiệu sản phẩm, Theo ngành]
+    goi_y: "Bài giữa buổi sáng: 1 mẹo thi công hoặc 1 câu hỏi xưởng hay gặp, 4-6 dòng, khác ý bài đầu ngày."
   - gio: "12:00"
-    loai_bai:
-      - Giới thiệu sản phẩm
-      - Mẹo dùng keo
-      - Giới thiệu sản phẩm
-      - Mẹo dùng keo
-      - Giới thiệu sản phẩm
-      - Mẹo dùng keo
+    loai_bai: [Giới thiệu sản phẩm, Mẹo dùng keo, Giới thiệu sản phẩm, Mẹo dùng keo, Giới thiệu sản phẩm, Mẹo dùng keo]
     goi_y: "Góc nhìn khác với bài chính trong ngày: nêu 1 lợi ích cụ thể hoặc 1 tình huống xưởng hay gặp, ngắn gọn 4-6 dòng, đừng lặp ý bài sáng."
+  - gio: "15:30"
+    loai_bai: [Video demo thật, Theo ngành, Giới thiệu sản phẩm, Video demo thật, Mẹo dùng keo, Theo ngành]
+    goi_y: "Bài buổi chiều, ngắn gọn dễ đọc: nếu có video thì dẫn người xem 'xem video để thấy tận mắt'; nếu không thì nêu 1 điểm khác biệt của sản phẩm."
+  - gio: "17:30"
+    loai_bai: [Giới thiệu sản phẩm, Theo ngành, Mẹo dùng keo, Giới thiệu sản phẩm, Theo ngành, Mẹo dùng keo]
+    goi_y: "Bài cuối giờ làm việc: nhắc 1 vấn đề xưởng hay gặp lúc sắp tan ca và cách keo giải quyết, kết bằng lời mời nhắn Fanpage."
   - gio: "20:30"
-    loai_bai:
-      - Theo ngành
-      - Giới thiệu sản phẩm
-      - Theo ngành
-      - Giới thiệu sản phẩm
-      - Theo ngành
-      - Giới thiệu sản phẩm
+    loai_bai: [Theo ngành, Giới thiệu sản phẩm, Theo ngành, Giới thiệu sản phẩm, Theo ngành, Giới thiệu sản phẩm]
     goi_y: "Bài buổi tối, giọng gần gũi: câu hỏi khách hay hỏi hoặc so sánh cách làm cũ với dùng keo phun, kết bằng lời mời inbox để được tư vấn."
+
+khung_chu_nhat:
+  - {gio: "08:00", loai_bai: Giới thiệu sản phẩm, goi_y: "Chào Chủ nhật, giới thiệu 1 sản phẩm chủ lực ngắn gọn, thân thiện, mời nhắn Fanpage."}
+  - {gio: "10:00", loai_bai: Mẹo dùng keo, goi_y: "Mẹo thi công cho xưởng làm cuối tuần, 4-6 dòng."}
+  - {gio: "12:00", loai_bai: Video demo thật, goi_y: "Giới thiệu video, mời xem để thấy tận mắt hiệu quả keo."}
+  - {gio: "15:30", loai_bai: Theo ngành, goi_y: "Một ngành sản xuất và vấn đề keo hay gặp, cách xử lý."}
+  - {gio: "17:30", loai_bai: Giới thiệu sản phẩm, goi_y: "Một ứng dụng cụ thể của sản phẩm, kết bằng lời mời tư vấn."}
+  - {gio: "20:30", loai_bai: Mẹo dùng keo, goi_y: "Mẹo nhỏ cuối tuần, chuẩn bị cho tuần làm việc mới, mời inbox hỏi thêm."}
 
 ai:
   model: claude-sonnet-5-5

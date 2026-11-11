@@ -79,10 +79,18 @@ class KhungLich:
     gio_dang: str  # "HH:MM"
 
 
-def khung_phu(lich: list["KhungLich"], khung_them: list[dict]) -> list["KhungLich"]:
-    """Thêm các khung đăng phụ vào mỗi ngày đã có bài; loại bài xoay theo thứ trong tuần."""
+def khung_phu(lich: list["KhungLich"], khung_them: list[dict], khung_chu_nhat: list[dict] | None = None) -> list["KhungLich"]:
+    """Thêm các khung đăng phụ vào mỗi ngày đã có bài (loại bài xoay theo thứ trong tuần) và các khung của Chủ nhật."""
     ngay_co_bai = {k.thu: k.ten_thu for k in lich}
     moi = []
+    for kt in khung_chu_nhat or []:  # Chủ nhật trong Excel là "Không đăng": thêm khung riêng từ config
+        loai = kt.get("loai_bai") or []
+        loai = [loai] if isinstance(loai, str) else loai
+        if loai:
+            moi.append(KhungLich(
+                thu=6, ten_thu="Chủ nhật", loai_bai=loai[0], muc_tieu=kt.get("muc_tieu", "Tăng tương tác và nhận inbox"),
+                goi_y=kt.get("goi_y", ""), nguon_media=kt.get("nguon_media", "Thư mục của sản phẩm đó"),
+                gio_dang=str(kt["gio"]).zfill(5)))
     for kt in khung_them:
         loai = kt.get("loai_bai") or []
         for thu, ten_thu in sorted(ngay_co_bai.items()):

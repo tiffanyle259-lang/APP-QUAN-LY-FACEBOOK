@@ -70,7 +70,7 @@ def _doc_du_lieu(cfg: CauHinh, drive=None) -> DuLieuNen:
                 _, xong = dl.next_chunk()
         duong_dan = fh.name
     du_lieu = doc_du_lieu(duong_dan, cfg.get("cot_bo_qua"))
-    du_lieu.lich = khung_phu(du_lieu.lich, cfg.get("khung_them") or [])
+    du_lieu.lich = khung_phu(du_lieu.lich, cfg.get("khung_them") or [], cfg.get("khung_chu_nhat") or [])
     return du_lieu
 
 
