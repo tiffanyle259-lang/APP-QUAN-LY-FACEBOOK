@@ -20,6 +20,7 @@ class FileMedia:
     ten: str
     mime: str
     lan_dung_cuoi: date | None = None
+    nhom: str = ""  # tên thư mục chứa (vd 405A, SPRO): thư mục theo mã hàng cũng được tính khi khớp từ khóa
     can_khop: bool = False  # file từ nguồn chung: chỉ dùng cho bài có từ khóa (mã sản phẩm) khớp tên file
 
     @property
@@ -44,7 +45,7 @@ def chon_file(
     tu_khoa = [bo_dau(t) for t in tu_khoa if t.strip()]
 
     def diem(f: FileMedia):
-        ten = bo_dau(f.ten)
+        ten = bo_dau(f"{f.ten} {f.nhom}")
         tu_ten = set(ten.split())
         khop = sum(1 for t in tu_khoa if t in tu_ten or (" " in t and t in ten))
         d = khop * 3
@@ -57,7 +58,7 @@ def chon_file(
         return (-d, f.lan_dung_cuoi or date.min, f.ten)
 
     def khop_ten(f: FileMedia) -> bool:
-        tu_ten = set(bo_dau(f.ten).split())
+        tu_ten = set(bo_dau(f"{f.ten} {f.nhom}").split())
         return any(t in tu_ten for t in tu_khoa)
 
     con_lai = [f for f in ds if f.id not in da_chon]
@@ -100,9 +101,9 @@ class KhoDrive:
             return self._chung
         ds: list[FileMedia] = []
         # (id thư mục, đang trong thư mục video, được lấy video, được lấy ảnh)
-        hang_doi = [(n, False, False, not self.anh_tu) for n in self.nguon_chung]
+        hang_doi = [(n, False, False, not self.anh_tu, "") for n in self.nguon_chung]
         while hang_doi:
-            tm_id, trong_video, video_ok, anh_ok = hang_doi.pop()
+            tm_id, trong_video, video_ok, anh_ok, ten_nhom = hang_doi.pop()
             for f in self._liet_ke(f"'{tm_id}' in parents and trashed = false", "id, name, mimeType, appProperties"):
                 if f["mimeType"] == FOLDER:
                     ten = bo_dau(f["name"])
@@ -110,11 +111,11 @@ class KhoDrive:
                         continue
                     hang_doi.append((f["id"], trong_video or ten.startswith("video"),
                                      video_ok or any(x and x in ten for x in self.video_tu),
-                                     anh_ok or any(x and x in ten for x in self.anh_tu)))
+                                     anh_ok or any(x and x in ten for x in self.anh_tu), f"{ten_nhom} {f['name']}".strip()))
                 elif file_nguon_chung_hop_le(f["name"], f["mimeType"], trong_video, video_ok, anh_ok):
                     dung = (f.get("appProperties") or {}).get("lan_dung_cuoi")
                     ds.append(FileMedia(f["id"], f["name"], f["mimeType"],
-                                        date.fromisoformat(dung) if dung else None, can_khop=True))
+                                        date.fromisoformat(dung) if dung else None, nhom=ten_nhom, can_khop=True))
         self._chung = ds
         return ds
 
