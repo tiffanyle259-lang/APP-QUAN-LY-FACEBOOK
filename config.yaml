@@ -30,7 +30,7 @@ nguon_anh_them: []
 nguon_chung:
   - 1FCeoSgiWdNWMQm7BhGGj8ZqmR6Z93gFL   # TÀI NGUYÊN CHUNG (công ty Hoàn Bảo)
 nguon_chung_loai_tru: ["seo", "vat lieu ghep video", "banner display", "video clip that"]
-nguon_chung_video_tu: ["video sach ai", "reel"]
+nguon_chung_video_tu: ["video sach ai", "video dang reel"]
 
 # Không dùng lại cùng một ảnh/video trong số ngày này (nếu kho còn file khác).
 khong_lap_lai_trong_ngay: 28
