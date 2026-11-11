@@ -188,6 +188,15 @@ def gan_anh(cfg: CauHinh, args) -> None:
     thieu = [d for d in sheet.doc_tat_ca()
              if not d.media.strip() and not d.facebook_id.strip() and d.trang_thai.strip() in (CHO_DUYET, DUYET)]
     print(f"{len(thieu)} bài chưa có ảnh/video.")
+    doi_kho: set[str] = set()  # --doi-kho: bài chưa lên lịch đang dùng ảnh trong Kho-Marketing, chuyển sang ảnh nguồn chung
+    if getattr(args, "doi_kho", False):
+        ids_kho = {f["id"] for f in kho.liet_ke_de_quy(CauHinh.bien("DRIVE_KHO_ID"))}
+        for d in sheet.doc_tat_ca():
+            if (d.media.strip() and not d.facebook_id.strip() and d.trang_thai.strip() in (CHO_DUYET, DUYET)
+                    and drive_id_tu_link(d.media) in ids_kho):
+                thieu.append(d)
+                doi_kho.add(d.ma_bai)
+        print(f"{len(doi_kho)} bài chưa lên lịch đang dùng ảnh trong Kho-Marketing, sẽ chuyển sang ảnh nguồn chung.")
     ke_hoach: dict = {}
     da_chon: set[str] = set()
     dang_dung = {drive_id_tu_link(x.media) for x in sheet.doc_tat_ca() if x.media.strip() and x.trang_thai.strip() != "Bỏ"} - {None}
@@ -202,11 +211,15 @@ def gan_anh(cfg: CauHinh, args) -> None:
                 print(f"  - {d.ma_bai}: không có trong kế hoạch tuần, bỏ qua.")
                 continue
             media = None
-            for tm in b.thu_muc:
-                media = chon_file(kho.file_trong(tm), b.tu_khoa_media, b.uu_tien_video, da_chon, hom_nay,
+            if d.ma_bai in doi_kho:
+                media = chon_file(kho.file_nguon_chung(), b.tu_khoa_media, b.uu_tien_video, da_chon, hom_nay,
                                   cfg.get("khong_lap_lai_trong_ngay", 28), dang_dung)
-                if media:
-                    break
+            else:
+                for tm in b.thu_muc:
+                    media = chon_file(kho.file_trong(tm), b.tu_khoa_media, b.uu_tien_video, da_chon, hom_nay,
+                                      cfg.get("khong_lap_lai_trong_ngay", 28), dang_dung)
+                    if media:
+                        break
             if not media:
                 print(f"  - {d.ma_bai}: vẫn chưa có ảnh/video trong {', '.join(b.thu_muc)}.")
                 continue
@@ -458,6 +471,14 @@ def phan_loai_kho(cfg: CauHinh, args) -> None:
     from .kho_anh import KhoDrive
 
     drive, _ = _google(cfg)
+    try:  # Kho-Marketing đã bị xóa/vào thùng rác thì không còn gì để xếp: kết thúc êm, không báo lỗi
+        meta = drive.files().get(fileId=CauHinh.bien("DRIVE_KHO_ID"), fields="id,trashed", supportsAllDrives=True).execute()
+        kho_con = not meta.get("trashed")
+    except Exception:  # noqa: BLE001
+        kho_con = False
+    if not kho_con:
+        print("Kho-Marketing không còn (đã xóa hoặc trong thùng rác), bỏ qua bước xếp ảnh. Ảnh dùng từ thư mục nguồn chung.")
+        return
     du_lieu = _doc_du_lieu(cfg, drive)
     client = anthropic.Anthropic()
     ai = cfg["ai"]
@@ -578,7 +599,8 @@ def main(argv=None) -> None:
     nn = sub.add_parser("nhap-nhom")
     nn.add_argument("--file", required=True)
     sub.add_parser("phan-loai")
-    sub.add_parser("gan-anh")
+    ga = sub.add_parser("gan-anh")
+    ga.add_argument("--doi-kho", action="store_true", help="Chuyển bài chưa lên lịch từ ảnh Kho-Marketing sang ảnh nguồn chung")
     cd = sub.add_parser("chan-doan")
     cd.add_argument("--url", required=True)
     dk = sub.add_parser("dang-ky-webhook")
