@@ -424,6 +424,46 @@ def don_bai(cfg: CauHinh, args) -> None:
             if b.trang_thai.strip() == CHO_DUYET:
                 print(f"===== {b.ma_bai} ({b.ngay} {b.gio}) | {b.ghi_chu}\n{b.noi_dung}\n")
         return
+    if args.viec == "xoa-dang-lai":  # xóa đúng MỘT bài sai đã đăng (nhận diện theo đầu nội dung) và đăng lại bằng video đúng sản phẩm
+        from datetime import datetime as _dt
+
+        from .duyet_bai import BO, DUYET
+        from .facebook import Fanpage
+        from .kho_anh import chon_file
+
+        page = Fanpage(CauHinh.bien("FB_PAGE_ID"), CauHinh.bien("FB_PAGE_TOKEN"), cfg["facebook"]["graph_version"])
+        bay_gio = _dt.now(cfg.mui_gio)
+        dau = args.ma.strip()
+        khop = [p_ for p_ in page.bai_da_dang(bay_gio - timedelta(days=3)) if (p_.get("message") or "").strip().startswith(dau)]
+        print(f"Tìm thấy {len(khop)} bài trên Page bắt đầu bằng '{dau[:40]}'.")
+        if len(khop) != 1:
+            print("Không đúng 1 bài nên KHÔNG xóa gì. Kiểm tra lại đoạn đầu nội dung.")
+            return
+        bai_sai = khop[0]
+        print(f"  Bài: {bai_sai['id']} | {bai_sai.get('created_time', '')[:16]} | {bai_sai.get('permalink_url', '')}")
+        if args.thu:
+            print("XEM TRƯỚC: chưa xóa.")
+            return
+        dong_goc = next((d for d in sheet.doc_tat_ca() if " ".join(d.noi_dung.split()).startswith(" ".join(dau.split()))), None)
+        page.xoa(bai_sai["id"])
+        print("  Đã xóa bài sai trên Page.")
+        if dong_goc:
+            du_lieu = _doc_du_lieu(cfg, drive_)
+            kho = _kho(cfg, drive_)
+            dang_dung = {drive_id_tu_link(x.media) for x in sheet.doc_tat_ca() if x.media.strip() and x.trang_thai.strip() != "Bỏ"} - {None}
+            video = chon_file(kho.file_nguon_chung(), [], True, set(), bay_gio.date(), cfg.get("khong_lap_lai_trong_ngay", 28),
+                              dang_dung, ma_mo_rong(["HP-333"], cfg.get("ma_phu")), True)
+            gio_moi = bay_gio + timedelta(minutes=30)
+            gio_moi = gio_moi.replace(minute=(gio_moi.minute // 5 + 1) * 5 % 60, second=0, microsecond=0) if gio_moi.minute % 5 else gio_moi
+            if video:
+                sheet.dat_trang_thai(dong_goc.dong, BO)
+                sheet.dat_ghi_chu(dong_goc.dong, "Đã xóa khỏi Page vì gắn sai ảnh; đăng lại bằng video đúng")
+                sheet.them([[dong_goc.ma_bai + "_dang-lai", gio_moi.date().isoformat(), f"{gio_moi:%H:%M}", dong_goc.loai_bai,
+                             dong_goc.noi_dung, video.link, DUYET, f"File: {video.ten} (đăng lại đúng video)", ""]])
+                print(f"  Đăng lại lúc {gio_moi:%H:%M} với video {video.ten}")
+            else:
+                print("  Không có video HP-333 trong thư mục được phép, chưa đăng lại.")
+        return
     if args.viec in ("kiem-anh", "sua-anh"):  # bài chưa đăng gán sai ảnh/video: kiem-anh chỉ xem, sua-anh hủy lịch và gán lại
         from . import sua_anh
         from .facebook import Fanpage
@@ -632,7 +672,7 @@ def main(argv=None) -> None:
     sub.add_parser("len-lich")
     sub.add_parser("tao-thu-muc")
     db_ = sub.add_parser("don-bai")
-    db_.add_argument("--viec", choices=["duyet", "bo-qua-gio", "dinh-dang", "xem", "duyet-ma", "doi-chieu-fb", "youtube", "thu-muc-drive", "kiem-anh", "sua-anh"], required=True)
+    db_.add_argument("--viec", choices=["duyet", "bo-qua-gio", "dinh-dang", "xem", "duyet-ma", "doi-chieu-fb", "youtube", "thu-muc-drive", "kiem-anh", "sua-anh", "xoa-dang-lai"], required=True)
     db_.add_argument("--thu", action="store_true")
     db_.add_argument("--ma", default="")
     cd2 = sub.add_parser("che-do-duyet")
