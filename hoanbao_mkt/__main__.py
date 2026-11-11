@@ -175,7 +175,8 @@ def tao_tuan(cfg: CauHinh, args) -> None:
         media = None
         for tm in b.thu_muc:
             media = chon_file(kho.file_trong(tm), b.tu_khoa_media + bv.tu_khoa_media, b.uu_tien_video,
-                              da_chon, hom_nay, cfg.get("khong_lap_lai_trong_ngay", 28), dang_dung)
+                              da_chon, hom_nay, cfg.get("khong_lap_lai_trong_ngay", 28), dang_dung,
+                              [sp.ma for sp in b.san_pham], b.uu_tien_video)
             if media:
                 break
         if media:
@@ -232,11 +233,11 @@ def gan_anh(cfg: CauHinh, args) -> None:
             media = None
             if d.ma_bai in doi_kho:
                 media = chon_file(kho.file_nguon_chung(), b.tu_khoa_media, b.uu_tien_video, da_chon, hom_nay,
-                                  cfg.get("khong_lap_lai_trong_ngay", 28), dang_dung)
+                                  cfg.get("khong_lap_lai_trong_ngay", 28), dang_dung, [sp.ma for sp in b.san_pham], b.uu_tien_video)
             else:
                 for tm in b.thu_muc:
                     media = chon_file(kho.file_trong(tm), b.tu_khoa_media, b.uu_tien_video, da_chon, hom_nay,
-                                      cfg.get("khong_lap_lai_trong_ngay", 28), dang_dung)
+                                      cfg.get("khong_lap_lai_trong_ngay", 28), dang_dung, [sp.ma for sp in b.san_pham], b.uu_tien_video)
                     if media:
                         break
             if not media:
@@ -416,6 +417,15 @@ def don_bai(cfg: CauHinh, args) -> None:
         for b in sheet.doc_tat_ca():
             if b.trang_thai.strip() == CHO_DUYET:
                 print(f"===== {b.ma_bai} ({b.ngay} {b.gio}) | {b.ghi_chu}\n{b.noi_dung}\n")
+        return
+    if args.viec in ("kiem-anh", "sua-anh"):  # bài chưa đăng gán sai ảnh/video: kiem-anh chỉ xem, sua-anh hủy lịch và gán lại
+        from . import sua_anh
+        from .facebook import Fanpage
+
+        du_lieu = _doc_du_lieu(cfg, drive_)
+        page = Fanpage(CauHinh.bien("FB_PAGE_ID"), CauHinh.bien("FB_PAGE_TOKEN"), cfg["facebook"]["graph_version"])
+        sua_anh.chay(cfg, drive_, sheet, _kho(cfg, drive_), du_lieu, page, args.viec == "sua-anh" and not args.thu,
+                     lap_ke_hoach, drive_id_tu_link)
         return
     if args.viec == "doi-chieu-fb":  # chỉ đọc: so bài thật trên Facebook với Sheet
         from .facebook import Fanpage
@@ -616,7 +626,7 @@ def main(argv=None) -> None:
     sub.add_parser("len-lich")
     sub.add_parser("tao-thu-muc")
     db_ = sub.add_parser("don-bai")
-    db_.add_argument("--viec", choices=["duyet", "bo-qua-gio", "dinh-dang", "xem", "duyet-ma", "doi-chieu-fb", "youtube", "thu-muc-drive"], required=True)
+    db_.add_argument("--viec", choices=["duyet", "bo-qua-gio", "dinh-dang", "xem", "duyet-ma", "doi-chieu-fb", "youtube", "thu-muc-drive", "kiem-anh", "sua-anh"], required=True)
     db_.add_argument("--thu", action="store_true")
     db_.add_argument("--ma", default="")
     cd2 = sub.add_parser("che-do-duyet")

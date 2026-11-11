@@ -325,3 +325,19 @@ def test_vong_hoc_xep_hang_va_dua_bai_mau_cho_ai():
     assert ph["loai"][0][0] == "Mẹo dùng keo" and ph["gio"][0][0] == "12:00" and ph["top"][0]["id"] == "1"
     assert hoc.bai_mau(ph)[0] == "Bài hay về sofa" and "TOP" in "\n".join(hoc.tom_tat(ph))
     assert "ĐẠT TƯƠNG TÁC CAO" in tao_yeu_cau([], object(), ["Bài hay về sofa"])
+
+
+def test_bai_chi_lay_file_dung_ma_san_pham_va_bai_video_chi_lay_video():
+    from hoanbao_mkt.kho_anh import FileMedia, chon_file
+
+    hn = date(2026, 11, 11)
+    ds = [FileMedia("a", "228_anh-ai_nem.jpg", "image/jpeg", can_khop=True),
+          FileMedia("b", "x.jpg", "image/jpeg", nhom="405A", can_khop=True),
+          FileMedia("c", "HERO_HP333_keo-dan-gia-nhiet_9x16_7s.mp4", "video/mp4", can_khop=True),
+          FileMedia("d", "spro_anh.jpg", "image/jpeg", nhom="SPRO", can_khop=True)]
+    assert chon_file(ds, [], False, set(), hn, 28, ma_bat_buoc=["HP-333"], chi_video=False).id == "c"  # không lấy ảnh 228 cho bài HP333
+    assert chon_file(ds, [], False, set(), hn, 28, ma_bat_buoc=["HP333"], chi_video=True).id == "c"
+    assert chon_file(ds, [], True, set(), hn, 28, ma_bat_buoc=["228"], chi_video=True) is None  # bài video không có video 228: không dùng ảnh thay
+    assert chon_file(ds, [], False, set(), hn, 28, ma_bat_buoc=["405A"]).id == "b"  # khớp theo tên thư mục mã hàng
+    assert chon_file(ds, [], False, set(), hn, 28, ma_bat_buoc=["S-PRO"]).id == "d"  # S-PRO khớp spro
+    assert chon_file(ds, [], False, set(), hn, 28, ma_bat_buoc=["X66"]) is None  # không có file đúng mã thì để trống, không đăng bừa

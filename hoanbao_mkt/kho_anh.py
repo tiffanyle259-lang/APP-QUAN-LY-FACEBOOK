@@ -32,6 +32,15 @@ class FileMedia:
         return f"https://drive.google.com/file/d/{self.id}/view"
 
 
+def khop_ma(f: "FileMedia", ma_san_pham: list[str]) -> bool:
+    """File ghi đúng mã một trong các sản phẩm (trong tên file hoặc tên thư mục chứa), vd HP-333 khớp HP333, S-PRO khớp spro."""
+    ma = [bo_dau(m).replace(" ", "") for m in ma_san_pham if m and m.strip()]
+    van_ban = bo_dau(f"{f.ten} {f.nhom}")
+    tu = set(van_ban.split())
+    gon = van_ban.replace(" ", "")
+    return any(m in tu or (not m.isdigit() and m in gon) for m in ma)
+
+
 def chon_file(
     ds: list[FileMedia],
     tu_khoa: list[str],
@@ -40,6 +49,8 @@ def chon_file(
     hom_nay: date,
     khong_lap_lai_trong_ngay: int,
     dang_dung: frozenset[str] | set[str] = frozenset(),
+    ma_bat_buoc: list[str] | None = None,
+    chi_video: bool = False,
 ) -> FileMedia | None:
     """Chấm điểm theo tên file khớp từ khóa, đúng loại (ảnh/video), lâu chưa dùng."""
     tu_khoa = [bo_dau(t) for t in tu_khoa if t.strip()]
@@ -61,14 +72,20 @@ def chon_file(
         tu_ten = set(bo_dau(f"{f.ten} {f.nhom}").split())
         return any(t in tu_ten for t in tu_khoa)
 
-    con_lai = [f for f in ds if f.id not in da_chon]
-    hop = [f for f in con_lai if not f.can_khop or khop_ten(f)]
-    # Xoay vòng toàn bộ ảnh: ưu tiên cứng file chưa dùng gần đây và không nằm trong bài nào khác (trước hết file hợp từ khóa,
-    # rồi tới file nguồn chung khác); chỉ khi hết file mới như vậy mới dùng lại.
+    ma = list(ma_bat_buoc or [])
+
+    def dung_san_pham(f: FileMedia) -> bool:
+        return not ma or not f.can_khop or khop_ma(f, ma)
+
+    con_lai = [f for f in ds if f.id not in da_chon and dung_san_pham(f) and (f.la_video or not chi_video)]
+    if chi_video:
+        con_lai = [f for f in con_lai if f.la_video]
+
     def tuoi(f):
         return f.id not in dang_dung and not (f.lan_dung_cuoi and (hom_nay - f.lan_dung_cuoi).days < khong_lap_lai_trong_ngay)
 
-    pool = [f for f in hop if tuoi(f)] or [f for f in con_lai if tuoi(f)] or hop or con_lai
+    # Đúng sản phẩm là điều kiện bắt buộc; trong đó ưu tiên file chưa dùng gần đây, chỉ khi hết mới dùng lại.
+    pool = [f for f in con_lai if tuoi(f)] or con_lai
     return min(pool, key=diem) if pool else None
 
 
