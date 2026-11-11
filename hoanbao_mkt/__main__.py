@@ -369,6 +369,15 @@ def don_bai(cfg: CauHinh, args) -> None:
         kho_id = CauHinh.bien("DRIVE_KHO_ID", bat_buoc=False)
         print("Email tài khoản dịch vụ của app (chia sẻ thư mục Drive cho email này, quyền Biên tập viên): "
               + cfg.google_service_account().get("client_email", "?"))
+        if args.ma.startswith("top:"):  # chỉ liệt kê tên các thư mục con cấp 1 và số mục bên trong
+            for f in sorted(drive_.files().list(q=f"'{args.ma[4:].strip()}' in parents and trashed = false and "
+                                                  "mimeType = 'application/vnd.google-apps.folder'",
+                                                fields="files(id,name)", pageSize=200, includeItemsFromAllDrives=True,
+                                                supportsAllDrives=True).execute().get("files", []), key=lambda x: x["name"]):
+                con = drive_.files().list(q=f"'{f['id']}' in parents and trashed = false", fields="files(id,mimeType)", pageSize=500,
+                                          includeItemsFromAllDrives=True, supportsAllDrives=True).execute().get("files", [])
+                print(f"  [thư mục] {f['name']} | {len(con)} mục ({sum(1 for c in con if c['mimeType'].startswith('video/'))} video)")
+            return
         if args.ma:  # xem bên trong một thư mục (tới 2 cấp), mã thư mục nhập ở ô "ma"
             def liet(fid, bac, toi):
                 for f in drive_.files().list(q=f"'{fid}' in parents and trashed = false", fields="files(id,name,mimeType)", pageSize=200,
