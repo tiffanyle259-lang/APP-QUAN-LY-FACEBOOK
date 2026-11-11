@@ -246,10 +246,27 @@ def test_nguon_chung_loc_video_va_chi_chon_khi_khop_tu_khoa():
 
     assert file_nguon_chung_hop_le("228_vuong_1080x1080.jpg", "image/jpeg", False)
     assert not file_nguon_chung_hop_le("anh.jpg", "image/jpeg", True)  # ảnh nằm trong thư mục video
-    assert file_nguon_chung_hop_le("228_clip-that_a_that_dung-duoc.mp4".replace("_", "-"), "video/mp4", True)
-    assert not file_nguon_chung_hop_le("x_tiktok-chua-ro-ban-quyen_chua-duyet.mp4", "video/mp4", True)
-    assert not file_nguon_chung_hop_le("228_dung-mot-doan.mp4", "video/mp4", True)
+    assert file_nguon_chung_hop_le("a.mp4", "video/mp4", True, video_cho_phep=True)
+    assert not file_nguon_chung_hop_le("a.mp4", "video/mp4", True, video_cho_phep=False)  # video ngoài thư mục được phép
     ds = [FileMedia("a", "SPRO_vuong_1080x1080.jpg", "image/jpeg", can_khop=True),
           FileMedia("b", "228_vuong_1080x1080.jpg", "image/jpeg", can_khop=True)]
     assert chon_file(ds, ["228"], False, set(), date(2026, 11, 11), 28).id == "b"
     assert chon_file(ds, ["339"], False, {"a"}, date(2026, 11, 11), 28).id == "b"  # xoay vòng: hết file khớp vẫn lấy file chung chưa dùng
+
+
+def test_nguon_chung_duyet_thu_muc_loai_tru_va_chi_lay_video_trong_thu_muc_duoc_phep():
+    from hoanbao_mkt.kho_anh import FOLDER, KhoDrive
+
+    cay = {
+        "goc": [("f1", "SPRO", FOLDER), ("f2", "VIDEO-SACH-AI", FOLDER), ("f3", "VIDEO CLIP THẬT", FOLDER),
+                ("f4", "SEO", FOLDER), ("f5", "VIDEO-REEL", FOLDER), ("i0", "228_doc.jpg", "image/jpeg")],
+        "f1": [("i1", "spro.jpg", "image/jpeg")],
+        "f2": [("v1", "CHINH_01.mp4", "video/mp4"), ("t1", "huong-dan.txt", "text/plain")],
+        "f3": [("v2", "clip.mp4", "video/mp4")],
+        "f4": [("i2", "seo.jpg", "image/jpeg")],
+        "f5": [("v3", "reel.mp4", "video/mp4")],
+    }
+    kho = KhoDrive(None, "k", ["goc"], ["seo", "video clip that"], ["video sach ai", "reel"])
+    kho._liet_ke = lambda q, fields: [{"id": i, "name": n, "mimeType": m} for i, n, m in cay[q.split("'")[1]]]
+    ten = sorted(f.id for f in kho.file_nguon_chung())
+    assert ten == ["i0", "i1", "v1", "v3"]  # ảnh gốc + ảnh SPRO + video sạch AI + reel; bỏ SEO và VIDEO CLIP THẬT

@@ -71,37 +71,41 @@ def chon_file(
     return min(pool, key=diem) if pool else None
 
 
-# Video ở nguồn chung chỉ dùng khi tên ghi rõ "dung-duoc" (công ty đã duyệt, rõ bản quyền).
-_VIDEO_KHONG_DUNG = ("chua-duyet", "chua-ro", "chua-xem", "dung-mot-doan", "ban-quyen")
-
-
-def file_nguon_chung_hop_le(ten: str, mime: str, trong_thu_muc_video: bool) -> bool:
-    t = ten.lower()
+def file_nguon_chung_hop_le(ten: str, mime: str, trong_thu_muc_video: bool, video_cho_phep: bool = True) -> bool:
+    """Ảnh: dùng hết (trừ ảnh nằm trong thư mục video). Video: chỉ khi nằm trong thư mục được phép (video sạch AI, reel)."""
     if mime.startswith("video/"):
-        return "dung-duoc" in t and not any(x in t for x in _VIDEO_KHONG_DUNG)
+        return video_cho_phep
     return mime.startswith("image/") and not trong_thu_muc_video
 
 
 class KhoDrive:
-    def __init__(self, drive_service, thu_muc_goc_id: str, nguon_chung: list[str] | None = None):
+    def __init__(self, drive_service, thu_muc_goc_id: str, nguon_chung: list[str] | None = None,
+                 loai_tru: list[str] | None = None, video_tu: list[str] | None = None):
         self.svc = drive_service
         self.goc = thu_muc_goc_id
         self.nguon_chung = [n for n in (nguon_chung or []) if n]
+        self.loai_tru = [bo_dau(x) for x in (loai_tru or [])]
+        self.video_tu = [bo_dau(x) for x in (video_tu or [])]
         self._cache: dict[str, list[FileMedia]] = {}
         self._chung: list[FileMedia] | None = None
 
     def file_nguon_chung(self) -> list[FileMedia]:
-        """Ảnh/video trong các thư mục nguồn chung (chỉ đọc, không di chuyển); đã lọc theo quy tắc ở trên."""
+        """Ảnh/video trong các thư mục nguồn chung (chỉ đọc, không di chuyển). Bỏ thư mục không phải ảnh đăng (SEO, banner...);
+        video chỉ lấy trong thư mục video sạch AI / reel."""
         if self._chung is not None:
             return self._chung
         ds: list[FileMedia] = []
-        hang_doi = [(n, False) for n in self.nguon_chung]
+        hang_doi = [(n, False, False) for n in self.nguon_chung]  # (id thư mục, đang trong thư mục video, được lấy video)
         while hang_doi:
-            tm_id, trong_video = hang_doi.pop()
+            tm_id, trong_video, video_ok = hang_doi.pop()
             for f in self._liet_ke(f"'{tm_id}' in parents and trashed = false", "id, name, mimeType, appProperties"):
                 if f["mimeType"] == FOLDER:
-                    hang_doi.append((f["id"], trong_video or f["name"].lower().startswith("video")))
-                elif file_nguon_chung_hop_le(f["name"], f["mimeType"], trong_video):
+                    ten = bo_dau(f["name"])
+                    if any(x and x in ten for x in self.loai_tru):
+                        continue
+                    hang_doi.append((f["id"], trong_video or ten.startswith("video"),
+                                     video_ok or any(x and x in ten for x in self.video_tu)))
+                elif file_nguon_chung_hop_le(f["name"], f["mimeType"], trong_video, video_ok):
                     dung = (f.get("appProperties") or {}).get("lan_dung_cuoi")
                     ds.append(FileMedia(f["id"], f["name"], f["mimeType"],
                                         date.fromisoformat(dung) if dung else None, can_khop=True))

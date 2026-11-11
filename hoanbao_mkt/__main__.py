@@ -44,6 +44,13 @@ def _google(cfg: CauHinh):
             build("sheets", "v4", credentials=creds, cache_discovery=False))
 
 
+def _kho(cfg: CauHinh, drive):
+    from .kho_anh import KhoDrive
+
+    return KhoDrive(drive, CauHinh.bien("DRIVE_KHO_ID"), cfg.get("nguon_chung") or [],
+                    cfg.get("nguon_chung_loai_tru") or [], cfg.get("nguon_chung_video_tu") or [])
+
+
 def _doc_du_lieu(cfg: CauHinh, drive=None) -> DuLieuNen:
     """Mặc định đọc file trong repo; nếu có DATA_DRIVE_FILE_ID thì đọc bản mới nhất trên Drive."""
     duong_dan = cfg.file_du_lieu
@@ -108,7 +115,7 @@ def tao_tuan(cfg: CauHinh, args) -> None:
     sheet = SheetDuyet(sheets, CauHinh.bien("SHEET_DUYET_ID"))
     sheet.dam_bao_cau_truc(cfg["che_do_duyet"])
     can_duyet = sheet.che_do_duyet(cfg["che_do_duyet"])
-    kho = KhoDrive(drive, CauHinh.bien("DRIVE_KHO_ID"), cfg.get("nguon_chung") or [])
+    kho = _kho(cfg, drive)
 
     du_lieu = _doc_du_lieu(cfg, drive)
     da_co = {d.ma_bai for d in sheet.doc_tat_ca()}
@@ -182,7 +189,7 @@ def gan_anh(cfg: CauHinh, args) -> None:
     drive, sheets = _google(cfg)
     sheet = SheetDuyet(sheets, CauHinh.bien("SHEET_DUYET_ID"))
     sheet.dam_bao_cau_truc(cfg["che_do_duyet"])
-    kho = KhoDrive(drive, CauHinh.bien("DRIVE_KHO_ID"), cfg.get("nguon_chung") or [])
+    kho = _kho(cfg, drive)
     du_lieu = _doc_du_lieu(cfg, drive)
     hom_nay = datetime.now(cfg.mui_gio).date()
     thieu = [d for d in sheet.doc_tat_ca()
@@ -239,7 +246,7 @@ def len_lich(cfg: CauHinh, args, drive=None, sheets=None) -> None:
         drive, sheets = _google(cfg)
     sheet = SheetDuyet(sheets, CauHinh.bien("SHEET_DUYET_ID"))
     sheet.dam_bao_cau_truc(cfg["che_do_duyet"])  # đặt lại danh sách chọn Trạng thái
-    kho = KhoDrive(drive, CauHinh.bien("DRIVE_KHO_ID"), cfg.get("nguon_chung") or [])
+    kho = _kho(cfg, drive)
     page = Fanpage(CauHinh.bien("FB_PAGE_ID"), CauHinh.bien("FB_PAGE_TOKEN"), cfg["facebook"]["graph_version"])
 
     cho = [d for d in sheet.doc_tat_ca() if d.trang_thai.strip() == DUYET and not d.facebook_id.strip()]
@@ -557,7 +564,7 @@ def kiem_tra(cfg: CauHinh, args) -> None:
         sys.exit(1)
 
     def kiem_kho():
-        kho = KhoDrive(drive, CauHinh.bien("DRIVE_KHO_ID"), cfg.get("nguon_chung") or [])
+        kho = _kho(cfg, drive)
         ten = {sp.thu_muc for sp in du_lieu.san_pham if sp.thu_muc}
         ds = lap_ke_hoach(du_lieu, _tuan(cfg, None), cfg["thu_muc"], cfg.mui_gio)
         ten |= {tm for b in ds for tm in b.thu_muc}
