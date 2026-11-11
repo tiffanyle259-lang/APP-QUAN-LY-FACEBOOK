@@ -108,7 +108,7 @@ def tao_tuan(cfg: CauHinh, args) -> None:
     sheet = SheetDuyet(sheets, CauHinh.bien("SHEET_DUYET_ID"))
     sheet.dam_bao_cau_truc(cfg["che_do_duyet"])
     can_duyet = sheet.che_do_duyet(cfg["che_do_duyet"])
-    kho = KhoDrive(drive, CauHinh.bien("DRIVE_KHO_ID"))
+    kho = KhoDrive(drive, CauHinh.bien("DRIVE_KHO_ID"), cfg.get("nguon_chung") or [])
 
     du_lieu = _doc_du_lieu(cfg, drive)
     da_co = {d.ma_bai for d in sheet.doc_tat_ca()}
@@ -182,7 +182,7 @@ def gan_anh(cfg: CauHinh, args) -> None:
     drive, sheets = _google(cfg)
     sheet = SheetDuyet(sheets, CauHinh.bien("SHEET_DUYET_ID"))
     sheet.dam_bao_cau_truc(cfg["che_do_duyet"])
-    kho = KhoDrive(drive, CauHinh.bien("DRIVE_KHO_ID"))
+    kho = KhoDrive(drive, CauHinh.bien("DRIVE_KHO_ID"), cfg.get("nguon_chung") or [])
     du_lieu = _doc_du_lieu(cfg, drive)
     hom_nay = datetime.now(cfg.mui_gio).date()
     thieu = [d for d in sheet.doc_tat_ca()
@@ -226,7 +226,7 @@ def len_lich(cfg: CauHinh, args, drive=None, sheets=None) -> None:
         drive, sheets = _google(cfg)
     sheet = SheetDuyet(sheets, CauHinh.bien("SHEET_DUYET_ID"))
     sheet.dam_bao_cau_truc(cfg["che_do_duyet"])  # đặt lại danh sách chọn Trạng thái
-    kho = KhoDrive(drive, CauHinh.bien("DRIVE_KHO_ID"))
+    kho = KhoDrive(drive, CauHinh.bien("DRIVE_KHO_ID"), cfg.get("nguon_chung") or [])
     page = Fanpage(CauHinh.bien("FB_PAGE_ID"), CauHinh.bien("FB_PAGE_TOKEN"), cfg["facebook"]["graph_version"])
 
     cho = [d for d in sheet.doc_tat_ca() if d.trang_thai.strip() == DUYET and not d.facebook_id.strip()]
@@ -246,6 +246,10 @@ def len_lich(cfg: CauHinh, args, drive=None, sheets=None) -> None:
             fb_id = page.len_lich(d.noi_dung.strip(), thoi_diem, duong_dan,
                                   la_video=bool(media and media.la_video), ten_file=media.ten if media else "media")
             ghi_chu = f"Hẹn đăng {thoi_diem:%H:%M %d/%m/%Y}"
+            if media and media.la_video:
+                ghi_chu += f" | {getattr(page, 'loai_cuoi', 'video')}" + (
+                    f" (không đăng Reel được: {page.ly_do_khong_reel})" if getattr(page, "ly_do_khong_reel", "") else "")
+                page.ly_do_khong_reel = ""
             if media and media.la_video and youtube.da_cau_hinh():
                 try:  # YouTube chỉ là phần thêm: lỗi ở đây không làm hỏng bài đã lên lịch Facebook
                     yt_id = youtube.KenhYouTube.tu_moi_truong().dang_video(
@@ -532,7 +536,7 @@ def kiem_tra(cfg: CauHinh, args) -> None:
         sys.exit(1)
 
     def kiem_kho():
-        kho = KhoDrive(drive, CauHinh.bien("DRIVE_KHO_ID"))
+        kho = KhoDrive(drive, CauHinh.bien("DRIVE_KHO_ID"), cfg.get("nguon_chung") or [])
         ten = {sp.thu_muc for sp in du_lieu.san_pham if sp.thu_muc}
         ds = lap_ke_hoach(du_lieu, _tuan(cfg, None), cfg["thu_muc"], cfg.mui_gio)
         ten |= {tm for b in ds for tm in b.thu_muc}

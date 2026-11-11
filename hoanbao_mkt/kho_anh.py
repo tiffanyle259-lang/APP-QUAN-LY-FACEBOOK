@@ -20,6 +20,7 @@ class FileMedia:
     ten: str
     mime: str
     lan_dung_cuoi: date | None = None
+    can_khop: bool = False  # file từ nguồn chung: chỉ dùng cho bài có từ khóa (mã sản phẩm) khớp tên file
 
     @property
     def la_video(self) -> bool:
@@ -55,19 +56,57 @@ def chon_file(
         # Ưu tiên file chưa dùng bao giờ, rồi file lâu chưa dùng nhất.
         return (-d, f.lan_dung_cuoi or date.min, f.ten)
 
+    def khop_ten(f: FileMedia) -> bool:
+        tu_ten = set(bo_dau(f.ten).split())
+        return any(t in tu_ten for t in tu_khoa)
+
     con_lai = [f for f in ds if f.id not in da_chon]
-    # Ưu tiên cứng: file chưa dùng gần đây và không nằm trong bài nào khác; chỉ khi kho hết file như vậy mới dùng lại.
-    moi = [f for f in con_lai if f.id not in dang_dung
-           and not (f.lan_dung_cuoi and (hom_nay - f.lan_dung_cuoi).days < khong_lap_lai_trong_ngay)]
-    pool = moi or con_lai
+    hop = [f for f in con_lai if not f.can_khop or khop_ten(f)]
+    # Xoay vòng toàn bộ ảnh: ưu tiên cứng file chưa dùng gần đây và không nằm trong bài nào khác (trước hết file hợp từ khóa,
+    # rồi tới file nguồn chung khác); chỉ khi hết file mới như vậy mới dùng lại.
+    def tuoi(f):
+        return f.id not in dang_dung and not (f.lan_dung_cuoi and (hom_nay - f.lan_dung_cuoi).days < khong_lap_lai_trong_ngay)
+
+    pool = [f for f in hop if tuoi(f)] or [f for f in con_lai if tuoi(f)] or hop or con_lai
     return min(pool, key=diem) if pool else None
 
 
+# Video ở nguồn chung chỉ dùng khi tên ghi rõ "dung-duoc" (công ty đã duyệt, rõ bản quyền).
+_VIDEO_KHONG_DUNG = ("chua-duyet", "chua-ro", "chua-xem", "dung-mot-doan", "ban-quyen")
+
+
+def file_nguon_chung_hop_le(ten: str, mime: str, trong_thu_muc_video: bool) -> bool:
+    t = ten.lower()
+    if mime.startswith("video/"):
+        return "dung-duoc" in t and not any(x in t for x in _VIDEO_KHONG_DUNG)
+    return mime.startswith("image/") and not trong_thu_muc_video
+
+
 class KhoDrive:
-    def __init__(self, drive_service, thu_muc_goc_id: str):
+    def __init__(self, drive_service, thu_muc_goc_id: str, nguon_chung: list[str] | None = None):
         self.svc = drive_service
         self.goc = thu_muc_goc_id
+        self.nguon_chung = [n for n in (nguon_chung or []) if n]
         self._cache: dict[str, list[FileMedia]] = {}
+        self._chung: list[FileMedia] | None = None
+
+    def file_nguon_chung(self) -> list[FileMedia]:
+        """Ảnh/video trong các thư mục nguồn chung (chỉ đọc, không di chuyển); đã lọc theo quy tắc ở trên."""
+        if self._chung is not None:
+            return self._chung
+        ds: list[FileMedia] = []
+        hang_doi = [(n, False) for n in self.nguon_chung]
+        while hang_doi:
+            tm_id, trong_video = hang_doi.pop()
+            for f in self._liet_ke(f"'{tm_id}' in parents and trashed = false", "id, name, mimeType, appProperties"):
+                if f["mimeType"] == FOLDER:
+                    hang_doi.append((f["id"], trong_video or f["name"].lower().startswith("video")))
+                elif file_nguon_chung_hop_le(f["name"], f["mimeType"], trong_video):
+                    dung = (f.get("appProperties") or {}).get("lan_dung_cuoi")
+                    ds.append(FileMedia(f["id"], f["name"], f["mimeType"],
+                                        date.fromisoformat(dung) if dung else None, can_khop=True))
+        self._chung = ds
+        return ds
 
     def _liet_ke(self, q: str, fields: str) -> list[dict]:
         ket_qua, token = [], None
@@ -100,6 +139,7 @@ class KhoDrive:
             ):
                 dung = (f.get("appProperties") or {}).get("lan_dung_cuoi")
                 ds.append(FileMedia(f["id"], f["name"], f["mimeType"], date.fromisoformat(dung) if dung else None))
+        ds += self.file_nguon_chung()
         self._cache[ten_thu_muc] = ds
         return ds
 

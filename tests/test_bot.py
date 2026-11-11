@@ -315,7 +315,7 @@ def test_api_thao_tac_can_dang_nhap_va_kiem_tra():
 def test_bang_dieu_khien_co_nut_khi_duoc_sua():
     from hoanbao_mkt.bang_dieu_khien import dung_html
 
-    d = {"cap_nhat": "x", "page": "KEO DÁN GIÀY", "che_do_duyet": True, "sheet_url": "", "kho": [],
+    d = {"cap_nhat": "x", "page": "KEO DÁN GIÀY", "che_do_duyet": True, "sheet_url": "", "kho": [], "khong_loc_thang": True,
          "bai": [{"ma_bai": "m1", "ngay": "2026-10-12", "gio": "08:00", "loai": "L", "noi_dung": "<i>nd</i>", "media": "",
                   "trang_thai": "Chờ duyệt", "ghi_chu": "", "facebook_id": ""},
                  {"ma_bai": "m2", "ngay": "2026-10-13", "gio": "08:00", "loai": "L", "noi_dung": "nd", "media": "",

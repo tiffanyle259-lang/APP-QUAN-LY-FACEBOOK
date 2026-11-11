@@ -25,6 +25,11 @@ thu_muc:
 # Phải chia sẻ thư mục đó cho tài khoản dịch vụ với quyền Biên tập. File được CHUYỂN vào kho, không sao chép.
 nguon_anh_them: []
 
+# Thư mục Drive dùng chung của công ty (chỉ ĐỌC, app không di chuyển hay xóa gì). Ảnh dùng được hết (trừ trong thư mục VIDEO...);
+# video chỉ dùng file có tên ghi "dung-duoc". File chỉ được chọn cho bài có từ khóa (mã sản phẩm) khớp tên file.
+nguon_chung:
+  - 1FCeoSgiWdNWMQm7BhGGj8ZqmR6Z93gFL   # TÀI NGUYÊN CHUNG (công ty Hoàn Bảo)
+
 # Không dùng lại cùng một ảnh/video trong số ngày này (nếu kho còn file khác).
 khong_lap_lai_trong_ngay: 28
 

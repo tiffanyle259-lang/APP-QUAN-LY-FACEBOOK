@@ -95,6 +95,14 @@ class Fanpage:
             return self._post(f"{self.graph}/{self.page_id}/feed", {**hen, "message": noi_dung})["id"]
 
         mime = mimetypes.guess_type(ten_file)[0] or ("video/mp4" if la_video else "image/jpeg")
+        self.loai_cuoi = "ảnh" if not la_video else "video"
+        if la_video:  # video luôn thử đăng dạng Reel trước; Meta từ chối (vd video ngang, quá dài) thì đăng video thường
+            try:
+                vid = self._len_lich_reel(noi_dung, thoi_diem, file_media)
+                self.loai_cuoi = "Reel"
+                return vid
+            except LoiFacebook as e:
+                self.ly_do_khong_reel = str(e)[:150]
         with Path(file_media).open("rb") as fh:
             if la_video:
                 r = self._post(f"{self.graph_video}/{self.page_id}/videos",
@@ -103,3 +111,19 @@ class Fanpage:
                 r = self._post(f"{self.graph}/{self.page_id}/photos",
                                {**hen, "message": noi_dung}, files={"source": (ten_file, fh, mime)})
         return r.get("post_id") or r["id"]
+
+    def _len_lich_reel(self, noi_dung: str, thoi_diem: datetime, file_media: str) -> str:
+        """Hẹn giờ đăng video dạng Reel (3 bước của Meta: mở phiên, tải lên, chốt lịch). Trả về ID video."""
+        bd = self._post(f"{self.graph}/{self.page_id}/video_reels", {"upload_phase": "start"})
+        video_id, url = bd["video_id"], bd["upload_url"]
+        kich_thuoc = Path(file_media).stat().st_size
+        with Path(file_media).open("rb") as fh:
+            r = requests.post(url, data=fh, timeout=900, headers={
+                "Authorization": f"OAuth {self.token}", "offset": "0", "file_size": str(kich_thuoc)})
+        body = r.json() if r.content else {}
+        if r.status_code >= 400 or body.get("success") is False or "error" in body:
+            raise LoiFacebook(f"Tải Reel lên không được: {str(body)[:150]}")
+        self._post(f"{self.graph}/{self.page_id}/video_reels", {
+            "upload_phase": "finish", "video_id": video_id, "video_state": "SCHEDULED",
+            "scheduled_publish_time": str(int(thoi_diem.timestamp())), "description": noi_dung})
+        return str(video_id)

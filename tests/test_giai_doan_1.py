@@ -170,7 +170,7 @@ from hoanbao_mkt.bang_dieu_khien import dung_html
 
 
 def test_bang_dieu_khien_html():
-    d = {"cap_nhat": "21:00 06/10/2026", "page": "Keo dán giày", "che_do_duyet": True,
+    d = {"cap_nhat": "21:00 06/10/2026", "page": "Keo dán giày", "che_do_duyet": True, "khong_loc_thang": True,
          "sheet_url": "https://docs.google.com/spreadsheets/d/abc",
          "bai": [
              {"ma_bai": "1", "ngay": "2026-10-12", "gio": "08:00", "loai": "Giới thiệu", "noi_dung": "Xin chào <script>x</script>",
@@ -204,3 +204,52 @@ def test_chon_file_uu_tien_cung_file_chua_dung_du_khop_tu_khoa_hon():
           FileMedia("moi", "anh khac.jpg", "image/jpeg")]
     assert chon_file(ds, ["228", "sofa", "phun"], False, set(), hom_nay, 28, {"trung"}).id == "moi"
     assert chon_file(ds, ["228"], False, {"moi"}, hom_nay, 28, {"trung"}).id == "trung"  # hết file mới thì mới dùng lại
+
+
+def test_video_dang_reel_va_roi_ve_video_thuong_khi_meta_tu_choi(tmp_path, monkeypatch):
+    from hoanbao_mkt import facebook as fb
+
+    f = tmp_path / "v.mp4"
+    f.write_bytes(b"x" * 10)
+    goi = []
+
+    class R:
+        def __init__(self, body, code=200):
+            self.body, self.status_code, self.content = body, code, b"x"
+        def json(self): return self.body
+        text = ""
+
+    def post(url, data=None, files=None, headers=None, timeout=0):
+        goi.append(url.rsplit("/", 1)[-1] if "rupload" not in url else "rupload")
+        if url.endswith("/video_reels") and data.get("upload_phase") == "start":
+            return R({"video_id": "V1", "upload_url": "https://rupload.facebook.com/video-upload/v24.0/V1"})
+        return R({"success": True, "id": "VIDEO_THUONG"})
+
+    monkeypatch.setattr(fb.requests, "post", post)
+    page = fb.Fanpage("P", "T", "v24.0")
+    gio = datetime.now(timezone.utc) + timedelta(days=2)
+    assert page.len_lich("nd", gio, str(f), la_video=True, ten_file="v.mp4") == "V1"
+    assert page.loai_cuoi == "Reel" and goi == ["video_reels", "rupload", "video_reels"]
+
+    def post_loi(url, data=None, files=None, headers=None, timeout=0):
+        if url.endswith("/video_reels"):
+            return R({"error": {"message": "video ngang", "code": 100}}, 400)
+        return R({"id": "VIDEO_THUONG"})
+
+    monkeypatch.setattr(fb.requests, "post", post_loi)
+    assert page.len_lich("nd", gio, str(f), la_video=True, ten_file="v.mp4") == "VIDEO_THUONG"
+    assert page.loai_cuoi == "video" and "video ngang" in page.ly_do_khong_reel
+
+
+def test_nguon_chung_loc_video_va_chi_chon_khi_khop_tu_khoa():
+    from hoanbao_mkt.kho_anh import FileMedia, chon_file, file_nguon_chung_hop_le
+
+    assert file_nguon_chung_hop_le("228_vuong_1080x1080.jpg", "image/jpeg", False)
+    assert not file_nguon_chung_hop_le("anh.jpg", "image/jpeg", True)  # ảnh nằm trong thư mục video
+    assert file_nguon_chung_hop_le("228_clip-that_a_that_dung-duoc.mp4".replace("_", "-"), "video/mp4", True)
+    assert not file_nguon_chung_hop_le("x_tiktok-chua-ro-ban-quyen_chua-duyet.mp4", "video/mp4", True)
+    assert not file_nguon_chung_hop_le("228_dung-mot-doan.mp4", "video/mp4", True)
+    ds = [FileMedia("a", "SPRO_vuong_1080x1080.jpg", "image/jpeg", can_khop=True),
+          FileMedia("b", "228_vuong_1080x1080.jpg", "image/jpeg", can_khop=True)]
+    assert chon_file(ds, ["228"], False, set(), date(2026, 11, 11), 28).id == "b"
+    assert chon_file(ds, ["339"], False, {"a"}, date(2026, 11, 11), 28).id == "b"  # xoay vòng: hết file khớp vẫn lấy file chung chưa dùng
