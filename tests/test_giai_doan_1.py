@@ -267,6 +267,33 @@ def test_nguon_chung_duyet_thu_muc_loai_tru_va_chi_lay_video_trong_thu_muc_duoc_
         "f5": [("v3", "reel.mp4", "video/mp4")],
     }
     kho = KhoDrive(None, "k", ["goc"], ["seo", "video clip that"], ["video sach ai", "reel"])
+    kho.anh_tu = []  # không giới hạn thư mục ảnh
     kho._liet_ke = lambda q, fields: [{"id": i, "name": n, "mimeType": m} for i, n, m in cay[q.split("'")[1]]]
     ten = sorted(f.id for f in kho.file_nguon_chung())
     assert ten == ["i0", "i1", "v1", "v3"]  # ảnh gốc + ảnh SPRO + video sạch AI + reel; bỏ SEO và VIDEO CLIP THẬT
+
+
+def test_nguon_chung_anh_chi_lay_trong_thu_muc_anh_duoc_phep():
+    from hoanbao_mkt.kho_anh import FOLDER, KhoDrive
+
+    cay = {
+        "goc": [("a1", "ANH-SACH-AI", FOLDER), ("a2", "ẢNH QUẢNG CÁO", FOLDER), ("a3", "SPRO", FOLDER),
+                ("a4", "ẢNH ĐĂNG SHOPEE", FOLDER), ("i0", "loose.jpg", "image/jpeg")],
+        "a1": [("i1", "ai.jpg", "image/jpeg")],
+        "a2": [("i2", "qc.jpg", "image/jpeg"), ("b", "BANNER DISPLAY", FOLDER)],
+        "b": [("i3", "728x90.jpg", "image/jpeg")],
+        "a3": [("i4", "spro.jpg", "image/jpeg")],
+        "a4": [("i5", "shopee.png", "image/png")],
+    }
+    kho = KhoDrive(None, "k", ["goc"], ["banner display"], [], ["anh sach ai", "anh quang cao"])
+    kho._liet_ke = lambda q, fields: [{"id": i, "name": n, "mimeType": m} for i, n, m in cay[q.split("'")[1]]]
+    assert sorted(f.id for f in kho.file_nguon_chung()) == ["i1", "i2"]  # chỉ ảnh sạch AI + ảnh quảng cáo, bỏ banner display
+
+
+def test_chi_dung_nguon_chung_bo_qua_kho_marketing():
+    from hoanbao_mkt.kho_anh import FOLDER, KhoDrive
+
+    cay = {"goc": [("a1", "ANH-SACH-AI", FOLDER)], "a1": [("i1", "ai.jpg", "image/jpeg")]}
+    kho = KhoDrive(None, "k", ["goc"], [], [], ["anh sach ai"], chi_nguon_chung=True)
+    kho._liet_ke = lambda q, fields: [{"id": i, "name": n, "mimeType": m} for i, n, m in cay[q.split("'")[1]]]
+    assert [f.id for f in kho.file_trong("keo-phun-228")] == ["i1"]  # không hỏi Kho-Marketing

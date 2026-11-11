@@ -48,7 +48,8 @@ def _kho(cfg: CauHinh, drive):
     from .kho_anh import KhoDrive
 
     return KhoDrive(drive, CauHinh.bien("DRIVE_KHO_ID"), cfg.get("nguon_chung") or [],
-                    cfg.get("nguon_chung_loai_tru") or [], cfg.get("nguon_chung_video_tu") or [])
+                    cfg.get("nguon_chung_loai_tru") or [], cfg.get("nguon_chung_video_tu") or [],
+                    cfg.get("nguon_chung_anh_tu") or [], bool(cfg.get("chi_dung_nguon_chung")))
 
 
 def _doc_du_lieu(cfg: CauHinh, drive=None) -> DuLieuNen:

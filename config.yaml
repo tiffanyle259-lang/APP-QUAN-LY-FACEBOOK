@@ -25,12 +25,16 @@ thu_muc:
 # Phải chia sẻ thư mục đó cho tài khoản dịch vụ với quyền Biên tập. File được CHUYỂN vào kho, không sao chép.
 nguon_anh_them: []
 
-# Thư mục Drive dùng chung của công ty (chỉ ĐỌC, app không di chuyển hay xóa gì). Ảnh dùng hết trừ các thư mục loại trừ bên dưới;
+# Thư mục Drive dùng chung của công ty (chỉ ĐỌC, app không di chuyển hay xóa gì). Thư mục loại trừ bên dưới không dùng;
 # VIDEO chỉ lấy trong thư mục có tên chứa một trong các cụm ở nguon_chung_video_tu (video sạch AI, reel).
 nguon_chung:
   - 1FCeoSgiWdNWMQm7BhGGj8ZqmR6Z93gFL   # TÀI NGUYÊN CHUNG (công ty Hoàn Bảo)
 nguon_chung_loai_tru: ["seo", "vat lieu ghep video", "banner display", "video clip that"]
 nguon_chung_video_tu: ["video sach ai", "video dang reel"]
+# ẢNH chỉ lấy trong thư mục có tên chứa một trong các cụm này (ảnh sạch AI); ảnh ở chỗ khác không dùng.
+nguon_chung_anh_tu: ["anh sach ai"]
+# true: chỉ dùng thư mục nguồn chung, không lấy ảnh/video trong Kho-Marketing nữa (sếp sắp xóa kho này).
+chi_dung_nguon_chung: true
 
 # Không dùng lại cùng một ảnh/video trong số ngày này (nếu kho còn file khác).
 khong_lap_lai_trong_ngay: 28
