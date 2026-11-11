@@ -41,6 +41,15 @@ def khop_ma(f: "FileMedia", ma_san_pham: list[str]) -> bool:
     return any(m in tu or (not m.isdigit() and m in gon) for m in ma)
 
 
+def ma_mo_rong(ma_san_pham: list[str], ma_phu: dict | None) -> list[str]:
+    """Thêm tên gọi khác của sản phẩm (vd SUPERPRO còn gọi là SPRO, S-PRO) để khớp được tên file."""
+    ra = list(ma_san_pham)
+    phu = {bo_dau(k).replace(" ", ""): v for k, v in (ma_phu or {}).items()}
+    for m in ma_san_pham:
+        ra += list(phu.get(bo_dau(m).replace(" ", ""), []))
+    return ra
+
+
 def chon_file(
     ds: list[FileMedia],
     tu_khoa: list[str],

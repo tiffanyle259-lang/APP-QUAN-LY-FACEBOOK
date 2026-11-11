@@ -33,6 +33,9 @@ nguon_chung_loai_tru: ["seo", "vat lieu ghep video", "banner display", "video cl
 nguon_chung_video_tu: ["video sach ai", "video dang reel"]
 # ẢNH chỉ lấy trong thư mục có tên chứa một trong các cụm này (ảnh sạch AI); ảnh ở chỗ khác không dùng.
 nguon_chung_anh_tu: ["anh sach ai"]
+# Tên gọi khác của sản phẩm trên file ảnh/video (mã trong Excel -> cách gọi trên tên file).
+ma_phu:
+  SUPERPRO: [SPRO, S-PRO]
 # true: chỉ dùng thư mục nguồn chung, không lấy ảnh/video trong Kho-Marketing nữa (sếp sắp xóa kho này).
 chi_dung_nguon_chung: true
 

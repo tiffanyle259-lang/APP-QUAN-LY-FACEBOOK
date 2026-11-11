@@ -29,6 +29,7 @@ from .cau_hinh import CauHinh, ThieuCauHinh
 from .du_lieu import DuLieuNen, doc_du_lieu, khung_phu
 from .duyet_bai import (CHO_DUYET, DA_LEN_LICH, DUYET, LOI, SheetDuyet, doc_gio, doc_ngay,
                         drive_id_tu_link)
+from .kho_anh import ma_mo_rong
 from .ke_hoach import BaiKeHoach, lap_ke_hoach, thu_hai_tuan_sau
 
 
@@ -176,7 +177,7 @@ def tao_tuan(cfg: CauHinh, args) -> None:
         for tm in b.thu_muc:
             media = chon_file(kho.file_trong(tm), b.tu_khoa_media + bv.tu_khoa_media, b.uu_tien_video,
                               da_chon, hom_nay, cfg.get("khong_lap_lai_trong_ngay", 28), dang_dung,
-                              [sp.ma for sp in b.san_pham], b.uu_tien_video)
+                              ma_mo_rong([sp.ma for sp in b.san_pham], cfg.get("ma_phu")), b.uu_tien_video)
             if media:
                 break
         if media:
@@ -233,11 +234,11 @@ def gan_anh(cfg: CauHinh, args) -> None:
             media = None
             if d.ma_bai in doi_kho:
                 media = chon_file(kho.file_nguon_chung(), b.tu_khoa_media, b.uu_tien_video, da_chon, hom_nay,
-                                  cfg.get("khong_lap_lai_trong_ngay", 28), dang_dung, [sp.ma for sp in b.san_pham], b.uu_tien_video)
+                                  cfg.get("khong_lap_lai_trong_ngay", 28), dang_dung, ma_mo_rong([sp.ma for sp in b.san_pham], cfg.get("ma_phu")), b.uu_tien_video)
             else:
                 for tm in b.thu_muc:
                     media = chon_file(kho.file_trong(tm), b.tu_khoa_media, b.uu_tien_video, da_chon, hom_nay,
-                                      cfg.get("khong_lap_lai_trong_ngay", 28), dang_dung, [sp.ma for sp in b.san_pham], b.uu_tien_video)
+                                      cfg.get("khong_lap_lai_trong_ngay", 28), dang_dung, ma_mo_rong([sp.ma for sp in b.san_pham], cfg.get("ma_phu")), b.uu_tien_video)
                     if media:
                         break
             if not media:
@@ -275,6 +276,11 @@ def len_lich(cfg: CauHinh, args, drive=None, sheets=None) -> None:
                 continue
             media_id = drive_id_tu_link(d.media)
             media = kho.thong_tin(media_id) if media_id else None
+            if media and "video" in d.loai_bai.lower() and not media.la_video:
+                # Bài video mà gắn ảnh là sai nội dung: không hẹn giờ, báo để gán đúng video.
+                sheet.cap_nhat(d.dong, CHO_DUYET, "Bài video nhưng đang gắn ảnh: cần gán đúng video rồi duyệt lại", "")
+                print(f"  ! {d.ma_bai}: bài video nhưng gắn ảnh, chuyển Chờ duyệt (không đăng).")
+                continue
             duong_dan = kho.tai_ve(media.id) if media else None
             fb_id = page.len_lich(d.noi_dung.strip(), thoi_diem, duong_dan,
                                   la_video=bool(media and media.la_video), ten_file=media.ten if media else "media")

@@ -5,7 +5,8 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 
 from .duyet_bai import CHO_DUYET, DA_LEN_LICH, DUYET, doc_gio, doc_ngay
-from .kho_anh import FileMedia, chon_file, khop_ma
+from .ke_hoach import bo_dau
+from .kho_anh import FileMedia, chon_file, khop_ma, ma_mo_rong
 
 
 def _file_day_du(drive, fid: str, cache: dict) -> FileMedia | None:
@@ -48,11 +49,17 @@ def chay(cfg, drive, sheet, kho, du_lieu, page, sua: bool, lap_ke_hoach, drive_i
         if not fm:
             sai.append((d, b, "file không còn/không đọc được"))
             continue
-        ma = [sp.ma for sp in b.san_pham]
+        ma_goc = [sp.ma for sp in b.san_pham]
+        ma = ma_mo_rong(ma_goc, cfg.get("ma_phu"))
+        khac = [c for sp in du_lieu.san_pham if sp.ma not in ma_goc for c in ma_mo_rong([sp.ma], cfg.get("ma_phu"))
+                if c not in ma]
+        video_tu = [bo_dau(x) for x in (cfg.get("nguon_chung_video_tu") or [])]
         if b.uu_tien_video and not fm.la_video:
             sai.append((d, b, f"bài video nhưng gắn ảnh ({fm.ten})"))
-        elif ma and not khop_ma(fm, ma):
-            sai.append((d, b, f"sai sản phẩm: bài {'/'.join(ma)} nhưng file '{fm.ten}' (thư mục {fm.nhom})"))
+        elif fm.la_video and not any(x in bo_dau(fm.nhom) for x in video_tu):
+            sai.append((d, b, f"video ngoài thư mục được phép ({fm.ten}, thư mục {fm.nhom})"))
+        elif ma and khop_ma(fm, khac) and not khop_ma(fm, ma):
+            sai.append((d, b, f"sai sản phẩm: bài {'/'.join(ma_goc)} nhưng file '{fm.ten}' (thư mục {fm.nhom}) của sản phẩm khác"))
     print(f"{len(sai)} bài chưa đăng gán sai ảnh/video{' (đang sửa)' if sua else ' (chỉ xem)'}.")
     da_chon: set[str] = set()
     dang_dung = {drive_id_tu_link(x.media) for x in sheet.doc_tat_ca() if x.media.strip() and x.trang_thai.strip() != "Bỏ"} - {None}
@@ -64,7 +71,8 @@ def chay(cfg, drive, sheet, kho, du_lieu, page, sua: bool, lap_ke_hoach, drive_i
             if d.facebook_id.strip():
                 page.xoa(d.facebook_id.strip())  # hủy bài đang hẹn giờ để gán lại cho đúng
             media = chon_file(kho.file_nguon_chung(), b.tu_khoa_media, b.uu_tien_video, da_chon, bay_gio.date(),
-                              cfg.get("khong_lap_lai_trong_ngay", 28), dang_dung, [sp.ma for sp in b.san_pham], b.uu_tien_video)
+                              cfg.get("khong_lap_lai_trong_ngay", 28), dang_dung,
+                              ma_mo_rong([sp.ma for sp in b.san_pham], cfg.get("ma_phu")), b.uu_tien_video)
             if media:
                 da_chon.add(media.id)
                 sheet.gan_media(d.dong, media.link, f"File: {media.ten} (đã đổi cho đúng sản phẩm)")
