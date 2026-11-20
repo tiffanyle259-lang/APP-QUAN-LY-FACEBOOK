@@ -424,6 +424,34 @@ def don_bai(cfg: CauHinh, args) -> None:
             if b.trang_thai.strip() == CHO_DUYET:
                 print(f"===== {b.ma_bai} ({b.ngay} {b.gio}) | {b.ghi_chu}\n{b.noi_dung}\n")
         return
+    if args.viec == "bo-khung":  # bỏ các bài chưa đăng ở những khung giờ kém hiệu quả (--ma "07:30,08:30,..."), hủy lịch trên Facebook
+        from .duyet_bai import BO
+        from .facebook import Fanpage
+
+        gio_bo = {g.strip() for g in args.ma.split(",") if g.strip()}
+        page = Fanpage(CauHinh.bien("FB_PAGE_ID"), CauHinh.bien("FB_PAGE_TOKEN"), cfg["facebook"]["graph_version"])
+        bay_gio = datetime.now(cfg.mui_gio)
+        n = 0
+        for d in sheet.doc_tat_ca():
+            g = str(d.gio).strip()[:5]
+            if g not in gio_bo or d.trang_thai.strip() not in (CHO_DUYET, DUYET, DA_LEN_LICH):
+                continue
+            if not d.ma_bai.endswith("_" + g.replace(":", "")):  # chỉ bài khung phụ, không đụng bài gốc theo Excel
+                continue
+            try:
+                if datetime.combine(doc_ngay(d.ngay), doc_gio(d.gio), tzinfo=cfg.mui_gio) < bay_gio + timedelta(minutes=30):
+                    continue
+                if args.thu:
+                    n += 1
+                    continue
+                if d.facebook_id.strip():
+                    page.xoa(d.facebook_id.strip())
+                sheet.cap_nhat(d.dong, BO, "Bỏ khung giờ kém hiệu quả theo số liệu tương tác", "")
+                n += 1
+            except Exception as e:  # noqa: BLE001
+                print(f"  ✗ {d.ma_bai}: {str(e)[:150]}")
+        print(f"{'XEM TRƯỚC: ' if args.thu else ''}{n} bài ở các khung {', '.join(sorted(gio_bo))} {'sẽ được bỏ' if args.thu else 'đã bỏ'}.")
+        return
     if args.viec == "phan-tich":  # chỉ đọc: loại bài và khung giờ nào tương tác tốt nhất trong 28 ngày qua
         from . import hoc
         from .facebook import Fanpage
@@ -717,7 +745,7 @@ def main(argv=None) -> None:
     sub.add_parser("len-lich")
     sub.add_parser("tao-thu-muc")
     db_ = sub.add_parser("don-bai")
-    db_.add_argument("--viec", choices=["duyet", "bo-qua-gio", "dinh-dang", "xem", "duyet-ma", "doi-chieu-fb", "youtube", "thu-muc-drive", "kiem-anh", "sua-anh", "xoa-dang-lai", "youtube-bu", "phan-tich"], required=True)
+    db_.add_argument("--viec", choices=["duyet", "bo-qua-gio", "dinh-dang", "xem", "duyet-ma", "doi-chieu-fb", "youtube", "thu-muc-drive", "kiem-anh", "sua-anh", "xoa-dang-lai", "youtube-bu", "phan-tich", "bo-khung"], required=True)
     db_.add_argument("--thu", action="store_true")
     db_.add_argument("--ma", default="")
     cd2 = sub.add_parser("che-do-duyet")
