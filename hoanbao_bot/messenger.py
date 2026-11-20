@@ -79,8 +79,13 @@ class Messenger:
 
     def nhan_rieng_binh_luan(self, comment_id: str, text: str) -> None:
         """Private reply: nhắn riêng cho người bình luận (một lần, trong 7 ngày)."""
-        self._goi("POST", "me/messages", json={
-            "recipient": {"comment_id": comment_id}, "message": {"text": text[:GIOI_HAN_TIN], "metadata": "bot"}})
+        try:
+            self._goi("POST", "me/messages", json={
+                "recipient": {"comment_id": comment_id}, "message": {"text": text[:GIOI_HAN_TIN], "metadata": "bot"}})
+        except LoiGraph as e:
+            if "10900" in str(e):  # Meta chỉ cho nhắn riêng MỘT lần cho mỗi bình luận: đã nhắn rồi thì coi như xong
+                return
+            raise
 
     def tra_loi_binh_luan(self, comment_id: str, text: str) -> None:
         self._goi("POST", f"{comment_id}/comments", json={"message": text})

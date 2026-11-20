@@ -782,3 +782,15 @@ def test_bang_dieu_khien_chi_hien_bai_cua_thang_hien_tai():
     html = dung_html({"cap_nhat": "x", "page": "P", "che_do_duyet": False, "sheet_url": "", "kho": [],
                       "bai": [bai("cu", thang_truoc), bai("moi", f"{hn.year}-{hn.month:02d}-28")]})
     assert "noi dung moi" in html and "noi dung cu" not in html
+
+
+def test_nhan_rieng_binh_luan_da_tra_loi_roi_khong_bao_loi():
+    from hoanbao_bot.messenger import LoiGraph, Messenger
+
+    m = Messenger.__new__(Messenger)
+
+    def goi(*a, **k):
+        raise LoiGraph("Activity already replied to (mã 10900)")
+
+    m._goi = goi
+    m.nhan_rieng_binh_luan("c1", "xin chào")  # không ném lỗi
