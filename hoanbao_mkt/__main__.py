@@ -452,24 +452,45 @@ def don_bai(cfg: CauHinh, args) -> None:
                 print(f"  ✗ {d.ma_bai}: {str(e)[:150]}")
         print(f"{'XEM TRƯỚC: ' if args.thu else ''}{n} bài ở các khung {', '.join(sorted(gio_bo))} {'sẽ được bỏ' if args.thu else 'đã bỏ'}.")
         return
-    if args.viec == "ra-gia":  # chỉ đọc: tìm bài (Sheet + đã đăng trên Page) có ghi giá tiền để kiểm tra giá cũ
-        import re as _re
-
+    if args.viec == "ra-gia":  # đối chiếu giá ghi trong bài (Sheet + đã đăng trên Page) với bảng giá chính thức, ghi vào tab "Kiểm tra giá"
+        from . import gia
         from .facebook import Fanpage
 
-        mau = _re.compile(r"(?:giá[^\n]{0,40}\d|\d[\d.,]*\s*(?:đ\b|₫|vnđ|vnd|k\b|nghìn|ngàn|triệu|tr\b)|\d[\d.,]*\s*/\s*(?:kg|thùng|lon|chai))", _re.I)
-        co_gia = [d for d in sheet.doc_tat_ca() if mau.search(d.noi_dung or "") and d.trang_thai.strip() != "Bỏ"]
-        print(f"Sheet: {len(co_gia)} bài có ghi giá tiền (không tính bài Bỏ).")
-        for d in co_gia[:60]:
-            m = mau.search(d.noi_dung)
-            print(f"  - {d.ma_bai} ({d.ngay} {d.gio}) [{d.trang_thai}] ...{d.noi_dung[max(0, m.start() - 40):m.end() + 40]!r}".replace("\n", " "))
+        bang_gia = cfg["bang_gia"]
+        ket_qua = []
+        for d in sheet.doc_tat_ca():
+            if d.trang_thai.strip() == "Bỏ":
+                continue
+            loi = gia.kiem_tra(d.noi_dung, bang_gia)
+            if loi:
+                ket_qua.append(["Sheet (chưa/đã hẹn giờ)", f"{d.ngay} {d.gio}", d.ma_bai, "/".join(gia.san_pham_trong_bai(d.noi_dung)),
+                                "; ".join(loi), " ".join(d.noi_dung.split())[:160]])
         page = Fanpage(CauHinh.bien("FB_PAGE_ID"), CauHinh.bien("FB_PAGE_TOKEN"), cfg["facebook"]["graph_version"])
         da_dang = page.bai_da_dang(datetime.now(cfg.mui_gio) - timedelta(days=120), toi_da=800)
-        tren_page = [p_ for p_ in da_dang if mau.search(p_.get("message") or "")]
-        print(f"Page: {len(tren_page)}/{len(da_dang)} bài đã đăng (120 ngày qua) có ghi giá tiền.")
-        for p_ in tren_page[:40]:
-            m = mau.search(p_["message"])
-            print(f"  - {p_.get('created_time', '')[:10]} {p_.get('permalink_url', '')} ...{p_['message'][max(0, m.start() - 40):m.end() + 40]!r}".replace("\n", " "))
+        co_gia = 0
+        for p_ in da_dang:
+            nd = p_.get("message") or ""
+            if [g for g in gia.tim_gia(nd) if g not in gia.SO_KHAC]:
+                co_gia += 1
+            loi = gia.kiem_tra(nd, bang_gia)
+            if loi:
+                ket_qua.append(["Đã đăng trên Page", p_.get("created_time", "")[:16].replace("T", " "), p_.get("permalink_url", ""),
+                                "/".join(gia.san_pham_trong_bai(nd)), "; ".join(loi), " ".join(nd.split())[:160]])
+        ket_qua.sort(key=lambda r: (r[0], r[1]), reverse=True)
+        tieu_de = ["Nguồn", "Ngày giờ", "Link / mã bài", "Sản phẩm", "Vấn đề về giá (so với bảng giá 19/10/2026)", "Trích đoạn bài"]
+        svc = sheet.svc
+        info = svc.get(spreadsheetId=sheet.id, fields="sheets.properties").execute()
+        if not any(x["properties"]["title"] == "Kiểm tra giá" for x in info["sheets"]):
+            svc.batchUpdate(spreadsheetId=sheet.id, body={"requests": [{"addSheet": {"properties": {"title": "Kiểm tra giá"}}}]}).execute()
+        svc.values().clear(spreadsheetId=sheet.id, range="'Kiểm tra giá'!A1:F2000").execute()
+        svc.values().update(spreadsheetId=sheet.id, range="'Kiểm tra giá'!A1", valueInputOption="RAW",
+                            body={"values": [tieu_de] + ket_qua[:1900]}).execute()
+        tren_page = sum(1 for r in ket_qua if r[0].startswith("Đã đăng"))
+        print(f"Page: {len(da_dang)} bài (120 ngày), {co_gia} bài có ghi giá, {tren_page} bài SAI giá so với bảng giá.")
+        print(f"Sheet: {len(ket_qua) - tren_page} bài chưa đăng sai giá.")
+        print("Đã ghi danh sách vào tab 'Kiểm tra giá' trong Google Sheet.")
+        for r in ket_qua[:12]:
+            print(f"  - {r[1]} | {r[3]} | {r[4][:110]}")
         return
     if args.viec == "phan-tich":  # chỉ đọc: loại bài và khung giờ nào tương tác tốt nhất trong 28 ngày qua
         from . import hoc

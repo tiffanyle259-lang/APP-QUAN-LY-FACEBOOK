@@ -110,6 +110,18 @@ khung_chu_nhat:
   - {gio: "21:30", loai_bai: Giới thiệu sản phẩm, goi_y: "Bài buổi tối, giọng gần gũi: câu hỏi khách hay hỏi hoặc so sánh cách làm cũ với dùng keo, kết bằng lời mời inbox."}
   - {gio: "22:30", loai_bai: Mẹo dùng keo, goi_y: "Bài buổi tối, giọng gần gũi: câu hỏi khách hay hỏi hoặc so sánh cách làm cũ với dùng keo, kết bằng lời mời inbox."}
 
+# Bảng giá chính thức (Marketing cập nhật 19/10/2026, đơn vị đồng, giá chưa VAT). Dùng để kiểm tra giá ghi trong bài; app KHÔNG tự đưa giá vào bài.
+bang_gia:
+  "228":        {can_3kg: 450000, thung_15kg: 1600000}
+  "S-PRO":      {can_3kg: 600000, thung_10kg: 1600000}
+  "339":        {can_3kg: 600000, thung_10kg: 1600000}
+  "405A":       {can_3kg: 450000, thung_15kg: 1600000}
+  "HP-333":     {can_3kg: 450000, thung_15kg: 1600000}
+  "SUPER PRO":  {can_3kg: 400000, thung_15kg: 1400000}
+  "X66":        {can_3kg: 450000, thung_15kg: 1600000}
+  "XU LY PU PVC": {can_3kg: 740000, thung_10kg: 1800000}
+  "S383":       {chai_800ml: 550000}
+
 ai:
   model: claude-sonnet-5-5
   effort: medium

@@ -349,3 +349,15 @@ def test_video_trong_thu_muc_reel_duoc_uu_tien():
     ds = [FileMedia("a", "HERO_228_x.mp4", "video/mp4", nhom="VIDEO-SACH-AI", can_khop=True),
           FileMedia("b", "REEL_01_228_x.mp4", "video/mp4", nhom="VIDEO-DANG-REEL", can_khop=True, uu_tien=True)]
     assert chon_file(ds, ["228"], True, set(), date(2026, 11, 20), 28, ma_bat_buoc=["228"], chi_video=True).id == "b"
+
+
+def test_kiem_tra_gia_theo_bang_gia():
+    from hoanbao_mkt import gia
+    from hoanbao_mkt.cau_hinh import CauHinh
+
+    bg = CauHinh.doc()["bang_gia"]
+    assert gia.kiem_tra("Giá 405A: 600k/lon, sỉ 1,8tr/thùng", bg)  # giá cũ
+    assert not gia.kiem_tra("Keo 228 từ 486.000đ/can 3kg (đã VAT 8%)", bg)  # 450.000 + VAT
+    assert not gia.kiem_tra("Đơn từ 5.000.000đ miễn phí vận chuyển, hơn 500 khách", bg)  # không phải giá sản phẩm
+    assert not gia.kiem_tra("HP-333 450.000đ/can, sỉ 1,6tr/thùng", bg)
+    assert gia.kiem_tra("Chất đóng rắn S383 600k/chai", bg)  # đúng là 550k
