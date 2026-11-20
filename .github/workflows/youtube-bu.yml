@@ -1,0 +1,31 @@
+name: Đẩy bù video lên YouTube
+
+on:
+  # Mỗi ngày 1h30 sáng (giờ VN): đẩy các video đã hẹn giờ trên Facebook mà chưa có trên YouTube (tối đa 5 video/lần theo hạn mức YouTube).
+  schedule:
+    - cron: "30 18 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: fanpage
+  cancel-in-progress: false
+
+jobs:
+  chay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+      SHEET_DUYET_ID: ${{ secrets.SHEET_DUYET_ID }}
+      DRIVE_KHO_ID: ${{ secrets.DRIVE_KHO_ID }}
+      YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+      YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+      YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python -m hoanbao_mkt don-bai --viec youtube-bu
