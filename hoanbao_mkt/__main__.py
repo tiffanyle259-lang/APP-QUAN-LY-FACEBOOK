@@ -424,6 +424,43 @@ def don_bai(cfg: CauHinh, args) -> None:
             if b.trang_thai.strip() == CHO_DUYET:
                 print(f"===== {b.ma_bai} ({b.ngay} {b.gio}) | {b.ghi_chu}\n{b.noi_dung}\n")
         return
+    if args.viec == "youtube-bu":  # đẩy lên YouTube các video đã hẹn giờ trên Facebook nhưng chưa có link YouTube (tối đa 5 video mỗi lần: hạn mức YouTube)
+        from . import youtube
+
+        if not youtube.da_cau_hinh():
+            print("Chưa có khóa YouTube trong môi trường chạy, không làm được.")
+            return
+        kho = _kho(cfg, drive_)
+        kenh = youtube.KenhYouTube.tu_moi_truong()
+        bay_gio = datetime.now(cfg.mui_gio)
+        da_up = 0
+        for d in sheet.doc_tat_ca():
+            if da_up >= 5:
+                break
+            if d.trang_thai.strip() != DA_LEN_LICH or "youtu.be/" in d.ghi_chu or "YouTube lỗi" in d.ghi_chu:
+                continue
+            fid = drive_id_tu_link(d.media)
+            try:
+                gio_dang = datetime.combine(doc_ngay(d.ngay), doc_gio(d.gio), tzinfo=cfg.mui_gio)
+                if not fid or gio_dang < bay_gio + timedelta(minutes=30):
+                    continue
+                info = kho.thong_tin(fid)
+                if not info.la_video:
+                    continue
+                duong_dan = kho.tai_ve(fid)
+            except Exception:  # noqa: BLE001
+                continue
+            try:
+                vid = kenh.dang_video(duong_dan, youtube.tieu_de_tu_noi_dung(d.noi_dung), d.noi_dung.strip(), gio_dang, info.mime)
+                sheet.dat_ghi_chu(d.dong, (d.ghi_chu + f" | YouTube: https://youtu.be/{vid}").strip())
+                da_up += 1
+                print(f"  ✓ {d.ma_bai} ({d.ngay} {d.gio}) -> https://youtu.be/{vid}")
+            except Exception as e:  # noqa: BLE001
+                print(f"  ✗ {d.ma_bai}: {str(e)[:200]}")
+            finally:
+                os.unlink(duong_dan)
+        print(f"Đã đẩy thêm {da_up} video lên YouTube.")
+        return
     if args.viec == "xoa-dang-lai":  # xóa đúng MỘT bài sai đã đăng (nhận diện theo đầu nội dung) và đăng lại bằng video đúng sản phẩm
         from datetime import datetime as _dt
 
@@ -672,7 +709,7 @@ def main(argv=None) -> None:
     sub.add_parser("len-lich")
     sub.add_parser("tao-thu-muc")
     db_ = sub.add_parser("don-bai")
-    db_.add_argument("--viec", choices=["duyet", "bo-qua-gio", "dinh-dang", "xem", "duyet-ma", "doi-chieu-fb", "youtube", "thu-muc-drive", "kiem-anh", "sua-anh", "xoa-dang-lai"], required=True)
+    db_.add_argument("--viec", choices=["duyet", "bo-qua-gio", "dinh-dang", "xem", "duyet-ma", "doi-chieu-fb", "youtube", "thu-muc-drive", "kiem-anh", "sua-anh", "xoa-dang-lai", "youtube-bu"], required=True)
     db_.add_argument("--thu", action="store_true")
     db_.add_argument("--ma", default="")
     cd2 = sub.add_parser("che-do-duyet")

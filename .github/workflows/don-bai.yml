@@ -10,7 +10,7 @@ on:
         description: "Việc cần làm"
         required: true
         type: choice
-        options: ["duyet", "bo-qua-gio", "dinh-dang", "xem", "duyet-ma", "doi-chieu-fb", "youtube", "thu-muc-drive", "kiem-anh", "sua-anh", "xoa-dang-lai"]
+        options: ["duyet", "bo-qua-gio", "dinh-dang", "xem", "duyet-ma", "doi-chieu-fb", "youtube", "thu-muc-drive", "kiem-anh", "sua-anh", "xoa-dang-lai", "youtube-bu"]
       ma:
         description: "Mã bài (chỉ dùng cho duyet-ma, vd 2026-10-24_thu7_2030)"
         required: false
@@ -33,6 +33,9 @@ jobs:
       SHEET_DUYET_ID: ${{ secrets.SHEET_DUYET_ID }}
       DRIVE_KHO_ID: ${{ secrets.DRIVE_KHO_ID }}
       FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
+      YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+      YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+      YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
       FB_PAGE_TOKEN: ${{ secrets.FB_PAGE_TOKEN }}
     steps:
       - uses: actions/checkout@v4
