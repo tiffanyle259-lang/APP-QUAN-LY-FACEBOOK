@@ -424,6 +424,14 @@ def don_bai(cfg: CauHinh, args) -> None:
             if b.trang_thai.strip() == CHO_DUYET:
                 print(f"===== {b.ma_bai} ({b.ngay} {b.gio}) | {b.ghi_chu}\n{b.noi_dung}\n")
         return
+    if args.viec == "phan-tich":  # chỉ đọc: loại bài và khung giờ nào tương tác tốt nhất trong 28 ngày qua
+        from . import hoc
+        from .facebook import Fanpage
+
+        page = Fanpage(CauHinh.bien("FB_PAGE_ID"), CauHinh.bien("FB_PAGE_TOKEN"), cfg["facebook"]["graph_version"])
+        ph = hoc.phan_tich(page.bai_da_dang(datetime.now(cfg.mui_gio) - timedelta(days=28)), sheet.doc_tat_ca())
+        print("\n".join(hoc.tom_tat(ph)))
+        return
     if args.viec == "youtube-bu":  # đẩy lên YouTube các video đã hẹn giờ trên Facebook nhưng chưa có link YouTube (tối đa 5 video mỗi lần: hạn mức YouTube)
         from . import youtube
 
@@ -709,7 +717,7 @@ def main(argv=None) -> None:
     sub.add_parser("len-lich")
     sub.add_parser("tao-thu-muc")
     db_ = sub.add_parser("don-bai")
-    db_.add_argument("--viec", choices=["duyet", "bo-qua-gio", "dinh-dang", "xem", "duyet-ma", "doi-chieu-fb", "youtube", "thu-muc-drive", "kiem-anh", "sua-anh", "xoa-dang-lai", "youtube-bu"], required=True)
+    db_.add_argument("--viec", choices=["duyet", "bo-qua-gio", "dinh-dang", "xem", "duyet-ma", "doi-chieu-fb", "youtube", "thu-muc-drive", "kiem-anh", "sua-anh", "xoa-dang-lai", "youtube-bu", "phan-tich"], required=True)
     db_.add_argument("--thu", action="store_true")
     db_.add_argument("--ma", default="")
     cd2 = sub.add_parser("che-do-duyet")
