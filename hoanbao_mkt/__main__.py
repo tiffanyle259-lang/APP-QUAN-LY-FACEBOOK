@@ -104,7 +104,11 @@ def xem_ke_hoach(cfg: CauHinh, args) -> None:
                 continue
             print(bv.noi_dung)
             print(f"[từ khóa media: {', '.join(bv.tu_khoa_media)}]")
-            if la := so_lieu_la(bv.noi_dung, du_lieu_cua_bai(b, du_lieu)):
+            from . import gia as _gia
+
+        if [g for g in _gia.tim_gia(bv.noi_dung) if g not in _gia.SO_KHAC]:  # app không được tự ghi giá: giữ lại để người xem lại
+            canh_bao.append("Bài có ghi giá tiền: app không được tự ghi giá, cần xem lại")
+        if la := so_lieu_la(bv.noi_dung, du_lieu_cua_bai(b, du_lieu)):
                 print(f"⚠ Số liệu không có trong file: {', '.join(la)}")
 
 
