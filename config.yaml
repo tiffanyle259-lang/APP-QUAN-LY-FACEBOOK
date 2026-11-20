@@ -42,49 +42,73 @@ chi_dung_nguon_chung: true
 # Không dùng lại cùng một ảnh/video trong số ngày này (nếu kho còn file khác).
 khong_lap_lai_trong_ngay: 28
 
-# Lịch đăng cho Fanpage chính (Golden Lion), dồn vào các khung giờ có tương tác cao nhất theo số liệu 4 tuần (sáng sớm, đầu giờ làm, trưa, 15:30).
-# Ngoài lịch gốc trong file Excel (1 bài/ngày), mỗi ngày Thứ 2 đến Thứ 7 thêm các khung dưới đây (tổng 10 bài/ngày); Chủ nhật có 10 bài riêng.
-# Khung 15:30 là video Reel (loại bài có tương tác cao nhất). Đổi giờ theo số liệu ở bảng xếp hạng mỗi tuần.
+# Lịch đăng cho Fanpage chính (Golden Lion). Ngoài lịch gốc trong file Excel (1 bài/ngày), mỗi ngày Thứ 2 đến Thứ 7 thêm các khung dưới đây
+# (tổng 16 bài/ngày); Chủ nhật có 16 bài riêng (khung_chu_nhat). Loại bài xoay vòng theo thứ trong tuần. Khung 15:30 là video Reel (1 video/ngày).
+# Giới hạn của Facebook khoảng 25 bài/ngày/Page, nên để dư. Muốn ít bài hơn thì xóa bớt khung.
 khung_them:
   - gio: "06:30"
     loai_bai: [Giới thiệu sản phẩm, Mẹo dùng keo, Theo ngành, Giới thiệu sản phẩm, Mẹo dùng keo, Theo ngành]
     goi_y: "Bài đầu ngày, ngắn gọn 3-5 dòng, chào buổi sáng và nêu 1 ý hữu ích cho xưởng sắp vào ca."
-  - gio: "07:15"
+  - gio: "07:30"
     loai_bai: [Mẹo dùng keo, Theo ngành, Giới thiệu sản phẩm, Mẹo dùng keo, Theo ngành, Giới thiệu sản phẩm]
     goi_y: "Bài đầu ngày, ngắn gọn 3-5 dòng, chào buổi sáng và nêu 1 ý hữu ích cho xưởng sắp vào ca."
-  - gio: "08:45"
+  - gio: "08:30"
     loai_bai: [Theo ngành, Giới thiệu sản phẩm, Mẹo dùng keo, Theo ngành, Giới thiệu sản phẩm, Mẹo dùng keo]
     goi_y: "Bài đầu ngày, ngắn gọn 3-5 dòng, chào buổi sáng và nêu 1 ý hữu ích cho xưởng sắp vào ca."
-  - gio: "09:30"
-    loai_bai: [Hậu trường nhà máy / chính sách, Theo ngành, Mẹo dùng keo, Hậu trường nhà máy / chính sách, Giới thiệu sản phẩm, Theo ngành]
-    goi_y: "Bài đầu giờ làm việc: 1 mẹo thi công hoặc 1 câu hỏi xưởng hay gặp, 4-6 dòng, khác ý các bài khác trong ngày."
+  - gio: "09:45"
+    loai_bai: [Giới thiệu sản phẩm, Mẹo dùng keo, Theo ngành, Giới thiệu sản phẩm, Mẹo dùng keo, Theo ngành]
+    goi_y: "Bài giữa buổi sáng: 1 mẹo thi công hoặc 1 câu hỏi xưởng hay gặp, 4-6 dòng, khác ý các bài khác trong ngày."
+  - gio: "10:15"
+    loai_bai: [Mẹo dùng keo, Theo ngành, Giới thiệu sản phẩm, Mẹo dùng keo, Theo ngành, Giới thiệu sản phẩm]
+    goi_y: "Bài giữa buổi sáng: 1 mẹo thi công hoặc 1 câu hỏi xưởng hay gặp, 4-6 dòng, khác ý các bài khác trong ngày."
   - gio: "12:00"
-    loai_bai: [Mẹo dùng keo, Theo ngành, Giới thiệu sản phẩm, Mẹo dùng keo, Theo ngành, Giới thiệu sản phẩm]
-    goi_y: "Bài giờ nghỉ trưa, nhẹ nhàng dễ đọc: 1 lợi ích cụ thể hoặc tình huống xưởng hay gặp, đừng lặp ý bài sáng."
-  - gio: "12:45"
     loai_bai: [Theo ngành, Giới thiệu sản phẩm, Mẹo dùng keo, Theo ngành, Giới thiệu sản phẩm, Mẹo dùng keo]
     goi_y: "Bài giờ nghỉ trưa, nhẹ nhàng dễ đọc: 1 lợi ích cụ thể hoặc tình huống xưởng hay gặp, đừng lặp ý bài sáng."
+  - gio: "13:00"
+    loai_bai: [Giới thiệu sản phẩm, Mẹo dùng keo, Theo ngành, Giới thiệu sản phẩm, Mẹo dùng keo, Theo ngành]
+    goi_y: "Bài giờ nghỉ trưa, nhẹ nhàng dễ đọc: 1 lợi ích cụ thể hoặc tình huống xưởng hay gặp, đừng lặp ý bài sáng."
+  - gio: "14:00"
+    loai_bai: [Mẹo dùng keo, Theo ngành, Giới thiệu sản phẩm, Mẹo dùng keo, Theo ngành, Giới thiệu sản phẩm]
+    goi_y: "Bài buổi chiều: nêu 1 điểm khác biệt của sản phẩm hoặc 1 ví dụ ứng dụng cụ thể, kết bằng câu hỏi để khách bình luận."
   - gio: "15:30"
     loai_bai: [Video demo thật, Video demo thật, Video demo thật, Video demo thật, Video demo thật, Video demo thật]
     goi_y: "Bài buổi chiều: nêu 1 điểm khác biệt của sản phẩm hoặc 1 ví dụ ứng dụng cụ thể, kết bằng câu hỏi để khách bình luận."
-  - gio: "16:15"
-    loai_bai: [Mẹo dùng keo, Theo ngành, Giới thiệu sản phẩm, Mẹo dùng keo, Theo ngành, Giới thiệu sản phẩm]
+  - gio: "16:30"
+    loai_bai: [Giới thiệu sản phẩm, Mẹo dùng keo, Theo ngành, Giới thiệu sản phẩm, Mẹo dùng keo, Theo ngành]
     goi_y: "Bài buổi chiều: nêu 1 điểm khác biệt của sản phẩm hoặc 1 ví dụ ứng dụng cụ thể, kết bằng câu hỏi để khách bình luận."
+  - gio: "17:30"
+    loai_bai: [Mẹo dùng keo, Theo ngành, Giới thiệu sản phẩm, Mẹo dùng keo, Theo ngành, Giới thiệu sản phẩm]
+    goi_y: "Bài cuối giờ làm: nhắc 1 vấn đề xưởng hay gặp lúc sắp tan ca và cách keo giải quyết, mời nhắn Fanpage."
+  - gio: "18:30"
+    loai_bai: [Theo ngành, Giới thiệu sản phẩm, Mẹo dùng keo, Theo ngành, Giới thiệu sản phẩm, Mẹo dùng keo]
+    goi_y: "Bài cuối giờ làm: nhắc 1 vấn đề xưởng hay gặp lúc sắp tan ca và cách keo giải quyết, mời nhắn Fanpage."
   - gio: "20:30"
+    loai_bai: [Giới thiệu sản phẩm, Mẹo dùng keo, Theo ngành, Giới thiệu sản phẩm, Mẹo dùng keo, Theo ngành]
+    goi_y: "Bài buổi tối, giọng gần gũi: câu hỏi khách hay hỏi hoặc so sánh cách làm cũ với dùng keo, kết bằng lời mời inbox."
+  - gio: "21:30"
+    loai_bai: [Mẹo dùng keo, Theo ngành, Giới thiệu sản phẩm, Mẹo dùng keo, Theo ngành, Giới thiệu sản phẩm]
+    goi_y: "Bài buổi tối, giọng gần gũi: câu hỏi khách hay hỏi hoặc so sánh cách làm cũ với dùng keo, kết bằng lời mời inbox."
+  - gio: "22:30"
     loai_bai: [Theo ngành, Giới thiệu sản phẩm, Mẹo dùng keo, Theo ngành, Giới thiệu sản phẩm, Mẹo dùng keo]
     goi_y: "Bài buổi tối, giọng gần gũi: câu hỏi khách hay hỏi hoặc so sánh cách làm cũ với dùng keo, kết bằng lời mời inbox."
 
 khung_chu_nhat:
   - {gio: "08:00", loai_bai: Mẹo dùng keo, goi_y: "Bài đầu ngày, ngắn gọn 3-5 dòng, chào buổi sáng và nêu 1 ý hữu ích cho xưởng sắp vào ca."}
   - {gio: "06:30", loai_bai: Theo ngành, goi_y: "Bài đầu ngày, ngắn gọn 3-5 dòng, chào buổi sáng và nêu 1 ý hữu ích cho xưởng sắp vào ca."}
-  - {gio: "07:15", loai_bai: Giới thiệu sản phẩm, goi_y: "Bài đầu ngày, ngắn gọn 3-5 dòng, chào buổi sáng và nêu 1 ý hữu ích cho xưởng sắp vào ca."}
-  - {gio: "08:45", loai_bai: Mẹo dùng keo, goi_y: "Bài đầu ngày, ngắn gọn 3-5 dòng, chào buổi sáng và nêu 1 ý hữu ích cho xưởng sắp vào ca."}
-  - {gio: "09:30", loai_bai: Hậu trường nhà máy / chính sách, goi_y: "Bài đầu giờ làm việc: 1 mẹo thi công hoặc 1 câu hỏi xưởng hay gặp, 4-6 dòng, khác ý các bài khác trong ngày."}
-  - {gio: "12:00", loai_bai: Giới thiệu sản phẩm, goi_y: "Bài giờ nghỉ trưa, nhẹ nhàng dễ đọc: 1 lợi ích cụ thể hoặc tình huống xưởng hay gặp, đừng lặp ý bài sáng."}
-  - {gio: "12:45", loai_bai: Mẹo dùng keo, goi_y: "Bài giờ nghỉ trưa, nhẹ nhàng dễ đọc: 1 lợi ích cụ thể hoặc tình huống xưởng hay gặp, đừng lặp ý bài sáng."}
+  - {gio: "07:30", loai_bai: Giới thiệu sản phẩm, goi_y: "Bài đầu ngày, ngắn gọn 3-5 dòng, chào buổi sáng và nêu 1 ý hữu ích cho xưởng sắp vào ca."}
+  - {gio: "08:30", loai_bai: Mẹo dùng keo, goi_y: "Bài đầu ngày, ngắn gọn 3-5 dòng, chào buổi sáng và nêu 1 ý hữu ích cho xưởng sắp vào ca."}
+  - {gio: "09:45", loai_bai: Theo ngành, goi_y: "Bài giữa buổi sáng: 1 mẹo thi công hoặc 1 câu hỏi xưởng hay gặp, 4-6 dòng, khác ý các bài khác trong ngày."}
+  - {gio: "10:15", loai_bai: Giới thiệu sản phẩm, goi_y: "Bài giữa buổi sáng: 1 mẹo thi công hoặc 1 câu hỏi xưởng hay gặp, 4-6 dòng, khác ý các bài khác trong ngày."}
+  - {gio: "12:00", loai_bai: Mẹo dùng keo, goi_y: "Bài giờ nghỉ trưa, nhẹ nhàng dễ đọc: 1 lợi ích cụ thể hoặc tình huống xưởng hay gặp, đừng lặp ý bài sáng."}
+  - {gio: "13:00", loai_bai: Theo ngành, goi_y: "Bài giờ nghỉ trưa, nhẹ nhàng dễ đọc: 1 lợi ích cụ thể hoặc tình huống xưởng hay gặp, đừng lặp ý bài sáng."}
+  - {gio: "14:00", loai_bai: Giới thiệu sản phẩm, goi_y: "Bài buổi chiều: nêu 1 điểm khác biệt của sản phẩm hoặc 1 ví dụ ứng dụng cụ thể, kết bằng câu hỏi để khách bình luận."}
   - {gio: "15:30", loai_bai: Video demo thật, goi_y: "Bài buổi chiều: nêu 1 điểm khác biệt của sản phẩm hoặc 1 ví dụ ứng dụng cụ thể, kết bằng câu hỏi để khách bình luận."}
-  - {gio: "16:15", loai_bai: Giới thiệu sản phẩm, goi_y: "Bài buổi chiều: nêu 1 điểm khác biệt của sản phẩm hoặc 1 ví dụ ứng dụng cụ thể, kết bằng câu hỏi để khách bình luận."}
-  - {gio: "20:30", loai_bai: Mẹo dùng keo, goi_y: "Bài buổi tối, giọng gần gũi: câu hỏi khách hay hỏi hoặc so sánh cách làm cũ với dùng keo, kết bằng lời mời inbox."}
+  - {gio: "16:30", loai_bai: Theo ngành, goi_y: "Bài buổi chiều: nêu 1 điểm khác biệt của sản phẩm hoặc 1 ví dụ ứng dụng cụ thể, kết bằng câu hỏi để khách bình luận."}
+  - {gio: "17:30", loai_bai: Giới thiệu sản phẩm, goi_y: "Bài cuối giờ làm: nhắc 1 vấn đề xưởng hay gặp lúc sắp tan ca và cách keo giải quyết, mời nhắn Fanpage."}
+  - {gio: "18:30", loai_bai: Mẹo dùng keo, goi_y: "Bài cuối giờ làm: nhắc 1 vấn đề xưởng hay gặp lúc sắp tan ca và cách keo giải quyết, mời nhắn Fanpage."}
+  - {gio: "20:30", loai_bai: Theo ngành, goi_y: "Bài buổi tối, giọng gần gũi: câu hỏi khách hay hỏi hoặc so sánh cách làm cũ với dùng keo, kết bằng lời mời inbox."}
+  - {gio: "21:30", loai_bai: Giới thiệu sản phẩm, goi_y: "Bài buổi tối, giọng gần gũi: câu hỏi khách hay hỏi hoặc so sánh cách làm cũ với dùng keo, kết bằng lời mời inbox."}
+  - {gio: "22:30", loai_bai: Mẹo dùng keo, goi_y: "Bài buổi tối, giọng gần gũi: câu hỏi khách hay hỏi hoặc so sánh cách làm cũ với dùng keo, kết bằng lời mời inbox."}
 
 ai:
   model: claude-sonnet-5-5
