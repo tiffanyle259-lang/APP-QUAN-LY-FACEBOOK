@@ -21,7 +21,7 @@ concurrency:
 jobs:
   chay:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 180
     env:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
