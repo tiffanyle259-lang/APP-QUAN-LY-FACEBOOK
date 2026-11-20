@@ -341,3 +341,11 @@ def test_bai_chi_lay_file_dung_ma_san_pham_va_bai_video_chi_lay_video():
     assert chon_file(ds, [], False, set(), hn, 28, ma_bat_buoc=["405A"]).id == "b"  # khớp theo tên thư mục mã hàng
     assert chon_file(ds, [], False, set(), hn, 28, ma_bat_buoc=["S-PRO"]).id == "d"  # S-PRO khớp spro
     assert chon_file(ds, [], False, set(), hn, 28, ma_bat_buoc=["X66"]) is None  # không có file đúng mã thì để trống, không đăng bừa
+
+
+def test_video_trong_thu_muc_reel_duoc_uu_tien():
+    from hoanbao_mkt.kho_anh import FileMedia, chon_file
+
+    ds = [FileMedia("a", "HERO_228_x.mp4", "video/mp4", nhom="VIDEO-SACH-AI", can_khop=True),
+          FileMedia("b", "REEL_01_228_x.mp4", "video/mp4", nhom="VIDEO-DANG-REEL", can_khop=True, uu_tien=True)]
+    assert chon_file(ds, ["228"], True, set(), date(2026, 11, 20), 28, ma_bat_buoc=["228"], chi_video=True).id == "b"

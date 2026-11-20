@@ -21,6 +21,7 @@ class FileMedia:
     mime: str
     lan_dung_cuoi: date | None = None
     nhom: str = ""  # tên thư mục chứa (vd 405A, SPRO): thư mục theo mã hàng cũng được tính khi khớp từ khóa
+    uu_tien: bool = False  # video trong thư mục reel: ưu tiên hơn video khác khi cần chọn video
     can_khop: bool = False  # file từ nguồn chung: chỉ dùng cho bài có từ khóa (mã sản phẩm) khớp tên file
 
     @property
@@ -70,6 +71,7 @@ def chon_file(
         khop = sum(1 for t in tu_khoa if t in tu_ten or (" " in t and t in ten))
         d = khop * 3
         d += 5 if f.la_video == uu_tien_video else 0
+        d += 4 if f.uu_tien and f.la_video and uu_tien_video else 0
         if f.lan_dung_cuoi and (hom_nay - f.lan_dung_cuoi).days < khong_lap_lai_trong_ngay:
             d -= 30
         if f.id in dang_dung:  # đang nằm trong một bài khác của Sheet (chưa/đã lên lịch)
@@ -141,7 +143,8 @@ class KhoDrive:
                 elif file_nguon_chung_hop_le(f["name"], f["mimeType"], trong_video, video_ok, anh_ok):
                     dung = (f.get("appProperties") or {}).get("lan_dung_cuoi")
                     ds.append(FileMedia(f["id"], f["name"], f["mimeType"],
-                                        date.fromisoformat(dung) if dung else None, nhom=ten_nhom, can_khop=True))
+                                        date.fromisoformat(dung) if dung else None, nhom=ten_nhom, can_khop=True,
+                                        uu_tien="reel" in bo_dau(ten_nhom)))
         self._chung = ds
         return ds
 
