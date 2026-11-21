@@ -42,7 +42,7 @@ Tên các khóa bí mật (GitHub Secrets và Render Environment) liệt kê ở
 4. **Mỗi 2 giờ**, *Xếp ảnh vào kho*: AI xếp ảnh thả vào `_chua-phan-loai` (chỉ còn tác dụng nếu Kho-Marketing còn).
 5. **Hằng ngày 01:30**, *Đẩy bù video lên YouTube*: tối đa 5 video mỗi lần (hạn mức YouTube ~6 video/ngày).
 6. **Thứ Hai 08:07**, *Báo cáo tuần*: số liệu tương tác, lưu tab `Báo cáo tuần`, gửi email (nhắc sếp thả thêm ảnh/video).
-7. **Chatbot** (Render): nhận tin nhắn/bình luận qua webhook, trả lời bằng AI từ dữ liệu sản phẩm, xin SĐT khi khách hỏi giá, ghi tab `Khách hàng`, báo nhân viên. Khi nhân viên trả lời tay thì bot im lặng với cuộc chat đó. Bot **không báo giá**.
+7. **Chatbot** (Render) — **ĐÃ TẮT TRẢ LỜI từ 21/11/2026 theo lệnh sếp** (`bot.tat_tra_loi: true` trong `config.yaml`; phòng Marketing tự trả lời toàn bộ tin nhắn và bình luận). Bật lại: đặt `false` rồi đẩy code. Khi bật, bot: nhận tin nhắn/bình luận qua webhook, trả lời bằng AI từ dữ liệu sản phẩm, xin SĐT khi khách hỏi giá, ghi tab `Khách hàng`, báo nhân viên. Khi nhân viên trả lời tay thì bot im lặng với cuộc chat đó. Bot **không báo giá**.
 
 Cron (UTC) và giờ VN: tạo bài `7 2 * * 5` (T6 09:07), lên lịch `23 23,0-15 * * *` (mỗi giờ 06:23–22:23), xếp ảnh `17 */2 * * *`, báo cáo `7 1 * * 1`, YouTube bù `30 18 * * *`, bảng điều khiển `11 14 * * *`.
 

@@ -30,6 +30,7 @@ def chan_doan(url: str, app_id: str, app_secret: str, verify_token: str, page_id
             b, m = d.get("bot", {}), d.get("moi_truong", {})
             ra.append(f"• Máy chủ khởi động lúc: {b.get('khoi_dong', '?')} (giờ VN)")
             ra.append(f"• Facebook đã gọi webhook {b.get('goi_webhook', 0)} lần, lần cuối: {b.get('lan_cuoi') or 'chưa lần nào'}")
+            ra.append("• Trả lời của app: " + ("ĐANG TẮT (Marketing tự trả lời)" if b.get("tat_tra_loi") else "đang bật"))
             ra.append(f"• Tin khách nhận: {b.get('tin_nhan_khach', 0)} | bình luận: {b.get('binh_luan', 0)} | "
                       f"đã gửi trả lời: {b.get('da_gui_tra_loi', 0)} | bỏ qua vì im lặng: {b.get('bo_qua_im_lang', 0)}")
             ra.append(f"• Lỗi: {b.get('loi', 0)}" + (f" – lỗi cuối: {b['loi_cuoi']}" if b.get("loi_cuoi") else ""))

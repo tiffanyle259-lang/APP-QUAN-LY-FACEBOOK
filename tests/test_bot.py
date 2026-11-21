@@ -794,3 +794,21 @@ def test_nhan_rieng_binh_luan_da_tra_loi_roi_khong_bao_loi():
 
     m._goi = goi
     m.nhan_rieng_binh_luan("c1", "xin chào")  # không ném lỗi
+
+
+def test_bot_tat_tra_loi_hoan_toan_im_lang():
+    from hoanbao_bot.xu_ly import Bot
+
+    class Mess:
+        def __getattr__(self, ten):
+            raise AssertionError("bot đang tắt mà vẫn gọi " + ten)
+
+    class Ai:
+        def __getattr__(self, ten):
+            raise AssertionError("bot đang tắt mà vẫn gọi AI")
+
+    b = Bot("PAGE", Mess(), Ai(), tat_tra_loi=True)
+    b.xu_ly_su_kien({"object": "page", "entry": [{"messaging": [{"sender": {"id": "U"}, "message": {"mid": "m", "text": "giá keo?"}}],
+                                                  "changes": [{"field": "feed", "value": {"item": "comment", "verb": "add",
+                                                               "comment_id": "c", "post_id": "p", "parent_id": "p", "message": "giá"}}]}]})
+    assert b.thong_ke["tat_tra_loi"] and b.thong_ke["tin_nhan_khach"] == 0 and b.thong_ke["da_gui_tra_loi"] == 0

@@ -27,8 +27,9 @@ def tim_sdt(text: str) -> str:
 
 class Bot:
     def __init__(self, page_id: str, mess, ai, so_khach=None, bao=None, mui_gio: str = "Asia/Ho_Chi_Minh",
-                 gio=time.time):
+                 gio=time.time, tat_tra_loi: bool = False):
         self.page_id, self.mess, self.ai, self.so_khach, self.bao = page_id, mess, ai, so_khach, bao
+        self.tat_tra_loi = tat_tra_loi  # true: bot hoàn toàn im lặng, Marketing tự trả lời khách
         self.mui_gio, self.gio = ZoneInfo(mui_gio), gio
         self.da_xu_ly: OrderedDict[str, float] = OrderedDict()
         self.im_lang: dict[str, float] = {}
@@ -36,13 +37,14 @@ class Bot:
         # Số liệu để chẩn đoán từ xa (không chứa nội dung khách hay khóa).
         self.thong_ke = {"goi_webhook": 0, "su_kien": 0, "tin_nhan_khach": 0, "binh_luan": 0,
                          "da_gui_tra_loi": 0, "bo_qua_im_lang": 0, "loi": 0, "lan_cuoi": "", "loi_cuoi": "",
-                         "khoi_dong": datetime.fromtimestamp(self.gio(), self.mui_gio).strftime("%d/%m %H:%M:%S")}
+                         "khoi_dong": datetime.fromtimestamp(self.gio(), self.mui_gio).strftime("%d/%m %H:%M:%S"),
+                         "tat_tra_loi": tat_tra_loi}
 
     # ---- điểm vào ----
     def xu_ly_su_kien(self, body: dict) -> None:
         self.thong_ke["goi_webhook"] += 1
         self.thong_ke["lan_cuoi"] = datetime.fromtimestamp(self.gio(), self.mui_gio).strftime("%d/%m %H:%M:%S")
-        if body.get("object") != "page":
+        if body.get("object") != "page" or self.tat_tra_loi:
             return
         for entry in body.get("entry", []):
             for ev in entry.get("messaging", []):

@@ -131,6 +131,8 @@ facebook:
   app_id: "1570474760979317"
 
 # Giai đoạn 2: chatbot Messenger và bình luận (chạy trên máy chủ riêng, xem render.yaml).
+# true: TẮT toàn bộ trả lời của app (tin nhắn và bình luận). Phòng Marketing tự trả lời khách (Meta Inbox). Đặt false để bật lại.
 bot:
+  tat_tra_loi: true
   model: claude-sonnet-5-5
   effort: low

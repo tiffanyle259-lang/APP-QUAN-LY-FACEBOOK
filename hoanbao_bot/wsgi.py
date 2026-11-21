@@ -90,7 +90,8 @@ def tao_bot() -> tuple[Bot, str, str]:
                            CauHinh.bien("SHEET_DUYET_ID"))
     except Exception:
         logging.getLogger("hoanbao_bot").exception("Không nối được Google Sheet; bot vẫn chạy nhưng không ghi khách")
-    return (Bot(page_id, mess, ai, so_khach, bao_nhan_vien, cfg.get("mui_gio", "Asia/Ho_Chi_Minh")),
+    return (Bot(page_id, mess, ai, so_khach, bao_nhan_vien, cfg.get("mui_gio", "Asia/Ho_Chi_Minh"),
+                tat_tra_loi=bool(bot_cfg.get("tat_tra_loi"))),
             CauHinh.bien("FB_APP_SECRET"), CauHinh.bien("FB_VERIFY_TOKEN"))
 
 
