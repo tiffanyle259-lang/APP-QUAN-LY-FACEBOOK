@@ -544,7 +544,7 @@ def don_bai(cfg: CauHinh, args) -> None:
     if args.viec == "xoa-dang-lai":  # xóa đúng MỘT bài sai đã đăng (nhận diện theo đầu nội dung) và đăng lại bằng video đúng sản phẩm
         from datetime import datetime as _dt
 
-        from .duyet_bai import BO, DUYET
+        from .duyet_bai import BO
         from .facebook import Fanpage
         from .kho_anh import chon_file
 
