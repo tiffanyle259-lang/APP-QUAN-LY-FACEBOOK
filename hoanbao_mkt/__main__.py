@@ -286,6 +286,11 @@ def len_lich(cfg: CauHinh, args, drive=None, sheets=None) -> None:
                 print(f"  ! {d.ma_bai}: bài video nhưng gắn ảnh, chuyển Chờ duyệt (không đăng).")
                 continue
             duong_dan = kho.tai_ve(media.id) if media else None
+            from . import gia as _g
+            if _g.co_cau_cam(d.noi_dung):
+                d.noi_dung = _g.lam_sach(d.noi_dung)
+                sheet.dat_noi_dung(d.dong, d.noi_dung)
+                print(f"  . {d.ma_bai}: đã tự bỏ câu Toluene chung/giá sỉ trước khi hẹn giờ.")
             fb_id = page.len_lich(d.noi_dung.strip(), thoi_diem, duong_dan,
                                   la_video=bool(media and media.la_video), ten_file=media.ten if media else "media")
             ghi_chu = f"Hẹn đăng {thoi_diem:%H:%M %d/%m/%Y}"
@@ -455,6 +460,34 @@ def don_bai(cfg: CauHinh, args) -> None:
             except Exception as e:  # noqa: BLE001
                 print(f"  ✗ {d.ma_bai}: {str(e)[:150]}")
         print(f"{'XEM TRƯỚC: ' if args.thu else ''}{n} bài ở các khung {', '.join(sorted(gio_bo))} {'sẽ được bỏ' if args.thu else 'đã bỏ'}.")
+        return
+    if args.viec == "sua-cau-cam":  # bỏ câu 'cả nhà không chứa Toluene/Benzene' và dòng 'giá sỉ' trong bài CHƯA đăng (Sheet + bài đã hẹn giờ trên Facebook); --thu = chỉ xem
+        from . import gia
+        from .facebook import Fanpage
+
+        page = Fanpage(CauHinh.bien("FB_PAGE_ID"), CauHinh.bien("FB_PAGE_TOKEN"), cfg["facebook"]["graph_version"])
+        n = 0
+        for d in sheet.doc_tat_ca():
+            if d.trang_thai.strip() == "Bỏ" or not gia.co_cau_cam(d.noi_dung):
+                continue
+            try:  # bài đã tới giờ đăng = đã đăng: do sếp quyết, không đụng
+                if datetime.combine(doc_ngay(d.ngay), doc_gio(d.gio), tzinfo=cfg.mui_gio) <= datetime.now(cfg.mui_gio):
+                    continue
+            except Exception:  # noqa: BLE001
+                pass
+            moi = gia.lam_sach(d.noi_dung)
+            n += 1
+            print(f"{'XEM TRƯỚC: ' if args.thu else ''}{d.ma_bai} ({d.ngay} {d.gio}, {d.trang_thai}): bỏ {len(d.noi_dung) - len(moi)} ký tự")
+            if args.thu:
+                continue
+            sheet.dat_noi_dung(d.dong, moi)
+            if d.facebook_id.strip():
+                try:
+                    page.sua_noi_dung(d.facebook_id.strip(), moi)
+                    print("   đã sửa cả bài hẹn giờ trên Facebook")
+                except Exception as e:  # noqa: BLE001
+                    print(f"   ✗ Sheet đã sửa nhưng Facebook chưa: {str(e)[:150]}")
+        print(f"{n} bài {'sẽ được sửa' if args.thu else 'đã sửa'}.")
         return
     if args.viec == "ra-gia":  # đối chiếu giá ghi trong bài (Sheet + đã đăng trên Page) với bảng giá chính thức, ghi vào tab "Kiểm tra giá"
         from . import gia
@@ -789,7 +822,7 @@ def main(argv=None) -> None:
     sub.add_parser("len-lich")
     sub.add_parser("tao-thu-muc")
     db_ = sub.add_parser("don-bai")
-    db_.add_argument("--viec", choices=["duyet", "bo-qua-gio", "dinh-dang", "xem", "duyet-ma", "doi-chieu-fb", "youtube", "thu-muc-drive", "kiem-anh", "sua-anh", "xoa-dang-lai", "youtube-bu", "phan-tich", "bo-khung", "ra-gia"], required=True)
+    db_.add_argument("--viec", choices=["duyet", "bo-qua-gio", "dinh-dang", "xem", "duyet-ma", "doi-chieu-fb", "youtube", "thu-muc-drive", "kiem-anh", "sua-anh", "xoa-dang-lai", "youtube-bu", "phan-tich", "bo-khung", "ra-gia", "sua-cau-cam"], required=True)
     db_.add_argument("--thu", action="store_true")
     db_.add_argument("--ma", default="")
     cd2 = sub.add_parser("che-do-duyet")

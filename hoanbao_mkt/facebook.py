@@ -115,6 +115,13 @@ class Fanpage:
                                {**hen, "message": noi_dung}, files={"source": (ten_file, fh, mime)})
         return r.get("post_id") or r["id"]
 
+    def sua_noi_dung(self, fb_id: str, noi_dung: str) -> None:
+        """Sửa nội dung bài đã hẹn giờ (chưa đăng) trên Facebook."""
+        try:
+            self._post(f"{self.graph}/{fb_id}", {"message": noi_dung})
+        except LoiFacebook:
+            self._post(f"{self.graph}/{fb_id}", {"description": noi_dung})
+
     def _len_lich_reel(self, noi_dung: str, thoi_diem: datetime, file_media: str) -> str:
         """Hẹn giờ đăng video dạng Reel (3 bước của Meta: mở phiên, tải lên, chốt lịch). Trả về ID video."""
         bd = self._post(f"{self.graph}/{self.page_id}/video_reels", {"upload_phase": "start"})

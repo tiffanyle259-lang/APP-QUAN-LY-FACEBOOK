@@ -64,3 +64,21 @@ def kiem_tra(noi_dung: str, bang_gia: dict) -> list[str]:
         return [f"ghi giá {g:,}đ nhưng không rõ sản phẩm".replace(",", ".") for g in gia]
     hop_le = set().union(*(gia_hop_le(bang_gia, ma) for ma in sp))
     return [f"giá {g:,}đ không có trong bảng giá của {'/'.join(sp)}".replace(",", ".") for g in gia if g not in hop_le]
+
+
+# --- Câu cấm (sếp chốt 25/11): chỉ 228 và S-PRO được nói không Toluene; không ghi giá sỉ ---
+_CAU_TOLUENE = re.compile(r"[^\n.!?]*(?:cả nhà|mọi dòng|tất cả (?:các )?(?:dòng|loại|sản phẩm))[^\n.!?]*(?:toluene|benzene)[^\n.!?]*[.!?]?[ \t]*", re.I)
+_DONG_GIA_SI = re.compile(r"^[^\n]*giá sỉ[^\n]*\n?", re.I | re.M)
+
+
+def co_cau_cam(noi_dung: str) -> bool:
+    t = noi_dung or ""
+    return bool(_CAU_TOLUENE.search(t) or _DONG_GIA_SI.search(t))
+
+
+def lam_sach(noi_dung: str) -> str:
+    """Bỏ câu 'cả nhà đều không chứa Toluene/Benzene' và dòng 'giá sỉ ...'; giữ nguyên phần còn lại."""
+    t = _CAU_TOLUENE.sub("", noi_dung or "")
+    t = _DONG_GIA_SI.sub("", t)
+    t = re.sub(r"[ \t]+\n", "\n", t)
+    return re.sub(r"\n{3,}", "\n\n", t).strip()
