@@ -467,7 +467,10 @@ def don_bai(cfg: CauHinh, args) -> None:
 
         page = Fanpage(CauHinh.bien("FB_PAGE_ID"), CauHinh.bien("FB_PAGE_TOKEN"), cfg["facebook"]["graph_version"])
         n = 0
-        for d in sheet.doc_tat_ca():
+        tat_ca = sheet.doc_tat_ca()
+        from collections import Counter as _C
+        print("Tổng", len(tat_ca), "bài:", dict(_C(x.trang_thai.strip() for x in tat_ca)), "| có câu cấm:", sum(gia.co_cau_cam(x.noi_dung) for x in tat_ca))
+        for d in tat_ca:
             if d.trang_thai.strip() == "Bỏ" or not gia.co_cau_cam(d.noi_dung):
                 continue
             try:  # bài đã tới giờ đăng = đã đăng: do sếp quyết, không đụng
