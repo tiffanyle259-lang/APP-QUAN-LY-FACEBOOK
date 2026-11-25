@@ -492,6 +492,31 @@ def don_bai(cfg: CauHinh, args) -> None:
                     print(f"   ✗ Sheet đã sửa nhưng Facebook chưa: {str(e)[:150]}")
         print(f"{n} bài {'sẽ được sửa' if args.thu else 'đã sửa'}.")
         return
+    if args.viec == "len-lai":  # --ma "mã1,mã2": hủy bài đã hẹn giờ trên Facebook rồi đặt lại 'Duyệt' để Lên lịch hẹn lại bằng nội dung hiện có trong Sheet
+        from .duyet_bai import DUYET
+        from .facebook import Fanpage
+
+        page = Fanpage(CauHinh.bien("FB_PAGE_ID"), CauHinh.bien("FB_PAGE_TOKEN"), cfg["facebook"]["graph_version"])
+        ds = {m.strip() for m in args.ma.split(",") if m.strip()}
+        n = 0
+        for d in sheet.doc_tat_ca():
+            if d.ma_bai not in ds:
+                continue
+            try:
+                if datetime.combine(doc_ngay(d.ngay), doc_gio(d.gio), tzinfo=cfg.mui_gio) < datetime.now(cfg.mui_gio) + timedelta(minutes=30):
+                    print(f"  . {d.ma_bai}: còn dưới 30 phút hoặc đã qua giờ, không đụng.")
+                    continue
+                if args.thu:
+                    n += 1
+                    continue
+                if d.facebook_id.strip():
+                    page.xoa(d.facebook_id.strip())
+                sheet.cap_nhat(d.dong, DUYET, "Hẹn lại sau khi bỏ câu sai (Toluene chung/giá sỉ)", "")
+                n += 1
+            except Exception as e:  # noqa: BLE001
+                print(f"  ✗ {d.ma_bai}: {str(e)[:150]}")
+        print(f"{n} bài {'sẽ được hẹn lại' if args.thu else 'đã hủy lịch cũ, chờ Lên lịch hẹn lại'}.")
+        return
     if args.viec == "ra-gia":  # đối chiếu giá ghi trong bài (Sheet + đã đăng trên Page) với bảng giá chính thức, ghi vào tab "Kiểm tra giá"
         from . import gia
         from .facebook import Fanpage
@@ -825,7 +850,7 @@ def main(argv=None) -> None:
     sub.add_parser("len-lich")
     sub.add_parser("tao-thu-muc")
     db_ = sub.add_parser("don-bai")
-    db_.add_argument("--viec", choices=["duyet", "bo-qua-gio", "dinh-dang", "xem", "duyet-ma", "doi-chieu-fb", "youtube", "thu-muc-drive", "kiem-anh", "sua-anh", "xoa-dang-lai", "youtube-bu", "phan-tich", "bo-khung", "ra-gia", "sua-cau-cam"], required=True)
+    db_.add_argument("--viec", choices=["duyet", "bo-qua-gio", "dinh-dang", "xem", "duyet-ma", "doi-chieu-fb", "youtube", "thu-muc-drive", "kiem-anh", "sua-anh", "xoa-dang-lai", "youtube-bu", "phan-tich", "bo-khung", "ra-gia", "sua-cau-cam", "len-lai"], required=True)
     db_.add_argument("--thu", action="store_true")
     db_.add_argument("--ma", default="")
     cd2 = sub.add_parser("che-do-duyet")
