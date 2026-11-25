@@ -81,6 +81,7 @@ Workflow **Dọn bài trong Sheet** (`don-bai.yml`), ô `viec` (và `ma`, `thu` 
 | `youtube` / `youtube-bu` | Liệt kê video đã lên YouTube và công khai chưa / đẩy bù các video chưa có (tối đa 5) |
 | `thu-muc-drive` | Liệt kê thư mục Drive app thấy; `ma` = `top:<id>` xem thư mục cấp 1, hoặc `<id>` xem bên trong 2 cấp |
 | `phan-tich` | Phân tích 4 tuần: loại bài và khung giờ tương tác tốt nhất (điểm = cảm xúc + 2×bình luận + 3×chia sẻ) |
+| `sua-cau-cam` | Bỏ câu "cả nhà không chứa Toluene/Benzene" và dòng "giá sỉ" trong bài chưa đăng (Sheet + bài hẹn giờ trên Facebook); `thu` = chỉ xem |
 | `ra-gia` | Đối chiếu giá trong bài (Sheet và Page 120 ngày) với `bang_gia`, ghi tab `Kiểm tra giá` |
 | `kiem-anh` / `sua-anh` | Kiểm tra / sửa bài chưa đăng gán sai ảnh-video (xem mục 5). `sua-anh` cần `thu=false` |
 | `xoa-dang-lai` | Xóa **một** bài sai đã đăng (nhận theo đầu nội dung `ma`) và đăng lại bằng video đúng. **Chưa từng chạy thật, chỉ chạy khi sếp ra lệnh** |
