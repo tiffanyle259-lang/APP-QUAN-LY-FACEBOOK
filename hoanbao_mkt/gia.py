@@ -74,15 +74,13 @@ _DONG_GIA_SI = re.compile(r"^[^\n]*giá sỉ[^\n]*\n?", re.I | re.M)
 
 def co_cau_cam(noi_dung: str) -> bool:
     t = noi_dung or ""
-    return bool(_CAU_TOLUENE.search(t) or _CAU_CHUNG2.search(t) or _DONG_GIA_SI.search(t) or re.search(r"toluene\s*/\s*benzene|EU/Mỹ", t, re.I))
+    return bool(_CAU_TOLUENE.search(t) or _CAU_CHUNG2.search(t) or _DONG_GIA_SI.search(t))
 
 
 def lam_sach(noi_dung: str) -> str:
     """Bỏ câu 'cả nhà đều không chứa Toluene/Benzene' và dòng 'giá sỉ ...'; giữ nguyên phần còn lại."""
     t = _CAU_TOLUENE.sub("", noi_dung or "")
     t = _CAU_CHUNG2.sub("", t)
-    t = re.sub(r"toluene\s*/\s*benzene", "Toluene", t, flags=re.I)  # Benzene chưa có căn cứ
-    t = re.sub(r",?\s*đạt chuẩn xuất khẩu EU/Mỹ", "", t, flags=re.I)
     t = _DONG_GIA_SI.sub("", t)
     t = re.sub(r"[ \t]+\n", "\n", t)
     return re.sub(r"\n{3,}", "\n\n", t).strip()
